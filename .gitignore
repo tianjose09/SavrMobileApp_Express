@@ -1,0 +1,15 @@
+# Laravel
+savr_backend/vendor/
+savr_backend/node_modules/
+savr_backend/.env
+savr_backend/storage/*.key
+
+# React Native / Expo
+savr_mobile/node_modules/
+savr_mobile/.expo/
+savr_mobile/dist/
+savr_mobile/web-build/
+
+# General
+.DS_Store
+Thumbs.db

@@ -20,8 +20,9 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.APP_PORT || 8000;
-app.listen(PORT, () => {
-  console.log(`SAVR API running on http://localhost:${PORT}`);
+const HOST = process.env.APP_HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`SAVR API running on http://${HOST}:${PORT}`);
 });
 
 module.exports = app;
