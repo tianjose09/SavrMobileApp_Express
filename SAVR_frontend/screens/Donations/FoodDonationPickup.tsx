@@ -1,0 +1,518 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, SafeAreaView } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ApiService } from '../../services/api';
+
+export default function FoodDonationPickup({ route, navigation }: any) {
+  const initialType = route.params?.initialScheduleType || 'pickup';
+  const [scheduleType, setScheduleType] = useState<'pickup' | 'delivery'>(initialType);
+  const [pickupAddress, setPickupAddress] = useState('');
+
+  const [location, setLocation] = useState({
+    latitude: 14.4445, // roughly Las Pinas
+    longitude: 120.9842,
+    latitudeDelta: 0.0422,
+    longitudeDelta: 0.0221,
+  });
+
+  const [pickupDate, setPickupDate] = useState<Date>(new Date());
+  const [pickupTime, setPickupTime] = useState<Date>(new Date());
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+
+
+  const { foodItems } = route.params || { foodItems: [] };
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      try {
+        let loc = await Location.getCurrentPositionAsync({});
+        setLocation({
+          ...location,
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } catch (e) { }
+    })();
+  }, []);
+
+  const handleSubmit = async () => {
+    const hours = pickupTime.getHours();
+    if (hours < 8 || hours >= 17) {
+      Alert.alert('Invalid Time', 'Please select a time within working hours (8:00 AM to 5:00 PM).');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+
+      formData.append('schedule_type', scheduleType);
+
+      if (scheduleType === 'pickup') {
+        formData.append('pickup_latitude', location.latitude.toString());
+        formData.append('pickup_longitude', location.longitude.toString());
+        formData.append('pickup_address', pickupAddress || 'Coordinates Pinned Location');
+      } else {
+        // Warehouse static
+        formData.append('pickup_latitude', '14.5332');
+        formData.append('pickup_longitude', '121.0189');
+        formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines');
+      }
+
+      // Backend expects parsed formats
+      const finalDateStr = pickupDate.toISOString().split('T')[0];
+      const finalTimeStr = pickupTime.toTimeString().split(' ')[0].substring(0, 5);
+      formData.append('preferred_date', finalDateStr);
+      formData.append('time_slot', finalTimeStr);
+
+      formData.append('food_items', JSON.stringify(foodItems.map((fi: any) => ({
+        type: fi.type,
+        quantity: fi.quantity,
+        expiry_date: fi.expiryDate
+      }))));
+
+      foodItems.forEach((item: any, idx: number) => {
+        if (item.photoUri) {
+          const filename = item.photoUri.split('/').pop() || `food_${idx}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image`;
+          // @ts-ignore
+          formData.append(`food_images[${idx}]`, { uri: item.photoUri, name: filename, type });
+        }
+      });
+
+      const response = await ApiService.submitFoodDonation(formData);
+      if (response.data.success) {
+        const donatedItemsStr = foodItems.map((fi: any) => `${fi.quantity} of ${fi.type}`).join(', ');
+        Alert.alert('Success', `You donated ${donatedItemsStr}! Schedule submitted.`);
+        navigation.navigate('HomeTabs', { screen: 'Home' });
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to submit.');
+      }
+    } catch (e: any) {
+      console.log(e.response?.data);
+      Alert.alert('Error', e.response?.data?.message || 'Connection error.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd} / ${mm} / ${yyyy}`;
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' -';
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* TOP NAV & HERO */}
+        <View style={styles.topHeaderWrap}>
+          <View style={styles.topNav}>
+            <TouchableOpacity onPress={() => navigation.navigate('FoodDonationDetails')} style={{ paddingRight: 10, paddingVertical: 5 }}>
+              <Ionicons name="chevron-back" size={32} color="#544434" />
+            </TouchableOpacity>
+
+            <View style={styles.topRightIcons}>
+              <TouchableOpacity style={styles.iconBtn}>
+                <Ionicons name="notifications-outline" size={28} color="#544434" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => navigation.openDrawer?.()}
+              >
+                <Ionicons name="menu-outline" size={36} color="#544434" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.heroTitleWrap}>
+            <Image
+              source={require('../../assets/images/foodonationicon.png')}
+              style={styles.heroMainIconImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.heroTitle}>Food Donation</Text>
+          </View>
+        </View>
+
+        <View style={styles.scheduleTitleWrap}>
+          <Text style={styles.scheduleTitle}>Schedule Pickup & Delivery</Text>
+        </View>
+
+        {/* TOGGLE BUTTONS */}
+        <View style={styles.toggleWrap}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, scheduleType === 'pickup' && styles.toggleBtnActive]}
+            onPress={() => setScheduleType('pickup')}
+          >
+            <Text style={[styles.toggleBtnText, scheduleType === 'pickup' && styles.toggleBtnTextActive]}>PICK UP</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.toggleBtn, scheduleType === 'delivery' && styles.toggleBtnActive]}
+            onPress={() => setScheduleType('delivery')}
+          >
+            <Text style={[styles.toggleBtnText, scheduleType === 'delivery' && styles.toggleBtnTextActive]}>DELIVERY</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ADDRESS SECTION */}
+        <View style={styles.addressSection}>
+          <Text style={styles.inputLabel}>{scheduleType === 'pickup' ? 'Pickup Address' : 'Warehouse Address'}</Text>
+
+          {scheduleType === 'pickup' ? (
+            <TextInput
+              style={styles.addressInput}
+              placeholder="Enter pickup address"
+              placeholderTextColor="#A9A9A9"
+              value={pickupAddress}
+              onChangeText={setPickupAddress}
+            />
+          ) : (
+            <View style={styles.warehouseAddressWrap}>
+              <Ionicons name="location" size={22} color="#111" style={{ marginRight: 6, flexShrink: 0, alignSelf: 'flex-start', marginTop: 2 }} />
+              <Text style={styles.warehouseAddressText}>Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines</Text>
+            </View>
+          )}
+        </View>
+
+        {/* MAP */}
+        <View style={styles.mapContainer}>
+          <MapView
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            region={scheduleType === 'pickup' ? location : {
+              latitude: 14.5332,
+              longitude: 121.0189,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+            onRegionChangeComplete={(reg) => {
+              if (scheduleType === 'pickup') {
+                setLocation(reg);
+              }
+            }}
+          />
+          {scheduleType === 'pickup' && (
+            <View style={styles.markerFixed}>
+              <Ionicons name="location" size={40} color="#D06724" />
+            </View>
+          )}
+          {scheduleType === 'delivery' && (
+            <Marker
+              coordinate={{ latitude: 14.5332, longitude: 121.0189 }}
+              pinColor="red"
+            />
+          )}
+        </View>
+
+        <View style={styles.dateTimeWrap}>
+          <View style={styles.halfInput}>
+            <Text style={styles.inputLabel}>Preferred Date</Text>
+            <TouchableOpacity
+              style={[styles.pickerInputWrapper, { position: 'relative' }]}
+              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('date')}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
+                <Text style={styles.pickerTextInput}>
+                  {pickupDate.toLocaleDateString()}
+                </Text>
+                <View style={styles.pickerIconBtn}>
+                  <Ionicons name="calendar-outline" size={20} color="#CA6118" />
+                </View>
+              </View>
+              {Platform.OS === 'ios' && (
+                <DateTimePicker
+                  style={styles.invisiblePicker}
+                  value={pickupDate}
+                  mode="date"
+                  display="compact"
+                  minimumDate={new Date()}
+                  onChange={(event, date) => {
+                    if (date) setPickupDate(date);
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.halfInput}>
+            <Text style={styles.inputLabel}>Time Slot</Text>
+            <TouchableOpacity
+              style={[styles.pickerInputWrapper, { position: 'relative' }]}
+              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('time')}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
+                <Text style={styles.pickerTextInput}>
+                  {pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' -'}
+                </Text>
+                <View style={styles.pickerIconBtn}>
+                  <Ionicons name="time-outline" size={20} color="#CA6118" />
+                </View>
+              </View>
+              {Platform.OS === 'ios' && (
+                <DateTimePicker
+                  style={styles.invisiblePicker}
+                  value={pickupTime}
+                  mode="time"
+                  display="compact"
+                  onChange={(event, date) => {
+                    if (date) setPickupTime(date);
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+
+
+        <View style={styles.submitWrap}>
+          <TouchableOpacity
+            style={[styles.submitBtn, isLoading && { opacity: 0.7 }]}
+            onPress={handleSubmit}
+            disabled={isLoading}
+          >
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit</Text>}
+          </TouchableOpacity>
+        </View>
+
+      </ScrollView>
+
+      {/* Shared Absolute OS Date/Time Picker */}
+      {Platform.OS !== 'ios' && datePickerMode && (
+        <DateTimePicker
+          value={datePickerMode === 'date' ? pickupDate : pickupTime}
+          mode={datePickerMode}
+          minimumDate={datePickerMode === 'date' ? new Date() : undefined}
+          display="default"
+          onChange={(event, selectedDate) => {
+            const currentMode = datePickerMode;
+            setDatePickerMode(null);
+
+            if (event.type === 'set' && selectedDate) {
+              if (currentMode === 'date') setPickupDate(selectedDate);
+              else if (currentMode === 'time') setPickupTime(selectedDate);
+            }
+          }}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
+  topHeaderWrap: {
+    backgroundColor: '#FFFFFF',
+  },
+  topNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingBottom: 12,
+    marginTop: 12,
+  },
+  logoImage: {
+    width: 170,
+    height: 58,
+  },
+  topRightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconBtn: {
+    marginLeft: 18,
+  },
+  topDivider: {
+    height: 1,
+    backgroundColor: '#544434',
+    opacity: 0.5,
+  },
+  heroTitleWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 10,
+    paddingBottom: 5,
+    flexDirection: 'row',
+  },
+  heroMainIconImage: {
+    width: 60,
+    height: 60,
+    marginRight: 12,
+  },
+  heroTitle: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: '#00592d',
+    letterSpacing: - 0.5,
+  },
+
+  scheduleTitleWrap: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  scheduleTitle: {
+    fontSize: 25,
+    fontWeight: '700',
+    color: '#CA6118',
+  },
+
+  toggleWrap: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 38,
+    marginBottom: 26,
+    gap: 15,
+  },
+  toggleBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  toggleBtnActive: {
+    backgroundColor: '#D17C31',
+    borderColor: '#D17C31',
+  },
+  toggleBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111',
+  },
+  toggleBtnTextActive: {
+    color: '#FFF',
+  },
+
+  addressSection: {
+    paddingHorizontal: 30,
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 10,
+    letterSpacing: -0.5,
+  },
+  addressInput: {
+    borderWidth: 1.5,
+    borderColor: '#A9A9A9',
+    borderRadius: 4,
+    paddingHorizontal: 15,
+    height: 48,
+    fontSize: 15,
+    color: '#333',
+  },
+  warehouseAddressWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 2,
+  },
+  warehouseAddressText: {
+    fontSize: 15,
+    color: '#111',
+    flex: 1,
+    lineHeight: 20,
+  },
+
+  mapContainer: {
+    height: 250,
+    marginHorizontal: 30,
+    borderWidth: 1,
+    borderColor: '#CCC',
+    marginBottom: 25,
+    position: 'relative',
+  },
+  map: {
+    flex: 1,
+  },
+  markerFixed: {
+    left: '50%', top: '50%', position: 'absolute',
+    marginLeft: -20, marginTop: -40,
+    justifyContent: 'flex-end', alignItems: 'center',
+  },
+
+  dateTimeWrap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 30,
+    marginBottom: 30,
+  },
+  halfInput: {
+    width: '47%',
+  },
+  pickerInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#A9A9A9',
+    borderRadius: 4,
+    height: 48,
+    paddingHorizontal: 10,
+  },
+  pickerTextInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 48,
+  },
+  pickerIconBtn: {
+    padding: 5,
+    overflow: 'hidden',
+  },
+  invisiblePicker: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    opacity: 0.011,
+    zIndex: 999,
+  },
+
+  submitWrap: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 30,
+  },
+  submitBtn: {
+    backgroundColor: '#2A8F53',
+    width: 100,
+    height: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 4,
+  },
+  submitBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
+
+});

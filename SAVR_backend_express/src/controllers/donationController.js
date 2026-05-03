@@ -1,0 +1,571 @@
+const axios = require('axios');
+const db = require('../db');
+const dayjs = require('dayjs');
+const relativeTime = require('dayjs/plugin/relativeTime');
+dayjs.extend(relativeTime);
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatAmount(amount) {
+  return parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+}
+
+async function logActivity(userId, type, title, description, icon = 'financialiconyellow') {
+  await db.execute(
+    'INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+    [userId, type, title, description, icon]
+  );
+}
+
+async function recalculateBadges(userId) {
+  const [[{ foodCount }]] = await db.execute(
+    "SELECT COUNT(*) AS foodCount FROM food_donations WHERE user_id = ? AND status IN ('scheduled','completed')",
+    [userId]
+  );
+  const [[{ financialTotal }]] = await db.execute(
+    "SELECT COALESCE(SUM(amount), 0) AS financialTotal FROM financial_donations WHERE user_id = ? AND status = 'paid'",
+    [userId]
+  );
+  const [[{ serviceCount }]] = await db.execute(
+    "SELECT COUNT(*) AS serviceCount FROM service_donations WHERE user_id = ? AND status IN ('confirmed','completed')",
+    [userId]
+  );
+
+  const [badges] = await db.execute('SELECT * FROM badges');
+
+  for (const badge of badges) {
+    let current = 0;
+    if (badge.goal_type === 'food_count') current = foodCount;
+    else if (badge.goal_type === 'financial_total') current = parseFloat(financialTotal);
+    else if (badge.goal_type === 'service_count') current = serviceCount;
+
+    let status = 'not_started';
+    if (current >= badge.goal_value) status = 'earned';
+    else if (current > 0) status = 'in_progress';
+
+    const progress = Math.min(current, badge.goal_value);
+
+    const [existing] = await db.execute(
+      'SELECT * FROM user_badges WHERE user_id = ? AND badge_id = ?',
+      [userId, badge.id]
+    );
+
+    if (existing.length) {
+      if (existing[0].status !== 'earned') {
+        const earnedAt = status === 'earned' && !existing[0].earned_at ? new Date() : existing[0].earned_at;
+        await db.execute(
+          'UPDATE user_badges SET status = ?, progress = ?, earned_at = ? WHERE user_id = ? AND badge_id = ?',
+          [status, progress, earnedAt, userId, badge.id]
+        );
+      }
+    } else {
+      const earnedAt = status === 'earned' ? new Date() : null;
+      await db.execute(
+        'INSERT INTO user_badges (user_id, badge_id, status, progress, earned_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+        [userId, badge.id, status, progress, earnedAt]
+      );
+    }
+  }
+}
+
+exports.recalculateBadges = recalculateBadges;
+
+function parseTimeSlot(timeSlot) {
+  if (!timeSlot) return { start: null, end: null };
+  const parts = timeSlot.split(' - ');
+  const cleanTime = (str) => (str || '').replace(/[^\x20-\x7E]/g, ' ').trim();
+  const s = cleanTime(parts[0] || timeSlot);
+  const e = cleanTime(parts[1] || '');
+
+  let start = null, end = null;
+  try { if (s) start = dayjs(`1970-01-01 ${s}`).format('HH:mm:ss'); } catch {}
+  try {
+    if (e) end = dayjs(`1970-01-01 ${e}`).format('HH:mm:ss');
+    else if (start) end = dayjs(`1970-01-01 ${start}`).add(1, 'hour').format('HH:mm:ss');
+  } catch {}
+
+  return { start, end };
+}
+
+// ─── PayMongo ─────────────────────────────────────────────────────────────────
+
+exports.createPaymongoCheckout = async (req, res) => {
+  const { amount, message } = req.body;
+
+  if (!amount || isNaN(amount) || parseFloat(amount) < 1) {
+    return res.status(422).json({ success: false, errors: { amount: ['Amount must be at least 1.'] } });
+  }
+
+  const amountCentavos = Math.round(parseFloat(amount) * 100);
+  const secretKey = process.env.PAYMONGO_SECRET_KEY;
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+  try {
+    const [donationResult] = await db.execute(
+      "INSERT INTO financial_donations (user_id, amount, payment_method, message, status, created_at, updated_at) VALUES (?, ?, 'paymongo', ?, 'pending', NOW(), NOW())",
+      [req.user.id, amount, message || null]
+    );
+    const donationId = donationResult.insertId;
+
+    const response = await axios.post(
+      'https://api.paymongo.com/v1/checkout_sessions',
+      {
+        data: {
+          attributes: {
+            line_items: [{
+              currency: 'PHP',
+              amount: amountCentavos,
+              name: 'SAVR Food Bank Donation',
+              quantity: 1,
+              description: message || 'Donation to SAVR Food Bank',
+            }],
+            payment_method_types: ['qrph'],
+            success_url: `${baseUrl}/api/payment/success?donation_id=${donationId}`,
+            cancel_url: `${baseUrl}/api/payment/cancel`,
+            description: 'SAVR Food Bank Donation',
+          },
+        },
+      },
+      {
+        auth: { username: secretKey, password: '' },
+        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+      }
+    );
+
+    const data = response.data.data;
+    const checkoutUrl = data.attributes.checkout_url;
+    const paymentId = data.id;
+
+    await db.execute(
+      'UPDATE financial_donations SET paymongo_payment_id = ?, paymongo_link_id = ? WHERE id = ?',
+      [paymentId, checkoutUrl, donationId]
+    );
+
+    return res.json({ success: true, checkout_url: checkoutUrl, payment_id: paymentId, donation_id: donationId });
+  } catch (err) {
+    console.error(err?.response?.data || err.message);
+    return res.status(500).json({ success: false, message: err?.response?.data ? JSON.stringify(err.response.data) : err.message });
+  }
+};
+
+exports.paymongoWebhook = async (req, res) => {
+  const event = req.body?.data?.attributes?.type;
+  const data = req.body?.data?.attributes?.data;
+
+  if (event === 'checkout_session.payment.paid') {
+    const checkoutId = data?.id;
+    if (checkoutId) {
+      const [rows] = await db.execute(
+        "SELECT * FROM financial_donations WHERE paymongo_payment_id = ? AND status != 'paid'",
+        [checkoutId]
+      );
+      const donation = rows[0];
+      if (donation) {
+        await db.execute("UPDATE financial_donations SET status = 'paid' WHERE id = ?", [donation.id]);
+        await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
+        await recalculateBadges(donation.user_id);
+      }
+    }
+  }
+
+  return res.json({ received: true });
+};
+
+exports.checkPaymentStatus = async (req, res) => {
+  const donationId = req.params.id;
+  const [rows] = await db.execute(
+    'SELECT * FROM financial_donations WHERE id = ? AND user_id = ?',
+    [donationId, req.user.id]
+  );
+  const donation = rows[0];
+
+  if (!donation) {
+    return res.status(404).json({ success: false, message: 'Donation not found.' });
+  }
+
+  return res.json({ success: true, status: donation.status, amount: donation.amount });
+};
+
+// ─── Payment Redirect Pages ───────────────────────────────────────────────────
+
+exports.paymentSuccess = async (req, res) => {
+  if (req.query.donation_id) {
+    const [rows] = await db.execute(
+      "SELECT * FROM financial_donations WHERE id = ? AND status != 'paid'",
+      [req.query.donation_id]
+    );
+    const donation = rows[0];
+    if (donation) {
+      await db.execute("UPDATE financial_donations SET status = 'paid' WHERE id = ?", [donation.id]);
+      await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
+      await recalculateBadges(donation.user_id);
+    }
+  }
+
+  return res.send(`<html><body style="background:#1E583A;color:white;text-align:center;font-family:sans-serif;padding-top:100px;"><h1>Payment Successful! 🎉</h1><p>Thank you for donating to SAVR FoodBank.</p><p><strong>You may now close this browser window and return to the app.</strong></p></body></html>`);
+};
+
+exports.paymentCancel = (req, res) => {
+  return res.send(`<html><body style="background:#f8f9fa;color:#333;text-align:center;font-family:sans-serif;padding-top:100px;"><h1>Payment Cancelled</h1><p><strong>You may close this browser window and return to the app.</strong></p></body></html>`);
+};
+
+// ─── Food Donation ────────────────────────────────────────────────────────────
+
+exports.submitFood = async (req, res) => {
+  const { schedule_type, preferred_date, time_slot, pickup_address, pickup_latitude, pickup_longitude } = req.body;
+  let foodItems;
+
+  try {
+    foodItems = typeof req.body.food_items === 'string'
+      ? JSON.parse(req.body.food_items)
+      : req.body.food_items;
+  } catch {
+    return res.status(422).json({ success: false, message: 'Invalid food items array payload.' });
+  }
+
+  if (!Array.isArray(foodItems)) {
+    return res.status(422).json({ success: false, message: 'Invalid food items array payload.' });
+  }
+  if (!schedule_type || !['pickup', 'delivery'].includes(schedule_type)) {
+    return res.status(422).json({ success: false, errors: { schedule_type: ['Must be pickup or delivery.'] } });
+  }
+  if (!preferred_date) {
+    return res.status(422).json({ success: false, errors: { preferred_date: ['Preferred date is required.'] } });
+  }
+
+  const { start, end } = parseTimeSlot(time_slot);
+
+  const files = req.files || [];
+
+  const [donationResult] = await db.execute(
+    `INSERT INTO food_donations (user_id, mode, preferred_date, time_slot_start, time_slot_end, pickup_address, pickup_lat, pickup_lng, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', NOW(), NOW())`,
+    [req.user.id, schedule_type, preferred_date, start, end, pickup_address || null, pickup_latitude || null, pickup_longitude || null]
+  );
+  const donationId = donationResult.insertId;
+
+  for (let i = 0; i < foodItems.length; i++) {
+    const item = foodItems[i];
+    const rawQty = item.quantity ?? 1;
+    const numQty = parseFloat(String(rawQty).replace(/[^0-9.]/g, '')) || 1;
+    const unitMatch = String(rawQty).match(/[a-zA-Z]+/);
+    const unit = unitMatch ? unitMatch[0] : (item.unit || 'pcs');
+
+    const expiryDate = item.expiryDate
+      ? dayjs(item.expiryDate).format('YYYY-MM-DD')
+      : item.expiry_date
+        ? dayjs(item.expiry_date).format('YYYY-MM-DD')
+        : null;
+
+    const photoPath = files[i] ? files[i].path : null;
+
+    await db.execute(
+      `INSERT INTO food_donation_items (food_donation_id, food_name, quantity, unit, category, expiration_date, special_notes, photo_path, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [donationId, item.foodName || item.name || 'Unknown Item', numQty, unit, item.category || item.type || 'General', expiryDate, item.notes || null, photoPath]
+    );
+  }
+
+  await logActivity(req.user.id, 'food', 'Food Donation Incoming', `${foodItems.length} items scheduled for ${schedule_type}`, 'truckicon');
+  await recalculateBadges(req.user.id);
+
+  return res.status(201).json({ success: true, message: 'Food donation and schedule confirmed.', donation_id: donationId });
+};
+
+exports.submitSchedule = async (req, res) => {
+  const { donation_id, schedule_type, preferred_date, time_slot, pickup_address, pickup_lat, pickup_lng } = req.body;
+
+  if (!donation_id || !schedule_type || !preferred_date || !time_slot) {
+    return res.status(422).json({ success: false, message: 'Required fields missing.' });
+  }
+
+  const [rows] = await db.execute(
+    'SELECT * FROM food_donations WHERE id = ? AND user_id = ?',
+    [donation_id, req.user.id]
+  );
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Donation not found.' });
+  }
+
+  const { start, end } = parseTimeSlot(time_slot);
+
+  await db.execute(
+    `UPDATE food_donations SET mode = ?, preferred_date = ?, time_slot_start = ?, time_slot_end = ?, pickup_address = ?, pickup_lat = ?, pickup_lng = ?, status = 'scheduled', updated_at = NOW() WHERE id = ?`,
+    [schedule_type, preferred_date, start, end, pickup_address || null, pickup_lat || null, pickup_lng || null, donation_id]
+  );
+
+  const [updated] = await db.execute('SELECT * FROM food_donations WHERE id = ?', [donation_id]);
+
+  await logActivity(req.user.id, 'food', `${schedule_type.charAt(0).toUpperCase() + schedule_type.slice(1)} Scheduled`, `Scheduled for ${preferred_date} at ${time_slot}`, 'truckicon');
+  await recalculateBadges(req.user.id);
+
+  return res.json({ success: true, message: `${schedule_type.charAt(0).toUpperCase() + schedule_type.slice(1)} scheduled.`, donation: updated[0] });
+};
+
+// ─── Service Donation ─────────────────────────────────────────────────────────
+
+exports.submitService = async (req, res) => {
+  const { service_type, quantity, frequency, service_date, service_time, address, contact_first_name, contact_last_name, contact_email, description } = req.body;
+
+  if (!service_type || !quantity || !frequency || !service_date || !service_time || !address || !contact_first_name || !contact_last_name || !contact_email) {
+    return res.status(422).json({ success: false, message: 'Required fields missing.' });
+  }
+
+  const cleanTime = (str) => (str || '').replace(/[^\x20-\x7E]/g, ' ').trim();
+  let startsAt = null;
+  try { startsAt = dayjs(`1970-01-01 ${cleanTime(service_time)}`).format('HH:mm:ss'); } catch {}
+
+  const [result] = await db.execute(
+    `INSERT INTO service_donations (user_id, service_tab, quantity, frequency, date, starts_at, address, first_name, last_name, email, notes, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+    [req.user.id, service_type, quantity, frequency, service_date, startsAt, address, contact_first_name, contact_last_name, contact_email, description || null]
+  );
+
+  const [donation] = await db.execute('SELECT * FROM service_donations WHERE id = ?', [result.insertId]);
+
+  await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${quantity} unit(s)`, 'truckicon');
+  await recalculateBadges(req.user.id);
+
+  return res.status(201).json({ success: true, message: 'Service donation submitted.', donation: donation[0] });
+};
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+exports.getDonationStats = async (req, res) => {
+  const uid = req.user.id;
+
+  const [[{ totalFinancial }]] = await db.execute(
+    "SELECT COALESCE(SUM(amount), 0) AS totalFinancial FROM financial_donations WHERE user_id = ? AND status = 'paid'",
+    [uid]
+  );
+  const [[{ totalFood }]] = await db.execute(
+    'SELECT COUNT(*) AS totalFood FROM food_donations WHERE user_id = ?',
+    [uid]
+  );
+  const [[{ totalService }]] = await db.execute(
+    'SELECT COUNT(*) AS totalService FROM service_donations WHERE user_id = ?',
+    [uid]
+  );
+
+  const [activities] = await db.execute(
+    'SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
+    [uid]
+  );
+
+  const recentActivities = activities.map(a => ({
+    id: a.id,
+    type: a.type,
+    title: a.title,
+    description: a.description,
+    icon: a.icon,
+    time_ago: dayjs(a.created_at).fromNow(),
+  }));
+
+  return res.json({
+    success: true,
+    total_financial: parseFloat(totalFinancial),
+    total_food: totalFood,
+    total_service: totalService,
+    recent_activities: recentActivities,
+  });
+};
+
+exports.getUpcomingPickups = async (req, res) => {
+  const uid = req.user.id;
+
+  const [pickups] = await db.execute(
+    "SELECT * FROM food_donations WHERE user_id = ? AND status IN ('pending','scheduled') ORDER BY created_at DESC LIMIT 5",
+    [uid]
+  );
+
+  return res.json({
+    success: true,
+    pickups: pickups.map(p => ({
+      id: p.id,
+      status: p.status,
+      preferred_date: p.preferred_date,
+      time_slot: p.time_slot_start + (p.time_slot_end ? ` - ${p.time_slot_end}` : ''),
+      pickup_address: p.pickup_address,
+      created_at: dayjs(p.created_at).format('MM/DD/YYYY'),
+    })),
+  });
+};
+
+// ─── Badges ───────────────────────────────────────────────────────────────────
+
+exports.getBadges = async (req, res) => {
+  const uid = req.user.id;
+
+  const [badges] = await db.execute('SELECT * FROM badges');
+  const [userBadges] = await db.execute('SELECT * FROM user_badges WHERE user_id = ?', [uid]);
+  const userBadgeMap = Object.fromEntries(userBadges.map(ub => [ub.badge_id, ub]));
+
+  const result = badges.map(badge => {
+    const ub = userBadgeMap[badge.id];
+    let tags = [];
+    try { tags = typeof badge.tags === 'string' ? JSON.parse(badge.tags) : (badge.tags || []); } catch {}
+    return {
+      id: badge.id,
+      key: badge.key,
+      name: badge.name,
+      description: badge.description,
+      icon: badge.icon,
+      goal_value: badge.goal_value,
+      goal_type: badge.goal_type,
+      status: ub ? ub.status : 'not_started',
+      progress: ub ? ub.progress : 0,
+      earned_at: ub ? ub.earned_at : null,
+    };
+  });
+
+  const earned = result.filter(b => b.status === 'earned');
+  const inProgress = result.filter(b => b.status === 'in_progress');
+  const top3 = earned.slice(0, 3);
+
+  return res.json({ success: true, top3, earned, in_progress: inProgress, all: result });
+};
+
+exports.getActivities = async (req, res) => {
+  const [activities] = await db.execute(
+    'SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC',
+    [req.user.id]
+  );
+
+  return res.json({
+    success: true,
+    activities: activities.map(a => ({
+      id: a.id,
+      type: a.type,
+      title: a.title,
+      description: a.description,
+      icon: a.icon,
+      date: dayjs(a.created_at).format('MM/DD/YYYY'),
+      time_ago: dayjs(a.created_at).fromNow(),
+    })),
+  });
+};
+
+// ─── Beneficiary Requests ─────────────────────────────────────────────────────
+
+exports.submitBeneficiaryRequest = async (req, res) => {
+  const {
+    title, type, food_type, quantity, unit, financial_amount,
+    population, age_start, age_end, street, barangay,
+    city_municipality, postal_zip_code, needed_date, urgency_level,
+  } = req.body;
+
+  if (!title || !type) {
+    return res.status(422).json({ success: false, message: 'Title and type are required.' });
+  }
+
+  const [result] = await db.execute(
+    `INSERT INTO beneficiary_requests
+     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
+    [
+      req.user.id,
+      title,
+      type,
+      food_type || null,
+      quantity ? parseFloat(quantity) : null,
+      unit || null,
+      financial_amount ? parseFloat(financial_amount) : null,
+      population ? parseInt(population) : 0,
+      age_start ? parseInt(age_start) : 0,
+      age_end ? parseInt(age_end) : 0,
+      street || '',
+      barangay || '',
+      city_municipality || '',
+      postal_zip_code || '',
+      needed_date || null,
+      urgency_level || null,
+    ]
+  );
+
+  return res.status(201).json({ success: true, message: 'Request submitted successfully.', request_id: result.insertId });
+};
+
+exports.getBeneficiaryRequests = async (req, res) => {
+  const [requests] = await db.execute(
+    'SELECT * FROM beneficiary_requests WHERE user_id = ? ORDER BY created_at DESC',
+    [req.user.id]
+  );
+  return res.json({ success: true, requests });
+};
+
+exports.cancelBeneficiaryRequest = async (req, res) => {
+  const { id } = req.params;
+
+  const [rows] = await db.execute(
+    'SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?',
+    [id, req.user.id]
+  );
+  const request = rows[0];
+
+  if (!request) {
+    return res.status(404).json({ success: false, message: 'Request not found.' });
+  }
+  if (request.status.toLowerCase() !== 'pending') {
+    return res.status(400).json({ success: false, message: 'Only Pending requests can be cancelled.' });
+  }
+
+  await db.execute('DELETE FROM beneficiary_requests WHERE id = ?', [id]);
+  return res.json({ success: true, message: 'Request cancelled successfully.' });
+};
+
+exports.updateRequestStatus = async (req, res) => {
+  const user = req.user;
+  if (user.role === 'beneficiary') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const allowed = ['Pending', 'Allocated', 'Urgent'];
+  const { status } = req.body;
+
+  if (!allowed.includes(status)) {
+    return res.status(422).json({ success: false, message: `Invalid status. Allowed: ${allowed.join(', ')}` });
+  }
+
+  const [rows] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Request not found.' });
+  }
+
+  await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
+  const [updated] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
+
+  return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
+};
+
+// ─── Profile Update ───────────────────────────────────────────────────────────
+
+exports.updateProfile = async (req, res) => {
+  const user = req.user;
+
+  if (user.role === 'donor') {
+    const { first_name, last_name, middle_initial, suffix, date_of_birth, gender, house_no, street, barangay, city_municipality, province_region, postal_zip_code, contact_number } = req.body;
+    if (!first_name || !last_name) {
+      return res.status(422).json({ success: false, errors: { first_name: ['Required.'] } });
+    }
+    await db.execute(
+      `UPDATE donor_profiles SET first_name=?, last_name=?, middle_name=?, suffix=?, dob=?, gender=?, house=?, street=?, barangay=?, city=?, province=?, zip=?, contact=?, updated_at=NOW() WHERE user_id=?`,
+      [first_name, last_name, middle_initial || null, suffix || null, date_of_birth || null, gender || null, house_no || null, street || null, barangay || null, city_municipality || null, province_region || null, postal_zip_code || null, contact_number || null, user.id]
+    );
+  } else if (user.role === 'organization') {
+    const { organization_name, website_url, industry_sector, organization_type, contact_person, position_role, contact_number } = req.body;
+    if (!organization_name) {
+      return res.status(422).json({ success: false, errors: { organization_name: ['Required.'] } });
+    }
+    await db.execute(
+      `UPDATE organization_profiles SET org_name=?, website=?, industry=?, type=?, first_name=?, last_name=?, contact=?, updated_at=NOW() WHERE user_id=?`,
+      [organization_name, website_url || null, industry_sector || null, organization_type || null, contact_person || null, position_role || null, contact_number || null, user.id]
+    );
+  }
+
+  return res.json({ success: true, message: 'Profile updated successfully.' });
+};
+
+exports.deactivateAccount = async (req, res) => {
+  await db.execute('DELETE FROM users WHERE id = ?', [req.user.id]);
+  return res.json({ success: true, message: 'Account deactivated.' });
+};

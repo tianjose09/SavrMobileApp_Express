@@ -1,0 +1,16 @@
+Starting project at /Users/altheazuleikasadicon/Downloads/SAVR_mobile-main/SAVR_frontend
+React Compiler enabled
+Starting Metro Bundler
+opendir(/Users/altheazuleikasadicon/Library/Containers/com.apple.corerecents.recentsd/Data/Library/Recents) -> Operation not permitted. Marking this portion of the tree deleted
+To clear this warning, run:
+`watchman watch-del '/Users/altheazuleikasadicon' ; watchman watch-project '/Users/altheazuleikasadicon'`
+
+opendir(/Users/altheazuleikasadicon/Library/Containers/com.apple.corerecents.recentsd/Data/Library/Recents) -> Operation not permitted. Marking this portion of the tree deleted
+To clear this warning, run:
+`watchman watch-del '/Users/altheazuleikasadicon' ; watchman watch-project '/Users/altheazuleikasadicon'`
+
+CommandError: failed to start tunnel
+
+remote gone away
+
+Check the Ngrok status page for outages: https://status.ngrok.com/

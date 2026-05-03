@@ -1,0 +1,79 @@
+const db = require('../db');
+
+exports.index = async (req, res) => {
+  const [items] = await db.execute(
+    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' ORDER BY food_name"
+  );
+
+  return res.json({
+    success: true,
+    items: items.map(item => ({
+      id: item.id,
+      name: item.food_name,
+      category: item.category,
+      qty: `${item.quantity} ${item.unit}`,
+      expiry: item.expiration_date || 'N/A',
+    })),
+  });
+};
+
+exports.store = async (req, res) => {
+  const { food_name, category, quantity, unit, expiration_date, meal_type } = req.body;
+
+  if (!food_name || !category || quantity === undefined || !unit) {
+    return res.status(422).json({
+      success: false,
+      message: 'Validation failed.',
+      errors: {
+        food_name: !food_name ? ['Food name is required.'] : [],
+        category: !category ? ['Category is required.'] : [],
+        quantity: quantity === undefined ? ['Quantity is required.'] : [],
+        unit: !unit ? ['Unit is required.'] : [],
+      },
+    });
+  }
+
+  if (parseFloat(quantity) < 0) {
+    return res.status(422).json({ success: false, message: 'Quantity must be at least 0.' });
+  }
+
+  const [result] = await db.execute(
+    `INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [food_name, category, quantity, unit, expiration_date || null, meal_type || 'Raw Ingredients']
+  );
+
+  const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [result.insertId]);
+
+  return res.status(201).json({
+    success: true,
+    message: 'Inventory item added successfully.',
+    item: rows[0],
+  });
+};
+
+exports.deduct = async (req, res) => {
+  const { deductions, meal_name } = req.body;
+
+  if (!Array.isArray(deductions) || !deductions.length) {
+    return res.status(422).json({ success: false, message: 'Deductions array is required.' });
+  }
+
+  for (const deduction of deductions) {
+    const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
+    const item = rows[0];
+    if (item) {
+      const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
+      await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
+    }
+  }
+
+  if (meal_name && req.user) {
+    await db.execute(
+      "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'inventory', 'Meal Prepared', ?, 'foodicon', NOW(), NOW())",
+      [req.user.id, `Prepared meal: ${meal_name}`]
+    );
+  }
+
+  return res.json({ success: true, message: 'Inventory deducted successfully.' });
+};
