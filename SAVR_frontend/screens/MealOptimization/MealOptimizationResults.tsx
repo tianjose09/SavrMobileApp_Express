@@ -695,21 +695,38 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
       </View>
 
       <Text style={styles.ingredientListText}>
-        <Text style={{ fontWeight: '700' }}>Ingredients Used:</Text>{' '}
-        {(meal.ingredients_used || '').split(',').map((ing: string, idx: number, arr: string[]) => {
-          const token = ing.trim();
-          const matched = selectedIngredients.some((si: any) =>
-            isMatch((si.name || '').toLowerCase(), token.toLowerCase())
-          );
-          return (
-            <Text
-              key={idx}
-              style={matched ? { fontWeight: '800', color: '#156133' } : undefined}
-            >
-              {token}{idx < arr.length - 1 ? ', ' : ''}
-            </Text>
-          );
-        })}
+        <Text style={{ fontWeight: '700' }}>Ingredients:</Text>{' '}
+        {(() => {
+          // Backend sends matched in ingredients_used and unmatched in missing_items.
+          // Fallback (client-side) puts everything in ingredients_used with no missing_items,
+          // so we re-run isMatch in that case to determine bold vs. regular.
+          const hasServerSplit = meal.missing_items !== undefined && meal.missing_items !== null;
+          const matchedTokens = (meal.ingredients_used || '')
+            .split(',').map((s: string) => s.trim()).filter(Boolean);
+          const missingTokens = hasServerSplit
+            ? (meal.missing_items || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [];
+          const allTokens: { name: string; isMatched: boolean }[] = [
+            ...matchedTokens.map((t: string) => ({
+              name: t,
+              isMatched: hasServerSplit
+                ? true
+                : selectedIngredients.some((si: any) => isMatch((si.name || '').toLowerCase(), t.toLowerCase())),
+            })),
+            ...missingTokens.map((t: string) => ({ name: t, isMatched: false })),
+          ];
+          return allTokens.map((item, idx) => {
+            const isLastItem = idx === allTokens.length - 1;
+            return (
+              <Text
+                key={idx}
+                style={item.isMatched ? { fontWeight: '800', color: '#156133' } : { color: '#4f6157' }}
+              >
+                {item.name}{isLastItem ? '' : ', '}
+              </Text>
+            );
+          });
+        })()}
       </Text>
 
       <View style={[styles.commentBox, isSuggested && styles.commentBoxSuggested]}>

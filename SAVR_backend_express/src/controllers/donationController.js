@@ -23,11 +23,11 @@ async function recalculateBadges(userId) {
     [userId]
   );
   const [[{ financialTotal }]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS financialTotal FROM financial_donations WHERE user_id = ? AND status = 'paid'",
+    "SELECT COALESCE(SUM(amount), 0) AS financialTotal FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
     [userId]
   );
   const [[{ serviceCount }]] = await db.execute(
-    "SELECT COUNT(*) AS serviceCount FROM service_donations WHERE user_id = ? AND status IN ('confirmed','completed')",
+    "SELECT COUNT(*) AS serviceCount FROM service_donation_records WHERE user_id = ? AND status IN ('confirmed','completed')",
     [userId]
   );
 
@@ -102,7 +102,7 @@ exports.createPaymongoCheckout = async (req, res) => {
 
   try {
     const [donationResult] = await db.execute(
-      "INSERT INTO financial_donations (user_id, amount, payment_method, message, status, created_at, updated_at) VALUES (?, ?, 'paymongo', ?, 'pending', NOW(), NOW())",
+      "INSERT INTO financial_donation_records (user_id, amount, payment_method, message, status, created_at, updated_at) VALUES (?, ?, 'paymongo', ?, 'pending', NOW(), NOW())",
       [req.user.id, amount, message || null]
     );
     const donationId = donationResult.insertId;
@@ -137,7 +137,7 @@ exports.createPaymongoCheckout = async (req, res) => {
     const paymentId = data.id;
 
     await db.execute(
-      'UPDATE financial_donations SET paymongo_payment_id = ?, paymongo_link_id = ? WHERE id = ?',
+      'UPDATE financial_donation_records SET paymongo_payment_id = ?, paymongo_link_id = ? WHERE id = ?',
       [paymentId, checkoutUrl, donationId]
     );
 
@@ -156,12 +156,12 @@ exports.paymongoWebhook = async (req, res) => {
     const checkoutId = data?.id;
     if (checkoutId) {
       const [rows] = await db.execute(
-        "SELECT * FROM financial_donations WHERE paymongo_payment_id = ? AND status != 'paid'",
+        "SELECT * FROM financial_donation_records WHERE paymongo_payment_id = ? AND status != 'paid'",
         [checkoutId]
       );
       const donation = rows[0];
       if (donation) {
-        await db.execute("UPDATE financial_donations SET status = 'paid' WHERE id = ?", [donation.id]);
+        await db.execute("UPDATE financial_donation_records SET status = 'paid' WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
         await recalculateBadges(donation.user_id);
       }
@@ -174,7 +174,7 @@ exports.paymongoWebhook = async (req, res) => {
 exports.checkPaymentStatus = async (req, res) => {
   const donationId = req.params.id;
   const [rows] = await db.execute(
-    'SELECT * FROM financial_donations WHERE id = ? AND user_id = ?',
+    'SELECT * FROM financial_donation_records WHERE id = ? AND user_id = ?',
     [donationId, req.user.id]
   );
   const donation = rows[0];
@@ -191,12 +191,12 @@ exports.checkPaymentStatus = async (req, res) => {
 exports.paymentSuccess = async (req, res) => {
   if (req.query.donation_id) {
     const [rows] = await db.execute(
-      "SELECT * FROM financial_donations WHERE id = ? AND status != 'paid'",
+      "SELECT * FROM financial_donation_records WHERE id = ? AND status != 'paid'",
       [req.query.donation_id]
     );
     const donation = rows[0];
     if (donation) {
-      await db.execute("UPDATE financial_donations SET status = 'paid' WHERE id = ?", [donation.id]);
+      await db.execute("UPDATE financial_donation_records SET status = 'paid' WHERE id = ?", [donation.id]);
       await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
       await recalculateBadges(donation.user_id);
     }
@@ -316,12 +316,12 @@ exports.submitService = async (req, res) => {
   try { startsAt = dayjs(`1970-01-01 ${cleanTime(service_time)}`).format('HH:mm:ss'); } catch {}
 
   const [result] = await db.execute(
-    `INSERT INTO service_donations (user_id, service_tab, quantity, frequency, date, starts_at, address, first_name, last_name, email, notes, status, created_at, updated_at)
+    `INSERT INTO service_donation_records (user_id, service_tab, quantity, frequency, date, starts_at, address, first_name, last_name, email, notes, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
     [req.user.id, service_type, quantity, frequency, service_date, startsAt, address, contact_first_name, contact_last_name, contact_email, description || null]
   );
 
-  const [donation] = await db.execute('SELECT * FROM service_donations WHERE id = ?', [result.insertId]);
+  const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
 
   await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${quantity} unit(s)`, 'truckicon');
   await recalculateBadges(req.user.id);
@@ -335,7 +335,7 @@ exports.getDonationStats = async (req, res) => {
   const uid = req.user.id;
 
   const [[{ totalFinancial }]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS totalFinancial FROM financial_donations WHERE user_id = ? AND status = 'paid'",
+    "SELECT COALESCE(SUM(amount), 0) AS totalFinancial FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
     [uid]
   );
   const [[{ totalFood }]] = await db.execute(
@@ -343,7 +343,7 @@ exports.getDonationStats = async (req, res) => {
     [uid]
   );
   const [[{ totalService }]] = await db.execute(
-    'SELECT COUNT(*) AS totalService FROM service_donations WHERE user_id = ?',
+    'SELECT COUNT(*) AS totalService FROM service_donation_records WHERE user_id = ?',
     [uid]
   );
 
@@ -548,7 +548,7 @@ exports.updateProfile = async (req, res) => {
       return res.status(422).json({ success: false, errors: { first_name: ['Required.'] } });
     }
     await db.execute(
-      `UPDATE donor_profiles SET first_name=?, last_name=?, middle_name=?, suffix=?, dob=?, gender=?, house=?, street=?, barangay=?, city=?, province=?, zip=?, contact=?, updated_at=NOW() WHERE user_id=?`,
+      `UPDATE donors SET first_name=?, last_name=?, middle_name=?, suffix=?, dob=?, gender=?, house=?, street=?, barangay=?, city=?, province=?, zip=?, contact=?, updated_at=NOW() WHERE user_id=?`,
       [first_name, last_name, middle_initial || null, suffix || null, date_of_birth || null, gender || null, house_no || null, street || null, barangay || null, city_municipality || null, province_region || null, postal_zip_code || null, contact_number || null, user.id]
     );
   } else if (user.role === 'organization') {
@@ -557,7 +557,7 @@ exports.updateProfile = async (req, res) => {
       return res.status(422).json({ success: false, errors: { organization_name: ['Required.'] } });
     }
     await db.execute(
-      `UPDATE organization_profiles SET org_name=?, website=?, industry=?, type=?, first_name=?, last_name=?, contact=?, updated_at=NOW() WHERE user_id=?`,
+      `UPDATE donor_organizations SET org_name=?, website=?, industry=?, type=?, first_name=?, last_name=?, contact=?, updated_at=NOW() WHERE user_id=?`,
       [organization_name, website_url || null, industry_sector || null, organization_type || null, contact_person || null, position_role || null, contact_number || null, user.id]
     );
   }
