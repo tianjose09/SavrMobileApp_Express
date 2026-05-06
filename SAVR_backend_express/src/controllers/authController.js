@@ -63,9 +63,6 @@ async function storeVerificationCode(email, code) {
   );
 }
 
-function isCodeExpired(createdAt) {
-  return dayjs().diff(dayjs(createdAt), 'minute') >= 10;
-}
 
 // ─── Verify Email ─────────────────────────────────────────────────────────────
 
@@ -81,15 +78,22 @@ exports.sendVerificationEmail = async (req, res) => {
     return res.status(409).json({ success: false, message: 'This email is already registered.' });
   }
 
+  const code = generateCode();
+  const name = req.body.name || 'User';
+
   try {
-    const code = generateCode();
-    const name = req.body.name || 'User';
     await storeVerificationCode(email, code);
+  } catch (err) {
+    console.error('[storeVerificationCode error]', err);
+    return res.status(500).json({ success: false, message: 'Database error while preparing verification. Please try again.', error: err.message });
+  }
+
+  try {
     await sendVerificationCodeMail(email, code, name);
     return res.json({ success: true, message: `Verification code sent to ${email}` });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Failed to send verification email. Please try again.', error: err.message });
+    console.error('[sendVerificationCodeMail error]', err);
+    return res.status(500).json({ success: false, message: 'Failed to send verification email. Please check your email address or try again later.', error: err.message });
   }
 };
 
@@ -101,7 +105,10 @@ exports.verifyCode = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Validation failed.' });
   }
 
-  const [rows] = await db.execute('SELECT * FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)', [email]);
+  const [rows] = await db.execute(
+    "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
+    [email]
+  );
   const verification = rows[0];
 
   if (!verification) {
@@ -110,7 +117,7 @@ exports.verifyCode = async (req, res) => {
   if (verification.token === 'VERIFIED') {
     return res.json({ success: true, message: 'Email verified successfully.' });
   }
-  if (isCodeExpired(verification.created_at)) {
+  if (verification.is_expired) {
     return res.status(410).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
   }
   if (verification.token !== code) {
@@ -174,7 +181,10 @@ exports.verifyResetCode = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Validation failed.' });
   }
 
-  const [rows] = await db.execute('SELECT * FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)', [email]);
+  const [rows] = await db.execute(
+    "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
+    [email]
+  );
   const verification = rows[0];
 
   if (!verification) {
@@ -183,7 +193,7 @@ exports.verifyResetCode = async (req, res) => {
   if (verification.token === 'VERIFIED') {
     return res.json({ success: true, message: 'Code verified. You may now reset your password.' });
   }
-  if (isCodeExpired(verification.created_at)) {
+  if (verification.is_expired) {
     return res.status(410).json({ success: false, message: 'Reset code has expired. Please request a new one.' });
   }
   if (verification.token !== code) {

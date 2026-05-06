@@ -88,6 +88,7 @@ export const ApiService = {
 
   // Inventory Integration
   getInventory: () => api.get('api/inventory'),
+  getInventoryCategories: () => api.get('api/inventory/categories'),
   addInventory: (data: any) => api.post('api/inventory/store', data),
   deductInventory: (data: any) => api.post('api/inventory/deduct', data),
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomDropdown from '../../components/CustomDropdown';
+import { ApiService } from '../../services/api';
 
 interface FoodItem {
   id: string;
@@ -43,6 +44,18 @@ export default function FoodDonationDetails({ navigation }: any) {
     },
   ]);
   const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
+  const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
+
+  useEffect(() => {
+    ApiService.getInventoryCategories()
+      .then(res => {
+        const cats: string[] = res.data?.categories ?? [];
+        if (cats.length > 0) {
+          setCategoryItems(cats.map(c => ({ label: c, value: c })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const addItem = () => {
     setItems([
@@ -212,14 +225,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                     selectedValue={item.category}
                     onValueChange={(val) => updateItem(item.id, 'category', val)}
                     placeholder="Select Category"
-                    items={[
-                      { label: "Perishable", value: "Perishable" },
-                      { label: "Non-Perishable", value: "Non-Perishable" },
-                      { label: "Cooked Meals", value: "Cooked Meals" },
-                      { label: "Raw Meat/Poultry", value: "Raw Meat/Poultry" },
-                      { label: "Fresh Produce", value: "Fresh Produce" },
-                      { label: "Beverages", value: "Beverages" }
-                    ]}
+                    items={categoryItems}
                     style={styles.input}
                   />
                 </View>
@@ -258,7 +264,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                         mode="date"
                         display="compact"
                         minimumDate={new Date()}
-                        onChange={(event, date) => {
+                        onChange={(_, date) => {
                           if (date) updateItem(item.id, 'expiryDate', date);
                         }}
                       />
@@ -332,16 +338,12 @@ export default function FoodDonationDetails({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.submitGenericBtn} onPress={() => { Alert.alert('Submitted', 'Thank you! Food Donation recorded.') }}>
-            <Text style={styles.submitGenericBtnText}>Submit Donation</Text>
-          </TouchableOpacity>
-
           <View style={{ height: 100 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Shared Absolute OS Date/Time Picker */}
-      {Platform.OS !== 'ios' && showDatePickerId !== null && (
+      {/* Android native date picker dialog */}
+      {Platform.OS === 'android' && showDatePickerId !== null && (
         <DateTimePicker
           value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
           mode="date"
@@ -350,13 +352,13 @@ export default function FoodDonationDetails({ navigation }: any) {
           onChange={(event, date) => {
             const currentId = showDatePickerId;
             setShowDatePickerId(null);
-
-            if (event.type === 'set' && date) {
+            if (event.type === 'set' && date && currentId) {
               updateItem(currentId, 'expiryDate', date);
             }
           }}
         />
       )}
+
     </SafeAreaView>
   );
 }
@@ -664,4 +666,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+
 });

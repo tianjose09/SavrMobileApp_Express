@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
 
 export default function Activities({ navigation }: any) {
@@ -17,9 +18,11 @@ export default function Activities({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchActivities();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchActivities();
+    }, [])
+  );
 
   const fetchActivities = async () => {
     try {

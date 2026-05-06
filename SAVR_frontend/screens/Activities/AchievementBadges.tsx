@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
 
@@ -17,23 +19,29 @@ export default function AchievementBadges({ navigation }: any) {
   const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
   const [allBadges, setAllBadges] = useState<any[]>([]);
   const [totalUnlocked, setTotalUnlocked] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBadges();
-  }, []);
-
-  const fetchBadges = async () => {
+  const fetchBadges = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await ApiService.getBadges();
       if (response?.data?.success) {
-        setAllBadges(response.data.all);
+        setAllBadges(response.data.all ?? []);
         setFeaturedBadges(response.data.earned ? response.data.earned.slice(0, 3) : []);
         setTotalUnlocked(response.data.earned ? response.data.earned.length : 0);
       }
     } catch (error) {
       console.error('Failed to fetch badges', error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBadges();
+    }, [fetchBadges])
+  );
 
   const renderStatusPill = (status: string) => {
     const isEarned = status === 'earned';
@@ -62,6 +70,31 @@ export default function AchievementBadges({ navigation }: any) {
       </View>
     );
   };
+
+  const renderProgressBar = (badge: any) => {
+    if (badge.status === 'earned' || !badge.goal_value) return null;
+    const pct = Math.min((badge.progress ?? 0) / badge.goal_value, 1);
+    return (
+      <View style={styles.progressBarWrap}>
+        <View style={[styles.progressBarFill, { width: `${Math.round(pct * 100)}%` as any }]} />
+        <Text style={styles.progressBarLabel}>
+          {badge.progress ?? 0} / {badge.goal_value}
+        </Text>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <>
+        <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#00592d" />
+          <Text style={{ marginTop: 12, color: '#00592d', fontWeight: '700' }}>Loading badges...</Text>
+        </SafeAreaView>
+      </>
+    );
+  }
 
   return (
     <>
@@ -217,6 +250,7 @@ export default function AchievementBadges({ navigation }: any) {
                     <View style={styles.badgeListTextWrap}>
                       <Text style={styles.badgeListName}>{badge.name}</Text>
                       <Text style={styles.badgeListDesc}>{badge.description}</Text>
+                      {renderProgressBar(badge)}
                     </View>
 
                     {renderStatusPill(badge.status)}
@@ -671,5 +705,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
+  },
+
+  progressBarWrap: {
+    marginTop: 8,
+    height: 6,
+    backgroundColor: '#EBEBEB',
+    borderRadius: 3,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#00592d',
+    borderRadius: 3,
+  },
+
+  progressBarLabel: {
+    fontSize: 9,
+    color: '#8A8A8A',
+    marginTop: 3,
+    fontWeight: '700',
   },
 });

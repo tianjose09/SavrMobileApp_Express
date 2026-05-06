@@ -52,6 +52,16 @@ exports.store = async (req, res) => {
   });
 };
 
+exports.categories = async (req, res) => {
+  const [rows] = await db.execute(
+    'SELECT DISTINCT category FROM food_inventory WHERE category IS NOT NULL ORDER BY category'
+  );
+  return res.json({
+    success: true,
+    categories: rows.map(r => r.category),
+  });
+};
+
 exports.deduct = async (req, res) => {
   const { deductions, meal_name } = req.body;
 

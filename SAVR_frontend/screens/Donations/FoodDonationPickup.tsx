@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Sta
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 
 export default function FoodDonationPickup({ route, navigation }: any) {
@@ -19,7 +19,11 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   });
 
   const [pickupDate, setPickupDate] = useState<Date>(new Date());
-  const [pickupTime, setPickupTime] = useState<Date>(new Date());
+  const [pickupTime, setPickupTime] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(7, 0, 0, 0);
+    return d;
+  });
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,8 +49,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
   const handleSubmit = async () => {
     const hours = pickupTime.getHours();
-    if (hours < 8 || hours >= 17) {
-      Alert.alert('Invalid Time', 'Please select a time within working hours (8:00 AM to 5:00 PM).');
+    const minutes = pickupTime.getMinutes();
+    if (hours < 7 || hours > 17 || (hours === 17 && minutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a time between 7:00 AM and 5:00 PM.');
       return;
     }
 
@@ -61,13 +66,11 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         formData.append('pickup_longitude', location.longitude.toString());
         formData.append('pickup_address', pickupAddress || 'Coordinates Pinned Location');
       } else {
-        // Warehouse static
         formData.append('pickup_latitude', '14.5332');
         formData.append('pickup_longitude', '121.0189');
         formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines');
       }
 
-      // Backend expects parsed formats
       const finalDateStr = pickupDate.toISOString().split('T')[0];
       const finalTimeStr = pickupTime.toTimeString().split(' ')[0].substring(0, 5);
       formData.append('preferred_date', finalDateStr);
@@ -232,9 +235,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               activeOpacity={0.8}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
-                <Text style={styles.pickerTextInput}>
-                  {pickupDate.toLocaleDateString()}
-                </Text>
+                <Text style={styles.pickerTextInput}>{pickupDate.toLocaleDateString()}</Text>
                 <View style={styles.pickerIconBtn}>
                   <Ionicons name="calendar-outline" size={20} color="#CA6118" />
                 </View>
@@ -246,9 +247,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                   mode="date"
                   display="compact"
                   minimumDate={new Date()}
-                  onChange={(event, date) => {
-                    if (date) setPickupDate(date);
-                  }}
+                  onChange={(_, date) => { if (date) setPickupDate(date); }}
                 />
               )}
             </TouchableOpacity>
@@ -263,7 +262,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
                 <Text style={styles.pickerTextInput}>
-                  {pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' -'}
+                  {pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
                 <View style={styles.pickerIconBtn}>
                   <Ionicons name="time-outline" size={20} color="#CA6118" />
@@ -275,9 +274,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                   value={pickupTime}
                   mode="time"
                   display="compact"
-                  onChange={(event, date) => {
-                    if (date) setPickupTime(date);
-                  }}
+                  minimumDate={(() => { const d = new Date(); d.setHours(7, 0, 0, 0); return d; })()}
+                  maximumDate={(() => { const d = new Date(); d.setHours(17, 0, 0, 0); return d; })()}
+                  onChange={(_, date) => { if (date) setPickupTime(date); }}
                 />
               )}
             </TouchableOpacity>
@@ -298,7 +297,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
       </ScrollView>
 
-      {/* Shared Absolute OS Date/Time Picker */}
+      {/* Shared Android date/time picker */}
       {Platform.OS !== 'ios' && datePickerMode && (
         <DateTimePicker
           value={datePickerMode === 'date' ? pickupDate : pickupTime}
@@ -308,7 +307,6 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
             setDatePickerMode(null);
-
             if (event.type === 'set' && selectedDate) {
               if (currentMode === 'date') setPickupDate(selectedDate);
               else if (currentMode === 'time') setPickupTime(selectedDate);
@@ -513,6 +511,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
 
 });

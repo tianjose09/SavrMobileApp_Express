@@ -18,25 +18,29 @@ async function logActivity(userId, type, title, description, icon = 'financialic
 }
 
 async function recalculateBadges(userId) {
-  const [[{ foodCount }]] = await db.execute(
-    "SELECT COUNT(*) AS foodCount FROM food_donations WHERE user_id = ? AND status IN ('scheduled','completed')",
+  const [[foodRow]] = await db.execute(
+    "SELECT COUNT(*) AS cnt FROM food_donations WHERE user_id = ? AND status IN ('scheduled','completed')",
     [userId]
   );
-  const [[{ financialTotal }]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS financialTotal FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+  const [[financialRow]] = await db.execute(
+    "SELECT COALESCE(SUM(amount), 0) AS total FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
     [userId]
   );
-  const [[{ serviceCount }]] = await db.execute(
-    "SELECT COUNT(*) AS serviceCount FROM service_donation_records WHERE user_id = ? AND status IN ('confirmed','completed')",
+  const [[serviceRow]] = await db.execute(
+    "SELECT COUNT(*) AS cnt FROM service_donation_records WHERE user_id = ? AND status IN ('confirmed','completed')",
     [userId]
   );
+
+  const foodCount     = parseInt(foodRow?.cnt)          || 0;
+  const financialTotal = parseFloat(financialRow?.total) || 0;
+  const serviceCount  = parseInt(serviceRow?.cnt)        || 0;
 
   const [badges] = await db.execute('SELECT * FROM badges');
 
   for (const badge of badges) {
     let current = 0;
     if (badge.goal_type === 'food_count') current = foodCount;
-    else if (badge.goal_type === 'financial_total') current = parseFloat(financialTotal);
+    else if (badge.goal_type === 'financial_total') current = financialTotal;
     else if (badge.goal_type === 'service_count') current = serviceCount;
 
     let status = 'not_started';
@@ -183,12 +187,39 @@ exports.checkPaymentStatus = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Donation not found.' });
   }
 
+  if (donation.status === 'paid') {
+    return res.json({ success: true, status: 'paid', amount: donation.amount });
+  }
+
+  if (donation.paymongo_payment_id) {
+    try {
+      const secretKey = process.env.PAYMONGO_SECRET_KEY;
+      const pmRes = await axios.get(
+        `https://api.paymongo.com/v1/checkout_sessions/${donation.paymongo_payment_id}`,
+        {
+          auth: { username: secretKey, password: '' },
+          httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+        }
+      );
+      const pmStatus = pmRes.data?.data?.attributes?.status;
+      if (pmStatus === 'paid') {
+        await db.execute("UPDATE financial_donation_records SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
+        await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
+        await recalculateBadges(donation.user_id);
+        return res.json({ success: true, status: 'paid', amount: donation.amount });
+      }
+    } catch (err) {
+      console.error('[checkPaymentStatus PayMongo verify]', err?.response?.data || err.message);
+    }
+  }
+
   return res.json({ success: true, status: donation.status, amount: donation.amount });
 };
 
 // ─── Payment Redirect Pages ───────────────────────────────────────────────────
 
 exports.paymentSuccess = async (req, res) => {
+  let paidAmount = null;
   if (req.query.donation_id) {
     const [rows] = await db.execute(
       "SELECT * FROM financial_donation_records WHERE id = ? AND status != 'paid'",
@@ -199,14 +230,282 @@ exports.paymentSuccess = async (req, res) => {
       await db.execute("UPDATE financial_donation_records SET status = 'paid' WHERE id = ?", [donation.id]);
       await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
       await recalculateBadges(donation.user_id);
+      paidAmount = formatAmount(donation.amount);
     }
   }
 
-  return res.send(`<html><body style="background:#1E583A;color:white;text-align:center;font-family:sans-serif;padding-top:100px;"><h1>Payment Successful! 🎉</h1><p>Thank you for donating to SAVR FoodBank.</p><p><strong>You may now close this browser window and return to the app.</strong></p></body></html>`);
+  const amountLine = paidAmount
+    ? `<p class="amount">₱ ${paidAmount}</p>`
+    : '';
+
+  return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Successful – SAVR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F6F7F9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 28px;
+      padding: 40px 32px 36px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+    }
+    .icon-circle {
+      width: 88px;
+      height: 88px;
+      background: #E8F5E9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 22px;
+    }
+    .checkmark {
+      width: 44px;
+      height: 44px;
+      stroke: #00592d;
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .badge {
+      display: inline-block;
+      background: #E8F5E9;
+      color: #00592d;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      color: #1A1A1A;
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: #6E6E6E;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 6px;
+    }
+    .amount {
+      color: #00592d;
+      font-size: 32px;
+      font-weight: 800;
+      margin: 18px 0 6px;
+      letter-spacing: -1px;
+    }
+    .divider {
+      height: 1px;
+      background: #F0F0F0;
+      margin: 22px 0;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: #00592d;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: opacity 0.15s;
+    }
+    .btn:active { opacity: 0.85; }
+    .btn-outline {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: transparent;
+      color: #00592d;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 16px;
+      border: 1.5px solid #00592d;
+      cursor: pointer;
+    }
+    .footer-note {
+      color: #ABABAB;
+      font-size: 11px;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon-circle">
+      <svg class="checkmark" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" stroke="#00592d" stroke-width="2" fill="#E8F5E9"/>
+        <path d="M15 26 l8 8 l14 -14" stroke="#00592d" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <span class="badge">Payment Confirmed</span>
+    <h1>Thank you for your donation!</h1>
+    <p class="subtitle">Your contribution helps feed families in need.</p>
+    ${amountLine}
+
+    <div class="divider"></div>
+
+    <a class="btn" href="savrmobile://">Return to App</a>
+    <a class="btn-outline" href="savrmobile://">Go to Dashboard</a>
+
+    <p class="footer-note">Powered by PayMongo &nbsp;·&nbsp; SAVR Philippine FoodBank</p>
+  </div>
+</body>
+</html>`);
 };
 
 exports.paymentCancel = (req, res) => {
-  return res.send(`<html><body style="background:#f8f9fa;color:#333;text-align:center;font-family:sans-serif;padding-top:100px;"><h1>Payment Cancelled</h1><p><strong>You may close this browser window and return to the app.</strong></p></body></html>`);
+  return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Cancelled – SAVR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F6F7F9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 28px;
+      padding: 40px 32px 36px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+    }
+    .icon-circle {
+      width: 88px;
+      height: 88px;
+      background: #FFF4F4;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 22px;
+    }
+    .badge {
+      display: inline-block;
+      background: #FFF0F0;
+      color: #C62828;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      color: #1A1A1A;
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: #6E6E6E;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .divider {
+      height: 1px;
+      background: #F0F0F0;
+      margin: 22px 0;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: #00592d;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .btn:active { opacity: 0.85; }
+    .btn-outline {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: transparent;
+      color: #00592d;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 16px;
+      border: 1.5px solid #00592d;
+      cursor: pointer;
+    }
+    .footer-note {
+      color: #ABABAB;
+      font-size: 11px;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon-circle">
+      <svg width="44" height="44" viewBox="0 0 52 52" fill="none">
+        <circle cx="26" cy="26" r="22" fill="#FFF0F0" stroke="#C62828" stroke-width="2"/>
+        <path d="M18 18 l16 16 M34 18 l-16 16" stroke="#C62828" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <span class="badge">Payment Cancelled</span>
+    <h1>Payment was not completed</h1>
+    <p class="subtitle">No charges were made. You can try again anytime from the app.</p>
+
+    <div class="divider"></div>
+
+    <a class="btn" href="savrmobile://">Return to App</a>
+    <a class="btn-outline" href="savrmobile://">Try Again</a>
+
+    <p class="footer-note">Powered by PayMongo &nbsp;·&nbsp; SAVR Philippine FoodBank</p>
+  </div>
+</body>
+</html>`);
 };
 
 // ─── Food Donation ────────────────────────────────────────────────────────────
@@ -262,7 +561,7 @@ exports.submitFood = async (req, res) => {
     await db.execute(
       `INSERT INTO food_donation_items (food_donation_id, food_name, quantity, unit, category, expiration_date, special_notes, photo_path, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [donationId, item.foodName || item.name || 'Unknown Item', numQty, unit, item.category || item.type || 'General', expiryDate, item.notes || null, photoPath]
+      [donationId, item.foodName || item.name || item.type || 'Unknown Item', numQty, unit, item.category || 'General', expiryDate, item.notes || item.special_notes || null, photoPath]
     );
   }
 
@@ -334,18 +633,21 @@ exports.submitService = async (req, res) => {
 exports.getDonationStats = async (req, res) => {
   const uid = req.user.id;
 
-  const [[{ totalFinancial }]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS totalFinancial FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+  const [[totalFinancialRow]] = await db.execute(
+    "SELECT COALESCE(SUM(amount), 0) AS total FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
     [uid]
   );
-  const [[{ totalFood }]] = await db.execute(
-    'SELECT COUNT(*) AS totalFood FROM food_donations WHERE user_id = ?',
+  const [[totalFoodRow]] = await db.execute(
+    'SELECT COUNT(*) AS cnt FROM food_donations WHERE user_id = ?',
     [uid]
   );
-  const [[{ totalService }]] = await db.execute(
-    'SELECT COUNT(*) AS totalService FROM service_donation_records WHERE user_id = ?',
+  const [[totalServiceRow]] = await db.execute(
+    'SELECT COUNT(*) AS cnt FROM service_donation_records WHERE user_id = ?',
     [uid]
   );
+  const totalFinancial = parseFloat(totalFinancialRow?.total) || 0;
+  const totalFood = parseInt(totalFoodRow?.cnt) || 0;
+  const totalService = parseInt(totalServiceRow?.cnt) || 0;
 
   const [activities] = await db.execute(
     'SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
@@ -363,7 +665,7 @@ exports.getDonationStats = async (req, res) => {
 
   return res.json({
     success: true,
-    total_financial: parseFloat(totalFinancial),
+    total_financial: totalFinancial,
     total_food: totalFood,
     total_service: totalService,
     recent_activities: recentActivities,

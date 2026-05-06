@@ -372,9 +372,28 @@ function MainDrawer() {
   );
 }
 
+const linking = {
+  prefixes: ['savrmobile://'],
+  config: {
+    screens: {
+      MainDrawer: {
+        path: '',
+        screens: {
+          HomeTabs: {
+            path: '',
+            screens: {
+              Home: '',
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator
         initialRouteName="LoadingPage"
         screenOptions={{ headerShown: false }}

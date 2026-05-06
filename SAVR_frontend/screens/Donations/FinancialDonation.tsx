@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image, AppState } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 
@@ -7,6 +7,31 @@ export default function FinancialDonation({ navigation }: any) {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
+  const appStateRef = useRef(AppState.currentState);
+
+  useEffect(() => {
+    if (!pendingDonationId) return;
+
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
+        try {
+          const res = await ApiService.checkPaymentStatus(pendingDonationId);
+          if (res?.data?.status === 'paid') {
+            setPendingDonationId(null);
+            Alert.alert(
+              'Payment Confirmed!',
+              `Your donation of ₱${parseFloat(res.data.amount).toLocaleString('en-US')} has been received. Thank you!`,
+              [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+            );
+          }
+        } catch {}
+      }
+      appStateRef.current = nextState;
+    });
+
+    return () => subscription.remove();
+  }, [pendingDonationId]);
 
   const handleDonate = async () => {
     const amountNum = parseFloat(amount.replace(/,/g, ''));
@@ -20,11 +45,13 @@ export default function FinancialDonation({ navigation }: any) {
     try {
       const response = await ApiService.createPaymongoCheckout({ amount: amountNum, remarks: message });
       if (response.data.success && response.data.checkout_url) {
+        const donationId = response.data.donation_id;
+        if (donationId) setPendingDonationId(donationId);
         Linking.openURL(response.data.checkout_url);
         Alert.alert(
           'Payment Page Opened ✅',
           'Complete your payment in the browser. Your dashboard will update automatically when you return.',
-          [{ text: 'Got it', onPress: () => navigation.goBack() }]
+          [{ text: 'Got it' }]
         );
       } else {
         Alert.alert('Error', 'Failed to generate payment link.');

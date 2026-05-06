@@ -24,9 +24,9 @@ async function execute(sql, params = []) {
   const isInsert = /^\s*INSERT\s+/i.test(sql);
   let finalSql = pgSql(sql);
 
-  // Auto-add RETURNING id so insertId works without changing controllers
+  // Auto-add RETURNING * so insertId works without changing controllers
   if (isInsert && !/RETURNING/i.test(finalSql)) {
-    finalSql += ' RETURNING id';
+    finalSql += ' RETURNING *';
   }
 
   const result = await pool.query(finalSql, params);
@@ -44,7 +44,7 @@ function wrapClient(client) {
       const isInsert = /^\s*INSERT\s+/i.test(sql);
       let finalSql = pgSql(sql);
       if (isInsert && !/RETURNING/i.test(finalSql)) {
-        finalSql += ' RETURNING id';
+        finalSql += ' RETURNING *';
       }
       const result = await client.query(finalSql, params);
       if (isInsert) {

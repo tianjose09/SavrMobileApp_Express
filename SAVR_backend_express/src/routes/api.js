@@ -75,9 +75,10 @@ router.get('/badges',     donationController.getBadges);
 router.get('/activities', donationController.getActivities);
 
 // Inventory
-router.get('/inventory',        inventoryController.index);
-router.post('/inventory/store', inventoryController.store);
-router.post('/inventory/deduct', inventoryController.deduct);
+router.get('/inventory',            inventoryController.index);
+router.get('/inventory/categories', inventoryController.categories);
+router.post('/inventory/store',     inventoryController.store);
+router.post('/inventory/deduct',    inventoryController.deduct);
 
 // Meal Optimization
 router.post('/meals/optimize', mealController.optimizeMeals);
