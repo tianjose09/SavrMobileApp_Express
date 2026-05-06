@@ -10,22 +10,30 @@ export default function FinancialDonation({ navigation }: any) {
   const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
+  const pollPaymentStatus = async (donationId: number, attemptsLeft = 4) => {
+    if (attemptsLeft <= 0) return;
+    try {
+      const res = await ApiService.checkPaymentStatus(donationId);
+      if (res?.data?.status === 'paid') {
+        setPendingDonationId(null);
+        Alert.alert(
+          'Payment Confirmed!',
+          `Your donation of ₱${parseFloat(res.data.amount).toLocaleString('en-US')} has been received. Thank you!`,
+          [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+        );
+        return;
+      }
+      // Still pending — retry after 3 seconds
+      setTimeout(() => pollPaymentStatus(donationId, attemptsLeft - 1), 3000);
+    } catch {}
+  };
+
   useEffect(() => {
     if (!pendingDonationId) return;
 
-    const subscription = AppState.addEventListener('change', async (nextState) => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
-        try {
-          const res = await ApiService.checkPaymentStatus(pendingDonationId);
-          if (res?.data?.status === 'paid') {
-            setPendingDonationId(null);
-            Alert.alert(
-              'Payment Confirmed!',
-              `Your donation of ₱${parseFloat(res.data.amount).toLocaleString('en-US')} has been received. Thank you!`,
-              [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
-            );
-          }
-        } catch {}
+        pollPaymentStatus(pendingDonationId);
       }
       appStateRef.current = nextState;
     });
@@ -47,6 +55,8 @@ export default function FinancialDonation({ navigation }: any) {
       if (response.data.success && response.data.checkout_url) {
         const donationId = response.data.donation_id;
         if (donationId) setPendingDonationId(donationId);
+        setAmount('');
+        setMessage('');
         Linking.openURL(response.data.checkout_url);
         Alert.alert(
           'Payment Page Opened ✅',

@@ -1,4 +1,5 @@
 const db = require('../db');
+const dayjs = require('dayjs');
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
@@ -12,7 +13,7 @@ exports.index = async (req, res) => {
       name: item.food_name,
       category: item.category,
       qty: `${item.quantity} ${item.unit}`,
-      expiry: item.expiration_date || 'N/A',
+      expiry: item.expiration_date ? dayjs(item.expiration_date).format('YYYY-MM-DD') : 'N/A',
     })),
   });
 };
@@ -44,11 +45,15 @@ exports.store = async (req, res) => {
   );
 
   const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [result.insertId]);
+  const item = rows[0];
 
   return res.status(201).json({
     success: true,
     message: 'Inventory item added successfully.',
-    item: rows[0],
+    item: {
+      ...item,
+      expiration_date: item?.expiration_date ? dayjs(item.expiration_date).format('YYYY-MM-DD') : null,
+    },
   });
 };
 

@@ -50,8 +50,10 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
       const response = await ApiService.submitFoodDonation(formData);
       if (response.data.success) {
         const donatedItemsStr = foodItems.map((fi: any) => `${fi.quantity} of ${fi.type}`).join(', ');
-        Alert.alert('Success', `You donated ${donatedItemsStr}! See you at the warehouse.`);
-        navigation.navigate('HomeTabs', { screen: 'Home' });
+        navigation.popToTop();
+        Alert.alert('Success', `You donated ${donatedItemsStr}! See you at the warehouse.`, [
+          { text: 'OK', onPress: () => navigation.navigate('HomeTabs', { screen: 'Home' }) },
+        ]);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit.');
       }

@@ -647,7 +647,7 @@ exports.profile = async (req, res) => {
   if (user.role === 'donor') {
     const [rows] = await db.execute('SELECT * FROM donors WHERE user_id = ?', [user.id]);
     const p = rows[0];
-    if (p) userData = { ...userData, first_name: p.first_name, last_name: p.last_name, middle_name: p.middle_name, suffix: p.suffix, date_of_birth: p.dob, gender: p.gender, house_no: p.house, street: p.street, barangay: p.barangay, city_municipality: p.city, province_region: p.province, postal_zip_code: p.zip, contact_number: p.contact };
+    if (p) userData = { ...userData, first_name: p.first_name, last_name: p.last_name, middle_name: p.middle_name, suffix: p.suffix, date_of_birth: p.dob ? dayjs(p.dob).format('YYYY-MM-DD') : null, gender: p.gender, house_no: p.house, street: p.street, barangay: p.barangay, city_municipality: p.city, province_region: p.province, postal_zip_code: p.zip, contact_number: p.contact };
 
   } else if (user.role === 'organization') {
     const [rows] = await db.execute('SELECT * FROM donor_organizations WHERE user_id = ?', [user.id]);
@@ -667,7 +667,7 @@ exports.profile = async (req, res) => {
     } else {
       const [profRows] = await db.execute('SELECT * FROM beneficiaries WHERE user_id = ?', [user.id]);
       const p = profRows[0];
-      if (p) userData = { ...userData, first_name: p.first_name, last_name: p.last_name, middle_name: p.middle_name, suffix: p.suffix, date_of_birth: p.dob, gender: p.gender, house_no: p.house, street: p.street, barangay: p.barangay, city_municipality: p.city, province_region: p.province, postal_zip_code: p.zip, contact_number: p.contact };
+      if (p) userData = { ...userData, first_name: p.first_name, last_name: p.last_name, middle_name: p.middle_name, suffix: p.suffix, date_of_birth: p.dob ? dayjs(p.dob).format('YYYY-MM-DD') : null, gender: p.gender, house_no: p.house, street: p.street, barangay: p.barangay, city_municipality: p.city, province_region: p.province, postal_zip_code: p.zip, contact_number: p.contact };
     }
   }
 

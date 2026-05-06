@@ -201,8 +201,15 @@ exports.checkPaymentStatus = async (req, res) => {
           httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
         }
       );
-      const pmStatus = pmRes.data?.data?.attributes?.status;
-      if (pmStatus === 'paid') {
+      const attrs = pmRes.data?.data?.attributes;
+
+      // PayMongo checkout session never has status='paid' at top level.
+      // A paid checkout is confirmed via the payments array or payment_intent status.
+      const hasPayment = Array.isArray(attrs?.payments)
+        && attrs.payments.some(p => p?.attributes?.status === 'paid');
+      const piSucceeded = attrs?.payment_intent?.attributes?.status === 'succeeded';
+
+      if (hasPayment || piSucceeded) {
         await db.execute("UPDATE financial_donation_records SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
         await recalculateBadges(donation.user_id);
@@ -685,7 +692,7 @@ exports.getUpcomingPickups = async (req, res) => {
     pickups: pickups.map(p => ({
       id: p.id,
       status: p.status,
-      preferred_date: p.preferred_date,
+      preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
       time_slot: p.time_slot_start + (p.time_slot_end ? ` - ${p.time_slot_end}` : ''),
       pickup_address: p.pickup_address,
       created_at: dayjs(p.created_at).format('MM/DD/YYYY'),

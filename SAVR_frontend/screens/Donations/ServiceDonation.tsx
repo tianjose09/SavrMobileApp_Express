@@ -134,8 +134,25 @@ export default function ServiceDonation({ navigation }: any) {
       const response = await ApiService.submitServiceDonation(payload);
 
       if (response.data.success) {
-        Alert.alert('Success', 'Thank you for pledging your service!');
-        navigation.navigate('HomeTabs', { screen: 'Home' });
+        setAddress('');
+        setFrequency('');
+        setDate(new Date());
+        setTime(new Date());
+        setFirstName('');
+        setLastName('');
+        setEmail('');
+        setDescription('');
+        setQuantity('');
+        setVehicleType('');
+        setCapacity('');
+        setMaxDistance('');
+        setSelectedCategories([]);
+        setHeadcount('');
+        setPreferredWork('');
+        setSelectedSkills([]);
+        Alert.alert('Success', 'Thank you for pledging your service!', [
+          { text: 'OK', onPress: () => navigation.navigate('HomeTabs', { screen: 'Home' }) },
+        ]);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit service donation.');
       }
