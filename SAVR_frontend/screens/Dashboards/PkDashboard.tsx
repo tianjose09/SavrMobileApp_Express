@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, StatusBar, Image, Alert, Animated } from 'react-native';
 import { StorageUtils, StorageKeys } from '../../utils/storage';
 import { ApiService } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,6 +15,8 @@ export default function PkDashboard({ navigation }: any) {
   const [expiringCount, setExpiringCount] = useState(0);
   const [activities, setActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -23,6 +25,27 @@ export default function PkDashboard({ navigation }: any) {
     fetchDashboardData();
     return unsubscribe;
   }, [navigation]);
+
+  const showNotification = (msg: string) => {
+    setNotificationMsg(msg);
+    Animated.sequence([
+      Animated.timing(slideAnim, {
+        toValue: 40,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.delay(3500),
+      Animated.timing(slideAnim, {
+        toValue: -150,
+        duration: 400,
+        useNativeDriver: true,
+      })
+    ]).start(() => setNotificationMsg(null));
+  };
+
+  const handleNotifications = () => {
+    navigation.navigate('Notifications');
+  };
 
   const fetchDashboardData = async () => {
     const localName = await StorageUtils.getItem(StorageKeys.DISPLAY_NAME) || 'Loaves and Fishes';
@@ -40,6 +63,7 @@ export default function PkDashboard({ navigation }: any) {
         if (data.display_name) {
           setUserName(data.display_name);
           setInitial(data.display_name.charAt(0).toUpperCase());
+          StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
         setMealsServed(data.total_meals_served || 0);
         setActivities(data.recent_activities || []);
@@ -92,6 +116,15 @@ export default function PkDashboard({ navigation }: any) {
       });
       setExpiringCount(expiring.length);
 
+      // Trigger live notification banner
+      setTimeout(() => {
+        if (lowStock.length > 0) {
+          showNotification(`${lowStock.length} item(s) are low on stock.`);
+        } else if (expiring.length > 0) {
+          showNotification(`${expiring.length} item(s) are expiring soon.`);
+        }
+      }, 800);
+
     } catch (e) {
       console.log('Failed to parse inventory stats', e);
     } finally {
@@ -103,6 +136,14 @@ export default function PkDashboard({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#236B40" translucent={false} />
 
+      <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+        <View style={styles.notificationContent}>
+          <Ionicons name="notifications" size={24} color="#00592d" />
+          <Text style={styles.notificationText}>{notificationMsg}</Text>
+          <Text style={styles.notificationTime}>Now</Text>
+        </View>
+      </Animated.View>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
 
         {/* GREEN HEADER SECTION */}
@@ -112,8 +153,13 @@ export default function PkDashboard({ navigation }: any) {
               <Image source={require('../../assets/images/logo/logowhite.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={{ marginRight: 15 }}>
+              <TouchableOpacity style={{ marginRight: 15, position: 'relative' }} onPress={handleNotifications} activeOpacity={0.8}>
                 <Ionicons name="notifications-outline" size={28} color="#FFF" />
+                {(lowStockCount > 0 || expiringCount > 0) && (
+                  <View style={styles.badgeDot}>
+                    <Text style={styles.badgeText}>{lowStockCount + expiringCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.openDrawer()}>
                 <Ionicons name="menu-outline" size={32} color="#FFF" />
@@ -124,7 +170,7 @@ export default function PkDashboard({ navigation }: any) {
           <View style={styles.userInfo}>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarCircle}>
               {profilePic ? (
-                <Image source={{ uri: profilePic }} style={{ width: 60, height: 60, borderRadius: 30 }} />
+                <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
               ) : (
                 <Text style={styles.avatarText}>{initial || 'P'}</Text>
               )}
@@ -268,6 +314,45 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#00592d' },
   scrollContent: { flexGrow: 1 },
 
+  notificationBanner: {
+    position: 'absolute',
+    top: 10,
+    left: 15,
+    right: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 24,
+    padding: 18,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: '#00592d',
+    fontSize: 14.5,
+    fontWeight: '700',
+    marginLeft: 14,
+    flex: 1,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+  },
+  notificationTime: {
+    color: '#8A9A8A',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+
   greenHeader: {
     backgroundColor: '#00592d',
     paddingTop: 30,
@@ -289,6 +374,24 @@ const styles = StyleSheet.create({
   logoText: { color: '#FFF', fontSize: 16, fontFamily: 'sans-serif' },
   logoSub: { color: '#FFF', fontSize: 10, opacity: 0.8, marginTop: -2 },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    backgroundColor: '#E74C3C',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
 
   userInfo: {
     flexDirection: 'row',
@@ -299,8 +402,11 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#F0E2A3',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
     marginRight: 15,
   },
   avatarText: {

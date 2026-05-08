@@ -32,6 +32,7 @@ import Activities from '../screens/Activities/Activities';
 import PartnerKitchenRecentActivities from '../screens/Activities/PartnerKitchenRecentActivities';
 import TrackMyRequest from '../screens/Requests/TrackMyRequest';
 import AchievementBadges from '../screens/Activities/AchievementBadges';
+import Notifications from '../screens/Activities/Notifications';
 import CreateRequest from '../screens/Requests/CreateRequest';
 import Profile from '../screens/Accounts/Profile';
 import EditProfile from '../screens/Accounts/EditProfile';
@@ -296,37 +297,26 @@ function MainTabs() {
         ),
       })}
     >
-      {isBeneficiary ? (
-        <Tab.Screen name="Request" component={CreateRequest} />
-      ) : isPartnerKitchen ? (
-        <Tab.Screen name="Ingredients" component={IngredientsStackNavigator} options={{ tabBarLabel: 'Ingr. & Scale' }} />
-      ) : (
-        <Tab.Screen name="Donate" component={DonateStackNavigator} />
-      )}
-
-      <Tab.Screen
-        name="Home"
-        component={DashboardSwitcher}
-        options={{ tabBarLabel: '' }}
-      />
-
-      {isBeneficiary ? (
-        <Tab.Screen name="Track" component={TrackMyRequest} />
-      ) : isPartnerKitchen ? (
+      {isPartnerKitchen ? (
         <>
+          <Tab.Screen name="Home" component={DashboardSwitcher} options={{ tabBarLabel: 'Home' }} />
           <Tab.Screen name="FoodInventory" component={InventoryStackNavigator} options={{ tabBarLabel: 'Inventory' }} />
+          <Tab.Screen name="Ingredients" component={IngredientsStackNavigator} options={{ tabBarLabel: 'Ingr. & Scale' }} />
           <Tab.Screen name="Summary" component={MealPreparationSummary} options={{ tabBarLabel: 'Summary' }} />
         </>
+      ) : isBeneficiary ? (
+        <>
+          <Tab.Screen name="Home" component={DashboardSwitcher} options={{ tabBarLabel: 'Home' }} />
+          <Tab.Screen name="Request" component={CreateRequest} options={{ tabBarLabel: 'Request' }} />
+          <Tab.Screen name="Track" component={TrackMyRequest} />
+        </>
       ) : (
-        <Tab.Screen name="Activities" component={Activities} />
-      )}
-
-      {!isBeneficiary && !isPartnerKitchen && (
-        <Tab.Screen
-          name="Badges"
-          component={AchievementBadges}
-          options={{ title: 'Badges' }}
-        />
+        <>
+          <Tab.Screen name="Home" component={DashboardSwitcher} options={{ tabBarLabel: 'Home' }} />
+          <Tab.Screen name="Donate" component={DonateStackNavigator} />
+          <Tab.Screen name="Activities" component={Activities} />
+          <Tab.Screen name="Badges" component={AchievementBadges} options={{ title: 'Badges' }} />
+        </>
       )}
 
       <Tab.Screen
@@ -347,6 +337,11 @@ function MainTabs() {
       <Tab.Screen
         name="AchievementBadges"
         component={AchievementBadges}
+        options={{ tabBarItemStyle: { display: 'none' } }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={Notifications}
         options={{ tabBarItemStyle: { display: 'none' } }}
       />
     </Tab.Navigator>

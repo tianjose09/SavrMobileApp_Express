@@ -116,12 +116,18 @@ export default function AchievementBadges({ navigation }: any) {
               </TouchableOpacity>
 
               <View style={styles.iconRow}>
-                <TouchableOpacity style={styles.iconBtn}>
+                <TouchableOpacity
+                  style={[styles.iconBtn, { position: 'relative' }]}
+                  onPress={() => navigation.navigate('Notifications')}
+                >
                   <Ionicons
                     name="notifications-outline"
                     size={26}
                     color="#FFFFFF"
                   />
+                  <View style={styles.badgeDot}>
+                    <Text style={styles.badgeText}>!</Text>
+                  </View>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.iconBtn}
@@ -327,6 +333,25 @@ const styles = StyleSheet.create({
 
   iconBtn: {
     marginLeft: 15,
+  },
+
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    backgroundColor: '#E74C3C',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
 
   pageTitle: {

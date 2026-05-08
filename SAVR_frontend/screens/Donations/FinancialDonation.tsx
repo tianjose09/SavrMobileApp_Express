@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image, AppState } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
+import ToastBanner from '../../components/ToastBanner';
 
 export default function FinancialDonation({ navigation }: any) {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
+  const [toast, setToast] = useState({ visible: false, title: '', message: '' });
   const appStateRef = useRef(AppState.currentState);
 
   const pollPaymentStatus = async (donationId: number, attemptsLeft = 4) => {
@@ -16,11 +18,13 @@ export default function FinancialDonation({ navigation }: any) {
       const res = await ApiService.checkPaymentStatus(donationId);
       if (res?.data?.status === 'paid') {
         setPendingDonationId(null);
-        Alert.alert(
-          'Payment Confirmed!',
-          `Your donation of ₱${parseFloat(res.data.amount).toLocaleString('en-US')} has been received. Thank you!`,
-          [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
-        );
+        const donatedAmt = parseFloat(res.data.amount).toLocaleString('en-US');
+        setToast({
+          visible: true,
+          title: 'Donation Confirmed!',
+          message: `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
+        });
+        setTimeout(() => navigation.navigate('Home'), 4500);
         return;
       }
       // Still pending — retry after 3 seconds
@@ -101,6 +105,13 @@ export default function FinancialDonation({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ToastBanner
+        visible={toast.visible}
+        title={toast.title}
+        message={toast.message}
+        type="success"
+        onHide={() => setToast(t => ({ ...t, visible: false }))}
+      />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
 
         {/* Top Header */}
@@ -110,7 +121,7 @@ export default function FinancialDonation({ navigation }: any) {
             <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
 
             <View style={styles.headerIcons}>
-              <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 15 }}>
+              <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 15 }} onPress={() => navigation.navigate('Notifications')}>
                 <Ionicons name="notifications-outline" size={26} color="#4A4A4A" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>

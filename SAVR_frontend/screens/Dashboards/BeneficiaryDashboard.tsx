@@ -10,6 +10,7 @@ import {
   Image,
   AppState,
   ImageBackground,
+  Animated,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StorageUtils, StorageKeys } from '../../utils/storage';
@@ -23,6 +24,25 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const [pendingRequests, setPendingRequests] = useState(0);
   const [activeRequests, setActiveRequests] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const slideAnim = React.useRef(new Animated.Value(-150)).current;
+
+  const showNotification = (msg: string) => {
+    setNotificationMsg(msg);
+    Animated.sequence([
+      Animated.timing(slideAnim, {
+        toValue: 40,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.delay(3500),
+      Animated.timing(slideAnim, {
+        toValue: -150,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setNotificationMsg(null));
+  };
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -67,9 +87,25 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
         setPendingRequests(data.pending_requests ?? 0);
         setActiveRequests(data.active_requests ?? 0);
+
+        // Show popup based on live data
+        setTimeout(() => {
+          if ((data.active_requests ?? 0) > 0) {
+            showNotification('You have an active request being processed.');
+          } else if ((data.pending_requests ?? 0) > 0) {
+            showNotification(`You have ${data.pending_requests} request(s) are pending.`);
+          } else {
+            showNotification('Welcome back! Submit a request if you need support.');
+          }
+        }, 800);
+      } else {
+        // API responded but not success — show default
+        setTimeout(() => showNotification('Welcome back! Submit a request if you need support.'), 800);
       }
     } catch (e) {
       console.error('Failed to load dashboard', e);
+      // API failed — still show popup
+      setTimeout(() => showNotification('Welcome back! Submit a request if you need support.'), 800);
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +121,14 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+        <View style={styles.notificationContent}>
+          <Ionicons name="notifications" size={24} color="#00592d" />
+          <Text style={styles.notificationText}>{notificationMsg}</Text>
+          <Text style={styles.notificationTime}>Now</Text>
+        </View>
+      </Animated.View>
+
       <View style={styles.greenHeader}>
         <View style={styles.topRow}>
           <Image
@@ -94,8 +138,14 @@ export default function BeneficiaryDashboard({ navigation }: any) {
           />
 
           <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconBtn}>
+            <TouchableOpacity
+              style={[styles.iconBtn, { position: 'relative' }]}
+              onPress={() => navigation.navigate('Notifications')}
+            >
               <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
+              <View style={styles.badgeDot}>
+                <Text style={styles.badgeText}>!</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconBtn}
@@ -203,6 +253,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F5F5F3',
   },
+  notificationBanner: {
+    position: 'absolute',
+    top: 10,
+    left: 15,
+    right: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 24,
+    padding: 18,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: '#00592d',
+    fontSize: 14.5,
+    fontWeight: '700',
+    marginLeft: 14,
+    flex: 1,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+  },
+  notificationTime: {
+    color: '#8A9A8A',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
   container: {
     flex: 1,
     backgroundColor: '#00592d',
@@ -228,6 +316,24 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     marginLeft: 15,
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    backgroundColor: '#E74C3C',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
   profileRow: {
     flexDirection: 'row',

@@ -5,11 +5,13 @@ import * as Location from 'expo-location';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
+import ToastBanner from '../../components/ToastBanner';
 
 export default function FoodDonationPickup({ route, navigation }: any) {
   const initialType = route.params?.initialScheduleType || 'pickup';
   const [scheduleType, setScheduleType] = useState<'pickup' | 'delivery'>(initialType);
   const [pickupAddress, setPickupAddress] = useState('');
+  const [toast, setToast] = useState({ visible: false, title: '', message: '' });
 
   const [location, setLocation] = useState({
     latitude: 14.4445, // roughly Las Pinas
@@ -95,10 +97,13 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       const response = await ApiService.submitFoodDonation(formData);
       if (response.data.success) {
         const donatedItemsStr = foodItems.map((fi: any) => `${fi.quantity} of ${fi.type}`).join(', ');
+        setToast({
+          visible: true,
+          title: 'Food Donation Received!',
+          message: `You successfully donated ${donatedItemsStr}. Thank you for your contribution!`,
+        });
         navigation.popToTop();
-        Alert.alert('Success', `You donated ${donatedItemsStr}! Schedule submitted.`, [
-          { text: 'OK', onPress: () => navigation.navigate('HomeTabs', { screen: 'Home' }) },
-        ]);
+        setTimeout(() => navigation.navigate('HomeTabs', { screen: 'Home' }), 4500);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit.');
       }
@@ -123,6 +128,13 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ToastBanner
+        visible={toast.visible}
+        title={toast.title}
+        message={toast.message}
+        type="food"
+        onHide={() => setToast(t => ({ ...t, visible: false }))}
+      />
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -134,7 +146,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             </TouchableOpacity>
 
             <View style={styles.topRightIcons}>
-              <TouchableOpacity style={styles.iconBtn}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
                 <Ionicons name="notifications-outline" size={28} color="#544434" />
               </TouchableOpacity>
 

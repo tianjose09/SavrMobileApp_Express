@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
+import ToastBanner from '../../components/ToastBanner';
 
 const TRANSPORT_CATEGORIES = [
   'No Liquid Foods',
@@ -75,6 +76,7 @@ export default function ServiceDonation({ navigation }: any) {
   // UI States
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState({ visible: false, title: '', message: '' });
 
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
@@ -134,6 +136,14 @@ export default function ServiceDonation({ navigation }: any) {
       const response = await ApiService.submitServiceDonation(payload);
 
       if (response.data.success) {
+        const serviceLabel = activeTab === 'VOLUNTEER' ? 'Volunteer Work' : 'Transportation Service';
+        const dateLabel = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        setToast({
+          visible: true,
+          title: `${serviceLabel} Submitted!`,
+          message: `Your ${serviceLabel.toLowerCase()} pledge for ${dateLabel} has been recorded. Thank you!`,
+        });
+        // Reset form fields
         setAddress('');
         setFrequency('');
         setDate(new Date());
@@ -150,9 +160,7 @@ export default function ServiceDonation({ navigation }: any) {
         setHeadcount('');
         setPreferredWork('');
         setSelectedSkills([]);
-        Alert.alert('Success', 'Thank you for pledging your service!', [
-          { text: 'OK', onPress: () => navigation.navigate('HomeTabs', { screen: 'Home' }) },
-        ]);
+        setTimeout(() => navigation.navigate('HomeTabs', { screen: 'Home' }), 4500);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit service donation.');
       }
@@ -165,6 +173,13 @@ export default function ServiceDonation({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ToastBanner
+        visible={toast.visible}
+        title={toast.title}
+        message={toast.message}
+        type="service"
+        onHide={() => setToast(t => ({ ...t, visible: false }))}
+      />
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" translucent={false} />
 
       {/* HEADER */}
@@ -177,7 +192,7 @@ export default function ServiceDonation({ navigation }: any) {
           />
 
           <View style={styles.topRightIcons}>
-            <TouchableOpacity style={styles.iconBtn}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
               <Ionicons name="notifications-outline" size={28} color="#544434" />
             </TouchableOpacity>
 

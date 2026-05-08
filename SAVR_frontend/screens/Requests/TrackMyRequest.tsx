@@ -126,8 +126,14 @@ export default function TrackMyRequest({ navigation }: any) {
           <View style={styles.headerRow}>
             <Image source={require('../../assets/images/logo/logowhite.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={{ marginRight: 15 }}>
+              <TouchableOpacity
+                style={{ marginRight: 15, position: 'relative' }}
+                onPress={() => navigation.navigate('Notifications')}
+              >
                 <Ionicons name="notifications-outline" size={26} color="#FFF" />
+                <View style={styles.badgeDot}>
+                  <Text style={styles.badgeText}>!</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.openDrawer()}>
                 <Ionicons name="menu" size={34} color="#FFF" />
@@ -321,6 +327,24 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    backgroundColor: '#E74C3C',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
   headerTitles: {
     alignItems: 'center', // Center aligned top header block!
     marginTop: 15,
