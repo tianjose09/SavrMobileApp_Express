@@ -30,7 +30,7 @@ export default function PkDashboard({ navigation }: any) {
     setNotificationMsg(msg);
     Animated.sequence([
       Animated.timing(slideAnim, {
-        toValue: 40,
+        toValue: 0,
         duration: 400,
         useNativeDriver: true,
       }),
@@ -44,7 +44,7 @@ export default function PkDashboard({ navigation }: any) {
   };
 
   const handleNotifications = () => {
-    navigation.navigate('Notifications');
+    navigation.navigate('Notifications', { role: 'pk' });
   };
 
   const fetchDashboardData = async () => {
@@ -133,18 +133,21 @@ export default function PkDashboard({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#236B40" translucent={false} />
+    <>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+        {/* Slide-in notification banner */}
+        <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.notificationContent}>
+            <Ionicons name="notifications" size={24} color="#00592d" />
+            <Text style={styles.notificationText}>{notificationMsg}</Text>
+            <Text style={styles.notificationTime}>Now</Text>
+          </View>
+        </Animated.View>
 
-      <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
-        <View style={styles.notificationContent}>
-          <Ionicons name="notifications" size={24} color="#00592d" />
-          <Text style={styles.notificationText}>{notificationMsg}</Text>
-          <Text style={styles.notificationTime}>Now</Text>
-        </View>
-      </Animated.View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
+        <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor="#236B40" translucent={false} />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
 
         {/* GREEN HEADER SECTION */}
         <View style={styles.greenHeader}>
@@ -305,8 +308,10 @@ export default function PkDashboard({ navigation }: any) {
 
           <View style={{ height: 120 }} />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+        </View>
+      </SafeAreaView>
+    </>
   );
 }
 

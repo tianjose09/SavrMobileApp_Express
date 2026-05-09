@@ -31,7 +31,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
     setNotificationMsg(msg);
     Animated.sequence([
       Animated.timing(slideAnim, {
-        toValue: 40,
+        toValue: 0,
         duration: 400,
         useNativeDriver: true,
       }),
@@ -120,131 +120,139 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
-        <View style={styles.notificationContent}>
-          <Ionicons name="notifications" size={24} color="#00592d" />
-          <Text style={styles.notificationText}>{notificationMsg}</Text>
-          <Text style={styles.notificationTime}>Now</Text>
-        </View>
-      </Animated.View>
-
-      <View style={styles.greenHeader}>
-        <View style={styles.topRow}>
-          <Image
-            source={require('../../assets/images/logo/logowhite.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-
-          <View style={styles.iconRow}>
-            <TouchableOpacity
-              style={[styles.iconBtn, { position: 'relative' }]}
-              onPress={() => navigation.navigate('Notifications')}
-            >
-              <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
-              <View style={styles.badgeDot}>
-                <Text style={styles.badgeText}>!</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.openDrawer?.()}
-            >
-              <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
-            </TouchableOpacity>
+    <>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+        {/* Slide-in notification banner */}
+        <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.notificationContent}>
+            <Ionicons name="notifications" size={24} color="#00592d" />
+            <Text style={styles.notificationText}>{notificationMsg}</Text>
+            <Text style={styles.notificationTime}>Now</Text>
           </View>
-        </View>
-        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -16, marginTop: 5, marginBottom: 15 }} />
+        </Animated.View>
 
-        <View style={styles.profileRow}>
-          <TouchableOpacity
-            style={styles.avatarCircle}
-            onPress={() => navigation.navigate?.('Profile')}
-          >
-            {profilePic ? (
-              <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
-            ) : (
-              <Text style={{ fontSize: 28, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.profileName} numberOfLines={1}>
-            {userName}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.whiteSheet}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
-
-          <View style={styles.subtitleWrapper}>
-            <Text style={styles.subtitle}>
-              Welcome back, <Text style={styles.subtitleBold}>{userName}!</Text> Here's{'\n'}your activity overview
-            </Text>
-          </View>
-
-          <View style={styles.statsRow}>
-            {/* Active Request Card */}
-            <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
-              <ImageBackground
-                source={require('../../assets/images/cards/activerequest_card.png')}
-                style={styles.imageCardBg}
-                imageStyle={{ borderRadius: 14 }}
+        <View style={styles.container}>
+          {/* GREEN HEADER */}
+          <View style={styles.greenHeader}>
+            <View style={styles.topRow}>
+              <Image
+                source={require('../../assets/images/logo/logowhite.png')}
+                style={styles.logoImage}
                 resizeMode="contain"
-              >
-                <View style={styles.cardRightStack}>
-                  <Text style={styles.cardNumber}>{activeRequests}</Text>
-                  <Text style={styles.cardLabel}>ACTIVE REQUEST</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-
-            {/* Pending Request Card */}
-            <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
-              <ImageBackground
-                source={require('../../assets/images/cards/pendingrequest_card.png')}
-                style={styles.imageCardBg}
-                imageStyle={{ borderRadius: 14 }}
-                resizeMode="contain"
-              >
-                <View style={styles.cardRightStack}>
-                  <Text style={styles.cardNumber}>{pendingRequests}</Text>
-                  <Text style={styles.cardLabel}>PENDING REQUEST</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-          </View>
-
-          {/* Need Support Banner */}
-          <View style={styles.supportBanner}>
-            <View style={styles.supportLeftStack}>
-              <Text style={styles.supportLine1}>Need support for your</Text>
-              <Text style={styles.supportLine2}>community?</Text>
-
-              <View style={styles.supportMainWrap}>
-                <Text style={styles.supportMain}>Submit a new</Text>
-                <Text style={styles.supportMain}>request</Text>
+              />
+              <View style={styles.iconRow}>
+                <TouchableOpacity
+                  style={[styles.iconBtn, { position: 'relative' }]}
+                  onPress={() => navigation.navigate('Notifications', { role: 'beneficiary' })}
+                >
+                  <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
+                  <View style={styles.badgeDot}>
+                    <Text style={styles.badgeText}>!</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => navigation.openDrawer?.()}
+                >
+                  <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
             </View>
+            <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -16, marginTop: 5, marginBottom: 15 }} />
 
-            <TouchableOpacity
-              style={styles.yellowButton}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('HomeTabs', { screen: 'Request' })}
-            >
-              <Text style={styles.yellowBtnText}>Request</Text>
-              <Text style={styles.yellowBtnText}>Now</Text>
-            </TouchableOpacity>
+            <View style={styles.profileRow}>
+              <TouchableOpacity
+                style={styles.avatarCircle}
+                onPress={() => navigation.navigate?.('Profile')}
+              >
+                {profilePic ? (
+                  <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+                ) : (
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
+                )}
+              </TouchableOpacity>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {userName}
+              </Text>
+            </View>
           </View>
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+
+          {/* WHITE SHEET */}
+          <View style={styles.whiteSheet}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
+
+              <View style={styles.subtitleWrapper}>
+                <Text style={styles.subtitle}>
+                  Welcome back, <Text style={styles.subtitleBold}>{userName}!</Text> Here's{'\n'}your activity overview
+                </Text>
+              </View>
+
+              <View style={styles.statsRow}>
+                {/* Active Request Card */}
+                <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
+                  <ImageBackground
+                    source={require('../../assets/images/cards/activerequest_card.png')}
+                    style={styles.imageCardBg}
+                    imageStyle={{ borderRadius: 14 }}
+                    resizeMode="contain"
+                  >
+                    <View style={styles.cardRightStack}>
+                      <Text style={styles.cardNumber}>{activeRequests}</Text>
+                      <Text style={styles.cardLabel}>ACTIVE REQUEST</Text>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+
+                {/* Pending Request Card */}
+                <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
+                  <ImageBackground
+                    source={require('../../assets/images/cards/pendingrequest_card.png')}
+                    style={styles.imageCardBg}
+                    imageStyle={{ borderRadius: 14 }}
+                    resizeMode="contain"
+                  >
+                    <View style={styles.cardRightStack}>
+                      <Text style={styles.cardNumber}>{pendingRequests}</Text>
+                      <Text style={styles.cardLabel}>PENDING REQUEST</Text>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+              </View>
+
+              {/* Need Support Banner */}
+              <View style={styles.supportBanner}>
+                <View style={styles.supportLeftStack}>
+                  <Text style={styles.supportLine1}>Need support for your</Text>
+                  <Text style={styles.supportLine2}>community?</Text>
+
+                  <View style={styles.supportMainWrap}>
+                    <Text style={styles.supportMain}>Submit a new</Text>
+                    <Text style={styles.supportMain}>request</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.yellowButton}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Request' })}
+                >
+                  <Text style={styles.yellowBtnText}>Request</Text>
+                  <Text style={styles.yellowBtnText}>Now</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </SafeAreaView>
+    </>
   );
 }
+
 
 const styles = StyleSheet.create({
   loadingContainer: {

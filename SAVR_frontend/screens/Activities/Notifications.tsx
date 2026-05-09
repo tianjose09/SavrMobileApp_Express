@@ -19,7 +19,7 @@ type NotificationItem = {
   read?: boolean;
 };
 
-const NOTIFICATIONS: NotificationItem[] = [
+const DONOR_NOTIFICATIONS: NotificationItem[] = [
   {
     id: '1',
     type: 'financial',
@@ -86,6 +86,140 @@ const NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
+const PK_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'pk1',
+    type: 'food',
+    title: 'Low Stock Alert',
+    time: 'Just now',
+    desc: '3 inventory items have fallen below the minimum threshold. Restock Eggs, Milk, and Carrots soon.',
+    read: false,
+  },
+  {
+    id: 'pk2',
+    type: 'food',
+    title: 'Donation Received',
+    time: '1 hour ago',
+    desc: '80 pieces of Carrots and 17 kg of Chicken have been added to your inventory from a new donor.',
+    read: false,
+  },
+  {
+    id: 'pk3',
+    type: 'system',
+    title: 'Meal Service Logged',
+    time: '3 hours ago',
+    desc: 'Today\'s meal service has been recorded — 120 meals were successfully served to beneficiaries.',
+    read: false,
+  },
+  {
+    id: 'pk4',
+    type: 'badge',
+    title: 'Expiry Warning',
+    time: 'Yesterday',
+    desc: 'Milk (17 L) is expiring on Jan 30, 2026. Please prioritize its use or arrange for redistribution.',
+    read: true,
+  },
+  {
+    id: 'pk5',
+    type: 'financial',
+    title: 'Inventory Updated',
+    time: 'Yesterday',
+    desc: '50 kg of Rice and 680 pcs of Bread have been added to inventory. Total items: 7.',
+    read: true,
+  },
+  {
+    id: 'pk6',
+    type: 'service',
+    title: 'New Volunteer Assigned',
+    time: '2 days ago',
+    desc: 'A volunteer has been assigned to assist your kitchen on May 11, 2026. Check the schedule for details.',
+    read: true,
+  },
+  {
+    id: 'pk7',
+    type: 'system',
+    title: 'Monthly Summary Ready',
+    time: '3 days ago',
+    desc: 'Your April 2026 kitchen summary is ready. Total meals served: 3,240. View the full report in Summary.',
+    read: true,
+  },
+  {
+    id: 'pk8',
+    type: 'system',
+    title: 'Community Feeding Schedule',
+    time: 'Last week',
+    desc: 'The next community feeding event is on May 20, 2026. Prepare inventory stocks accordingly.',
+    read: true,
+  },
+];
+
+const BENEFICIARY_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'b1',
+    type: 'food',
+    title: 'Food Request Approved',
+    time: 'Just now',
+    desc: 'Your food assistance request for May 9, 2026 has been approved. Please proceed to the pickup point.',
+    read: false,
+  },
+  {
+    id: 'b2',
+    type: 'system',
+    title: 'Pickup Ready',
+    time: '1 hour ago',
+    desc: 'Your food pack is ready for pickup at Loaves and Fishes Kitchen. Bring your beneficiary ID.',
+    read: false,
+  },
+  {
+    id: 'b3',
+    type: 'service',
+    title: 'Assistance Scheduled',
+    time: '4 hours ago',
+    desc: 'Your next food assistance is scheduled for May 16, 2026. You will receive a reminder the day before.',
+    read: false,
+  },
+  {
+    id: 'b4',
+    type: 'food',
+    title: 'Request Received',
+    time: 'Yesterday',
+    desc: 'We have received your food assistance request. Processing usually takes 1-2 business days.',
+    read: true,
+  },
+  {
+    id: 'b5',
+    type: 'system',
+    title: 'Community Feeding Event',
+    time: 'Yesterday',
+    desc: 'A community feeding event is happening on May 20, 2026 at Barangay Hall. No registration needed.',
+    read: true,
+  },
+  {
+    id: 'b6',
+    type: 'badge',
+    title: 'Profile Verified',
+    time: '2 days ago',
+    desc: 'Your beneficiary profile has been verified. You are now eligible for full food assistance benefits.',
+    read: true,
+  },
+  {
+    id: 'b7',
+    type: 'food',
+    title: 'Previous Pickup Confirmed',
+    time: '4 days ago',
+    desc: 'Your food pack pickup on May 5, 2026 has been confirmed and recorded in the system.',
+    read: true,
+  },
+  {
+    id: 'b8',
+    type: 'system',
+    title: 'Program Announcement',
+    time: 'Last week',
+    desc: 'SAVR has expanded its coverage. New pickup locations are now available in your area.',
+    read: true,
+  },
+];
+
 function getTypeConfig(type: NotificationItem['type']) {
   switch (type) {
     case 'financial':
@@ -103,8 +237,13 @@ function getTypeConfig(type: NotificationItem['type']) {
   }
 }
 
-export default function Notifications({ navigation }: any) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(NOTIFICATIONS);
+export default function Notifications({ navigation, route }: any) {
+  const role = route?.params?.role || 'donor';
+  const initialList =
+    role === 'pk' ? PK_NOTIFICATIONS :
+    role === 'beneficiary' ? BENEFICIARY_NOTIFICATIONS :
+    DONOR_NOTIFICATIONS;
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialList);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -165,8 +304,7 @@ export default function Notifications({ navigation }: any) {
                   activeOpacity={0.75}
                   onPress={() => markRead(item.id)}
                 >
-                  {/* Unread dot */}
-                  {!item.read && <View style={styles.unreadDot} />}
+
 
                   <View style={[styles.iconCircle, { backgroundColor: cfg.bg }]}>
                     <Ionicons name={cfg.icon as any} size={22} color={cfg.color} />
