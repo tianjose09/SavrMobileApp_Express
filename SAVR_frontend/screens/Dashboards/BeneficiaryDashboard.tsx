@@ -10,6 +10,7 @@ import {
   Image,
   AppState,
   ImageBackground,
+  Animated,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StorageUtils, StorageKeys } from '../../utils/storage';
@@ -23,6 +24,25 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const [pendingRequests, setPendingRequests] = useState(0);
   const [activeRequests, setActiveRequests] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const slideAnim = React.useRef(new Animated.Value(-150)).current;
+
+  const showNotification = (msg: string) => {
+    setNotificationMsg(msg);
+    Animated.sequence([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.delay(3500),
+      Animated.timing(slideAnim, {
+        toValue: -150,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setNotificationMsg(null));
+  };
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -67,9 +87,25 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
         setPendingRequests(data.pending_requests ?? 0);
         setActiveRequests(data.active_requests ?? 0);
+
+        // Show popup based on live data
+        setTimeout(() => {
+          if ((data.active_requests ?? 0) > 0) {
+            showNotification('You have an active request being processed.');
+          } else if ((data.pending_requests ?? 0) > 0) {
+            showNotification(`You have ${data.pending_requests} request(s) are pending.`);
+          } else {
+            showNotification('Welcome back! Submit a request if you need support.');
+          }
+        }, 800);
+      } else {
+        // API responded but not success — show default
+        setTimeout(() => showNotification('Welcome back! Submit a request if you need support.'), 800);
       }
     } catch (e) {
       console.error('Failed to load dashboard', e);
+      // API failed — still show popup
+      setTimeout(() => showNotification('Welcome back! Submit a request if you need support.'), 800);
     } finally {
       setIsLoading(false);
     }
@@ -84,117 +120,139 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.greenHeader}>
-        <View style={styles.topRow}>
-          <Image
-            source={require('../../assets/images/logo/logowhite.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-
-          <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.openDrawer?.()}
-            >
-              <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
-            </TouchableOpacity>
+    <>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+        {/* Slide-in notification banner */}
+        <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.notificationContent}>
+            <Ionicons name="notifications" size={24} color="#00592d" />
+            <Text style={styles.notificationText}>{notificationMsg}</Text>
+            <Text style={styles.notificationTime}>Now</Text>
           </View>
-        </View>
-        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -16, marginTop: 5, marginBottom: 15 }} />
+        </Animated.View>
 
-        <View style={styles.profileRow}>
-          <TouchableOpacity
-            style={styles.avatarCircle}
-            onPress={() => navigation.navigate?.('Profile')}
-          >
-            {profilePic ? (
-              <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
-            ) : (
-              <Text style={{ fontSize: 28, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.profileName} numberOfLines={1}>
-            {userName}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.whiteSheet}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
-
-          <View style={styles.subtitleWrapper}>
-            <Text style={styles.subtitle}>
-              Welcome back, <Text style={styles.subtitleBold}>{userName}!</Text> Here's{'\n'}your activity overview
-            </Text>
-          </View>
-
-          <View style={styles.statsRow}>
-            {/* Active Request Card */}
-            <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
-              <ImageBackground
-                source={require('../../assets/images/cards/activerequest_card.png')}
-                style={styles.imageCardBg}
-                imageStyle={{ borderRadius: 14 }}
+        <View style={styles.container}>
+          {/* GREEN HEADER */}
+          <View style={styles.greenHeader}>
+            <View style={styles.topRow}>
+              <Image
+                source={require('../../assets/images/logo/logowhite.png')}
+                style={styles.logoImage}
                 resizeMode="contain"
-              >
-                <View style={styles.cardRightStack}>
-                  <Text style={styles.cardNumber}>{activeRequests}</Text>
-                  <Text style={styles.cardLabel}>ACTIVE REQUEST</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-
-            {/* Pending Request Card */}
-            <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
-              <ImageBackground
-                source={require('../../assets/images/cards/pendingrequest_card.png')}
-                style={styles.imageCardBg}
-                imageStyle={{ borderRadius: 14 }}
-                resizeMode="contain"
-              >
-                <View style={styles.cardRightStack}>
-                  <Text style={styles.cardNumber}>{pendingRequests}</Text>
-                  <Text style={styles.cardLabel}>PENDING REQUEST</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-          </View>
-
-          {/* Need Support Banner */}
-          <View style={styles.supportBanner}>
-            <View style={styles.supportLeftStack}>
-              <Text style={styles.supportLine1}>Need support for your</Text>
-              <Text style={styles.supportLine2}>community?</Text>
-
-              <View style={styles.supportMainWrap}>
-                <Text style={styles.supportMain}>Submit a new</Text>
-                <Text style={styles.supportMain}>request</Text>
+              />
+              <View style={styles.iconRow}>
+                <TouchableOpacity
+                  style={[styles.iconBtn, { position: 'relative' }]}
+                  onPress={() => navigation.navigate('Notifications', { role: 'beneficiary' })}
+                >
+                  <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
+                  <View style={styles.badgeDot}>
+                    <Text style={styles.badgeText}>!</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => navigation.openDrawer?.()}
+                >
+                  <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
             </View>
+            <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -16, marginTop: 5, marginBottom: 15 }} />
 
-            <TouchableOpacity
-              style={styles.yellowButton}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('HomeTabs', { screen: 'Request' })}
-            >
-              <Text style={styles.yellowBtnText}>Request</Text>
-              <Text style={styles.yellowBtnText}>Now</Text>
-            </TouchableOpacity>
+            <View style={styles.profileRow}>
+              <TouchableOpacity
+                style={styles.avatarCircle}
+                onPress={() => navigation.navigate?.('Profile')}
+              >
+                {profilePic ? (
+                  <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+                ) : (
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
+                )}
+              </TouchableOpacity>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {userName}
+              </Text>
+            </View>
           </View>
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+
+          {/* WHITE SHEET */}
+          <View style={styles.whiteSheet}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
+
+              <View style={styles.subtitleWrapper}>
+                <Text style={styles.subtitle}>
+                  Welcome back, <Text style={styles.subtitleBold}>{userName}!</Text> Here's{'\n'}your activity overview
+                </Text>
+              </View>
+
+              <View style={styles.statsRow}>
+                {/* Active Request Card */}
+                <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
+                  <ImageBackground
+                    source={require('../../assets/images/cards/activerequest_card.png')}
+                    style={styles.imageCardBg}
+                    imageStyle={{ borderRadius: 14 }}
+                    resizeMode="contain"
+                  >
+                    <View style={styles.cardRightStack}>
+                      <Text style={styles.cardNumber}>{activeRequests}</Text>
+                      <Text style={styles.cardLabel}>ACTIVE REQUEST</Text>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+
+                {/* Pending Request Card */}
+                <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
+                  <ImageBackground
+                    source={require('../../assets/images/cards/pendingrequest_card.png')}
+                    style={styles.imageCardBg}
+                    imageStyle={{ borderRadius: 14 }}
+                    resizeMode="contain"
+                  >
+                    <View style={styles.cardRightStack}>
+                      <Text style={styles.cardNumber}>{pendingRequests}</Text>
+                      <Text style={styles.cardLabel}>PENDING REQUEST</Text>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+              </View>
+
+              {/* Need Support Banner */}
+              <View style={styles.supportBanner}>
+                <View style={styles.supportLeftStack}>
+                  <Text style={styles.supportLine1}>Need support for your</Text>
+                  <Text style={styles.supportLine2}>community?</Text>
+
+                  <View style={styles.supportMainWrap}>
+                    <Text style={styles.supportMain}>Submit a new</Text>
+                    <Text style={styles.supportMain}>request</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.yellowButton}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Request' })}
+                >
+                  <Text style={styles.yellowBtnText}>Request</Text>
+                  <Text style={styles.yellowBtnText}>Now</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </SafeAreaView>
+    </>
   );
 }
+
 
 const styles = StyleSheet.create({
   loadingContainer: {
@@ -202,6 +260,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5F5F3',
+  },
+  notificationBanner: {
+    position: 'absolute',
+    top: 10,
+    left: 15,
+    right: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 24,
+    padding: 18,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: '#00592d',
+    fontSize: 14.5,
+    fontWeight: '700',
+    marginLeft: 14,
+    flex: 1,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+  },
+  notificationTime: {
+    color: '#8A9A8A',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
   container: {
     flex: 1,
@@ -228,6 +324,24 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     marginLeft: 15,
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    backgroundColor: '#E74C3C',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
   profileRow: {
     flexDirection: 'row',

@@ -60,7 +60,7 @@ export default function FoodInventory({ route, navigation }: any) {
                         resizeMode="contain"
                     />
                     <View style={styles.topRightIcons}>
-                        <TouchableOpacity style={styles.iconBtn}>
+                        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
                             <Ionicons name="notifications-outline" size={28} color="#544434" />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
@@ -89,7 +89,7 @@ export default function FoodInventory({ route, navigation }: any) {
                         <TextInput
                             style={styles.searchInput}
                             placeholder="Search items..."
-                            placeholderTextColor="#867A70"
+                            placeholderTextColor="#555555"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
@@ -282,9 +282,11 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
-        fontSize: 13,
+        fontSize: 14,
         color: '#333',
         height: '100%',
+        paddingVertical: 0,
+        marginVertical: 0,
     },
     searchIcon: {
         marginLeft: 8,

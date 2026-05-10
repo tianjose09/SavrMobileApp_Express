@@ -438,8 +438,8 @@ export default function LandingPage({ navigation }: any) {
 
       <View style={styles.bottomNav}>
         {[
-          { key: 'Mission', icon: 'flag-outline', label: 'Mission', type: Ionicons },
           { key: 'Home', icon: 'home', label: 'Home', type: Ionicons },
+          { key: 'Mission', icon: 'flag-outline', label: 'Mission', type: Ionicons },
           { key: 'Involve', icon: 'handshake-outline', label: 'Involve', type: MaterialCommunityIcons }
         ].map(item => {
           const isActive = activeTab === item.key;

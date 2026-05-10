@@ -95,7 +95,7 @@ export default function Sidebar(props: any) {
           <>
             <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('Ingredients')}>
               <View style={styles.iconWrap}><Ionicons name="fast-food-outline" size={20} color="#1B5B39" /></View>
-              <Text style={styles.navText}>Ingredients and Meal Scaling</Text>
+              <Text style={styles.navText}>Ingredients & Meal Scaling</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('FoodInventory')}>

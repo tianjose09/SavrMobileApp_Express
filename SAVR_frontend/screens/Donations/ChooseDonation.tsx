@@ -62,8 +62,15 @@ export default function ChooseDonation({ navigation }: any) {
         <View style={styles.topNav}>
           <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity
+              style={{ position: 'relative' }}
+              onPress={() => navigation.navigate('Notifications')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Ionicons name="notifications-outline" size={26} color="#FFF" style={{ marginRight: 15 }} />
+              <View style={styles.badgeDot}>
+                <Text style={styles.badgeText}>!</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="menu" size={34} color="#FFF" />
@@ -158,6 +165,25 @@ export default function ChooseDonation({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
+
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: 11,
+    backgroundColor: '#E74C3C',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
 
   heroBackground: {
     backgroundColor: '#00592d',

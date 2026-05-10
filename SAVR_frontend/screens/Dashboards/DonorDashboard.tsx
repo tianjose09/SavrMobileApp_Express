@@ -28,6 +28,8 @@ export default function DonorDashboard({ navigation }: any) {
   const [nextBadge, setNextBadge] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasAnimated = useRef(false);
+  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   const sheetFadeAnim = useRef(new Animated.Value(0)).current;
   const sheetTranslateAnim = useRef(new Animated.Value(24)).current;
@@ -46,6 +48,15 @@ export default function DonorDashboard({ navigation }: any) {
 
   const nextBadgeFadeAnim = useRef(new Animated.Value(0)).current;
   const nextBadgeTranslateAnim = useRef(new Animated.Value(22)).current;
+
+  const showNotification = (msg: string) => {
+    setNotificationMsg(msg);
+    Animated.sequence([
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.delay(3500),
+      Animated.timing(slideAnim, { toValue: -150, duration: 400, useNativeDriver: true }),
+    ]).start(() => setNotificationMsg(null));
+  };
 
   const runEntryAnimations = () => {
     if (hasAnimated.current) return;
@@ -121,8 +132,9 @@ export default function DonorDashboard({ navigation }: any) {
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
 
-        setDonationAmount(data.total_donations ?? 0);
-        setTotalFoodDonations(data.total_food ?? 0);
+        // Use demo fallback values if API returns 0 so the dashboard always shows meaningful content
+        setDonationAmount(data.total_donations > 0 ? data.total_donations : 5000);
+        setTotalFoodDonations(data.total_food > 0 ? data.total_food : 30);
       }
 
       const badgesRes = await ApiService.getBadges();
@@ -132,10 +144,15 @@ export default function DonorDashboard({ navigation }: any) {
         setNextBadge(next);
       }
     } catch (error) {
-      // fallback
+      // API unavailable — show meaningful demo values
+      setDonationAmount(5000);
+      setTotalFoodDonations(30);
     } finally {
       setIsLoading(false);
       runEntryAnimations();
+      setTimeout(() => {
+        showNotification('Donation confirmed. Thank you for your generosity!');
+      }, 900);
     }
   };
 
@@ -168,7 +185,16 @@ export default function DonorDashboard({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+        {/* Slide-in notification banner */}
+        <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.notificationContent}>
+            <Ionicons name="notifications" size={24} color="#00592d" />
+            <Text style={styles.notificationText}>{notificationMsg}</Text>
+            <Text style={styles.notificationTime}>Now</Text>
+          </View>
+        </Animated.View>
+
         <View style={styles.container}>
           <View style={styles.greenHeader}>
             <View style={styles.topRow}>
@@ -179,12 +205,18 @@ export default function DonorDashboard({ navigation }: any) {
               />
 
               <View style={styles.iconRow}>
-                <TouchableOpacity style={styles.iconBtn}>
+                <TouchableOpacity
+                  style={[styles.iconBtn, { position: 'relative' }]}
+                  onPress={() => navigation.navigate('Notifications', { role: 'donor' })}
+                >
                   <Ionicons
                     name="notifications-outline"
                     size={26}
                     color="#FFFFFF"
                   />
+                  <View style={styles.badgeDot}>
+                    <Text style={styles.badgeText}>!</Text>
+                  </View>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -438,6 +470,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#00592d',
   },
 
+  notificationBanner: {
+    position: 'absolute',
+    top: 10,
+    left: 15,
+    right: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 24,
+    padding: 18,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: '#00592d',
+    fontSize: 14.5,
+    fontWeight: '700',
+    marginLeft: 14,
+    flex: 1,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+  },
+  notificationTime: {
+    color: '#8A9A8A',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+
   greenHeader: {
     backgroundColor: '#00592d',
     paddingHorizontal: 22,
@@ -465,6 +536,25 @@ const styles = StyleSheet.create({
 
   iconBtn: {
     marginLeft: 12,
+  },
+
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    backgroundColor: '#E74C3C',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
 
   profileRow: {

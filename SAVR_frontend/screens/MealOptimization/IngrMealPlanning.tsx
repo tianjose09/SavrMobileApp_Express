@@ -223,7 +223,7 @@ export default function IngrMealPlanning({ navigation }: any) {
             />
           </View>
           <View style={styles.topActions}>
-            <TouchableOpacity style={styles.iconBtn}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
               <Ionicons name="notifications-outline" size={26} color="#544434" />
             </TouchableOpacity>
             <TouchableOpacity style={[styles.iconBtn, { marginLeft: 10 }]} onPress={() => navigation?.openDrawer?.()}>
@@ -274,7 +274,7 @@ export default function IngrMealPlanning({ navigation }: any) {
                 placeholder="Search items"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor="#786F67"
+                placeholderTextColor="#555555"
               />
               <Ionicons name="search" size={20} color="#000" style={{ marginRight: 10 }} />
             </View>
@@ -647,8 +647,10 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#333',
+    paddingVertical: 0,
+    marginVertical: 0,
   },
   btnSecondary: {
     backgroundColor: '#cfab17',
