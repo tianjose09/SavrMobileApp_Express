@@ -63,18 +63,23 @@ export default function Profile({ navigation }: any) {
       }
       userRole = userRole?.toLowerCase() || 'donor';
 
-      if (userRole === 'partner_kitchen' || userRole === 'organization') {
+      if (userRole === 'partner_kitchen') {
         setProfile({
-          name: 'Loaves and Fishes',
-          role: 'organization',
+          role: 'partner_kitchen',
+          kitchen_name: 'Loaves and Fishes',
+          contact_person: 'Contact Person',
+          position_role: 'Manager',
+          website_url: 'N/A',
           email: 'contact@loavesandfishes.org',
           contact_number: '+63 912 345 6789',
-          house_no: 'Bldg 4',
-          street: 'Main Charity Avenue',
-          barangay: 'San Antonio',
+        });
+      } else if (userRole === 'organization') {
+        setProfile({
+          name: 'Organization Name',
+          role: 'organization',
+          email: 'contact@organization.org',
+          contact_number: '+63 912 345 6789',
           city_municipality: 'Makati',
-          province_region: 'Metro Manila',
-          postal_zip_code: '1203'
         });
       } else if (userRole === 'beneficiary') {
         setProfile({
@@ -148,8 +153,15 @@ export default function Profile({ navigation }: any) {
   }
 
   // Value Extracts - Falling back intelligently
-  const isDonor = profile?.role !== 'organization';
-  const roleDisplay = isDonor ? 'DONOR DETAILS' : 'ORGANIZATION DETAILS';
+  const role = profile?.role || 'donor';
+  const isPartnerKitchen = role === 'partner_kitchen';
+  const isOrganization = role === 'organization';
+  const isDonor = !isPartnerKitchen && !isOrganization;
+  const roleDisplay = isPartnerKitchen ? 'PARTNER KITCHEN DETAILS' : isOrganization ? 'ORGANIZATION DETAILS' : 'DONOR DETAILS';
+
+  const heroName = isPartnerKitchen
+    ? (profile?.kitchen_name || profile?.contact_person || 'Kitchen')
+    : (profile?.name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'User');
 
   const fName = profile?.first_name || profile?.name?.split(' ')[0] || 'User';
   const lName = profile?.last_name || profile?.name?.split(' ').slice(1).join(' ') || '';
@@ -192,7 +204,7 @@ export default function Profile({ navigation }: any) {
               </View>
             </TouchableOpacity>
             <View style={styles.heroTextCol}>
-              <Text style={styles.heroName} numberOfLines={1}>{profile?.name || `${fName} ${lName}`}</Text>
+              <Text style={styles.heroName} numberOfLines={1}>{heroName}</Text>
               <Text style={styles.heroSub}>Manage your personal information and account details</Text>
             </View>
           </View>
@@ -225,7 +237,14 @@ export default function Profile({ navigation }: any) {
 
         {/* Dynamic Pills */}
 
-        {isDonor ? (
+        {isPartnerKitchen ? (
+          <>
+            <View style={styles.pillBox}><Text style={styles.pillLabel}>Kitchen Name</Text><Text style={styles.pillValue}>{profile?.kitchen_name || 'Not Specified'}</Text></View>
+            <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Person</Text><Text style={styles.pillValue}>{profile?.contact_person || 'Not Specified'}</Text></View>
+            <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile?.position_role || 'Not Specified'}</Text></View>
+            <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile?.website_url || 'Not Specified'}</Text></View>
+          </>
+        ) : isDonor ? (
           <>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>First Name</Text><Text style={styles.pillValue}>{fName}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Last Name</Text><Text style={styles.pillValue}>{lName}</Text></View>
@@ -233,7 +252,7 @@ export default function Profile({ navigation }: any) {
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Suffix</Text><Text style={styles.pillValue}>{suff}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Date of Birth</Text><Text style={styles.pillValue}>{dob}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Gender</Text><Text style={styles.pillValue}>{gender}</Text></View>
-            
+
             <View style={styles.pillBox}><Text style={styles.pillLabel}>House #</Text><Text style={styles.pillValue}>{houseNo}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Street</Text><Text style={styles.pillValue}>{street}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Brgy.</Text><Text style={styles.pillValue}>{brgy}</Text></View>
@@ -244,7 +263,7 @@ export default function Profile({ navigation }: any) {
         ) : (
           <>
             <View style={styles.pillBox}>
-              <Text style={styles.pillLabel}>Username / Partner Name</Text>
+              <Text style={styles.pillLabel}>Organization Name</Text>
               <Text style={styles.pillValue}>{profile?.name}</Text>
             </View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>

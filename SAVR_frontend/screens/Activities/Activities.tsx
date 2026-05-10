@@ -88,7 +88,10 @@ export default function Activities({ navigation }: any) {
       lower.includes('completed') ||
       lower.includes('success') ||
       lower.includes('approved') ||
-      lower.includes('delivered')
+      lower.includes('delivered') ||
+      lower.includes('scheduled') ||
+      lower.includes('submitted') ||
+      lower.includes('processed')
     ) {
       return {
         bg: '#E6F4EA',

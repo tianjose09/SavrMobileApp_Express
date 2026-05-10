@@ -40,6 +40,7 @@ export default function PkDashboard({ navigation }: any) {
         if (data.display_name) {
           setUserName(data.display_name);
           setInitial(data.display_name.charAt(0).toUpperCase());
+          StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
         setMealsServed(data.total_meals_served || 0);
         setActivities(data.recent_activities || []);

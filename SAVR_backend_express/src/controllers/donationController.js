@@ -734,6 +734,13 @@ exports.getBadges = async (req, res) => {
   return res.json({ success: true, top3, earned, in_progress: inProgress, all: result });
 };
 
+const ACTIVITY_STATUS = {
+  financial: 'Completed',
+  food:      'Scheduled',
+  service:   'Submitted',
+  inventory: 'Processed',
+};
+
 exports.getActivities = async (req, res) => {
   const [activities] = await db.execute(
     'SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC',
@@ -748,6 +755,7 @@ exports.getActivities = async (req, res) => {
       title: a.title,
       description: a.description,
       icon: a.icon,
+      status: ACTIVITY_STATUS[a.type] || 'Updated',
       date: dayjs(a.created_at).format('MM/DD/YYYY'),
       time_ago: dayjs(a.created_at).fromNow(),
     })),

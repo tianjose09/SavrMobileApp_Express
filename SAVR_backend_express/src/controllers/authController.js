@@ -39,9 +39,10 @@ async function getDisplayName(user) {
       break;
     }
     case 'partner_kitchen': {
-      const [rows] = await db.execute('SELECT kitchen_name FROM partner_kitchen WHERE user_id = ?', [user.id]);
-      if (rows[0] && rows[0].kitchen_name) return rows[0].kitchen_name;
-      if (user.name) return user.name;
+      const [rows] = await db.execute('SELECT kitchen_name, contact_person FROM partner_kitchen WHERE user_id = ?', [user.id]);
+      if (rows[0]?.kitchen_name) return rows[0].kitchen_name;
+      if (rows[0]?.contact_person) return rows[0].contact_person;
+      if (user.name && user.name !== 'user') return user.name;
       break;
     }
     case 'beneficiary': {
