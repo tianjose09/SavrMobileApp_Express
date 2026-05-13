@@ -9,6 +9,7 @@ const authController = require('../controllers/authController');
 const donationController = require('../controllers/donationController');
 const inventoryController = require('../controllers/inventoryController');
 const mealController = require('../controllers/mealController');
+const notificationController = require('../controllers/notificationController');
 
 // ─── Multer Storage ───────────────────────────────────────────────────────────
 
@@ -73,6 +74,11 @@ router.get('/donation/upcoming',                       donationController.getUpc
 // Badges & Activities
 router.get('/badges',     donationController.getBadges);
 router.get('/activities', donationController.getActivities);
+
+// Notifications
+router.get('/notifications',         notificationController.getNotifications);
+router.delete('/notifications/:id',  notificationController.deleteNotification);
+router.delete('/notifications',      notificationController.deleteAllNotifications);
 
 // Inventory
 router.get('/inventory',            inventoryController.index);

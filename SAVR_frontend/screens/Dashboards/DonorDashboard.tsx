@@ -29,6 +29,7 @@ export default function DonorDashboard({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const hasAnimated = useRef(false);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   const sheetFadeAnim = useRef(new Animated.Value(0)).current;

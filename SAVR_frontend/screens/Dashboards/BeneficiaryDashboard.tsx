@@ -25,6 +25,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const [activeRequests, setActiveRequests] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   const showNotification = (msg: string) => {

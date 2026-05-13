@@ -94,4 +94,9 @@ export const ApiService = {
 
   // Optimization & Meal Planning Engine
   optimizeMeals: (payload: any) => api.post('api/meals/optimize', payload),
+
+  // Notifications
+  getNotifications: () => api.get('api/notifications'),
+  deleteNotification: (id: number) => api.delete(`api/notifications/${id}`),
+  deleteAllNotifications: () => api.delete('api/notifications'),
 };

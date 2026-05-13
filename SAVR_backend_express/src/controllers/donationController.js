@@ -3,6 +3,7 @@ const db = require('../db');
 const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 dayjs.extend(relativeTime);
+const { createNotification } = require('./notificationController');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,9 @@ async function recalculateBadges(userId) {
           'UPDATE user_badges SET status = ?, progress = ?, earned_at = ? WHERE user_id = ? AND badge_id = ?',
           [status, progress, earnedAt, userId, badge.id]
         );
+        if (status === 'earned') {
+          await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`);
+        }
       }
     } else {
       const earnedAt = status === 'earned' ? new Date() : null;
@@ -68,6 +72,9 @@ async function recalculateBadges(userId) {
         'INSERT INTO user_badges (user_id, badge_id, status, progress, earned_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
         [userId, badge.id, status, progress, earnedAt]
       );
+      if (status === 'earned') {
+        await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`);
+      }
     }
   }
 }
@@ -167,6 +174,7 @@ exports.paymongoWebhook = async (req, res) => {
       if (donation) {
         await db.execute("UPDATE financial_donation_records SET status = 'paid' WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
+        await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`);
         await recalculateBadges(donation.user_id);
       }
     }
@@ -212,6 +220,7 @@ exports.checkPaymentStatus = async (req, res) => {
       if (hasPayment || piSucceeded) {
         await db.execute("UPDATE financial_donation_records SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
+        await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`);
         await recalculateBadges(donation.user_id);
         return res.json({ success: true, status: 'paid', amount: donation.amount });
       }
@@ -236,6 +245,7 @@ exports.paymentSuccess = async (req, res) => {
     if (donation) {
       await db.execute("UPDATE financial_donation_records SET status = 'paid' WHERE id = ?", [donation.id]);
       await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
+      await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`);
       await recalculateBadges(donation.user_id);
       paidAmount = formatAmount(donation.amount);
     }
@@ -572,7 +582,9 @@ exports.submitFood = async (req, res) => {
     );
   }
 
+  const modeLabel = schedule_type === 'delivery' ? 'drop-off' : 'pickup';
   await logActivity(req.user.id, 'food', 'Food Donation Incoming', `${foodItems.length} items scheduled for ${schedule_type}`, 'truckicon');
+  await createNotification(req.user.id, 'food', 'Food Donation Submitted', `Your food donation of ${foodItems.length} item(s) has been submitted and scheduled for ${modeLabel}. Thank you!`);
   await recalculateBadges(req.user.id);
 
   return res.status(201).json({ success: true, message: 'Food donation and schedule confirmed.', donation_id: donationId });
@@ -630,6 +642,7 @@ exports.submitService = async (req, res) => {
   const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
 
   await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${quantity} unit(s)`, 'truckicon');
+  await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been logged and is being processed. Thank you for volunteering!`);
   await recalculateBadges(req.user.id);
 
   return res.status(201).json({ success: true, message: 'Service donation submitted.', donation: donation[0] });
@@ -799,6 +812,8 @@ exports.submitBeneficiaryRequest = async (req, res) => {
     ]
   );
 
+  await createNotification(req.user.id, 'service', 'Request Submitted', `Your assistance request "${title}" has been received and is being reviewed. We will notify you once it is processed.`);
+
   return res.status(201).json({ success: true, message: 'Request submitted successfully.', request_id: result.insertId });
 };
 
@@ -850,6 +865,15 @@ exports.updateRequestStatus = async (req, res) => {
 
   await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
   const [updated] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
+
+  // Notify the beneficiary (not the admin) about their request status change
+  const beneficiaryUserId = rows[0].user_id;
+  const statusMessages = {
+    Pending:   'Your request is being reviewed by our team.',
+    Allocated: 'Great news! Your request has been allocated and will be processed soon.',
+    Urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
+  };
+  await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`);
 
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
