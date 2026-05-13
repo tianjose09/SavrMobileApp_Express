@@ -89,6 +89,11 @@ export default function BeneficiaryDashboard({ navigation }: any) {
         setPendingRequests(data.pending_requests ?? 0);
         setActiveRequests(data.active_requests ?? 0);
 
+        try {
+          const notifRes = await ApiService.getNotifications();
+          setUnreadCount(notifRes?.data?.notifications?.length || 0);
+        } catch {}
+
         // Show popup based on live data
         setTimeout(() => {
           if ((data.active_requests ?? 0) > 0) {
@@ -148,9 +153,11 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                   onPress={() => navigation.navigate('Notifications', { role: 'beneficiary' })}
                 >
                   <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
-                  <View style={styles.badgeDot}>
-                    <Text style={styles.badgeText}>!</Text>
-                  </View>
+                  {unreadCount > 0 && (
+                    <View style={styles.badgeDot}>
+                      <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.iconBtn}

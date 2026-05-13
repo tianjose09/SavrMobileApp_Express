@@ -144,6 +144,11 @@ export default function DonorDashboard({ navigation }: any) {
         const next = badgesRes.data.in_progress[0] || badgesRes.data.all.find((b: any) => b.status === 'not_started');
         setNextBadge(next);
       }
+
+      try {
+        const notifRes = await ApiService.getNotifications();
+        setUnreadCount(notifRes?.data?.notifications?.length || 0);
+      } catch {}
     } catch (error) {
       // API unavailable — show meaningful demo values
       setDonationAmount(5000);
@@ -215,9 +220,11 @@ export default function DonorDashboard({ navigation }: any) {
                     size={26}
                     color="#FFFFFF"
                   />
-                  <View style={styles.badgeDot}>
-                    <Text style={styles.badgeText}>!</Text>
-                  </View>
+                  {unreadCount > 0 && (
+                    <View style={styles.badgeDot}>
+                      <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity

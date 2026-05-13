@@ -16,6 +16,7 @@ export default function PkDashboard({ navigation }: any) {
   const [activities, setActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   useEffect(() => {
@@ -68,6 +69,11 @@ export default function PkDashboard({ navigation }: any) {
         setMealsServed(data.total_meals_served || 0);
         setActivities(data.recent_activities || []);
       }
+
+      try {
+        const notifRes = await ApiService.getNotifications();
+        setUnreadCount(notifRes?.data?.notifications?.length || 0);
+      } catch {}
     } catch (e) {
       console.log('Backend dashboard API pending');
     }
@@ -158,9 +164,9 @@ export default function PkDashboard({ navigation }: any) {
             <View style={styles.headerIcons}>
               <TouchableOpacity style={{ marginRight: 15, position: 'relative' }} onPress={handleNotifications} activeOpacity={0.8}>
                 <Ionicons name="notifications-outline" size={28} color="#FFF" />
-                {(lowStockCount > 0 || expiringCount > 0) && (
+                {unreadCount > 0 && (
                   <View style={styles.badgeDot}>
-                    <Text style={styles.badgeText}>{lowStockCount + expiringCount}</Text>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                   </View>
                 )}
               </TouchableOpacity>
