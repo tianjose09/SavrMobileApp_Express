@@ -30,16 +30,8 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
         throw new Error('API unavailable, triggering local fallback');
       }
     } catch (e) {
-      console.log('Falling back to local Partner Kitchen Activities');
-      setActivities([
-        { title: 'Carrots Received', description: '80 pieces of Carrots - Vegetables', time_ago: '2 hours ago', type: 'food', status: 'Completed' },
-        { title: 'Chicken Received', description: '17 kilogram of Chicken - Meat', time_ago: '3 hours ago', type: 'food', status: 'Completed' },
-        { title: 'Rice Received', description: '50 kilogram of Rice - Grains', time_ago: '5 hours ago', type: 'food', status: 'Completed' },
-        { title: 'Canned Goods Received', description: '20 pieces of Canned Tuna - Non-Perishable', time_ago: '1 day ago', type: 'food', status: 'Completed' },
-        { title: 'Dairy Received', description: '10 Liters of Milk - Dairy', time_ago: '1 day ago', type: 'food', status: 'Completed' },
-        { title: 'Beef Received', description: '5 kilogram of Beef - Meat', time_ago: '2 days ago', type: 'food', status: 'Completed' },
-      ]);
       console.error('Activities fetch error', e);
+      setActivities([]);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
