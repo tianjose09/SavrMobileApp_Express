@@ -261,6 +261,12 @@ exports.paymentSuccess = async (req, res) => {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Successful – SAVR</title>
+  <script>
+    // Auto-open the app as soon as the page loads
+    window.onload = function () {
+      window.location.href = 'savrmobile://';
+    };
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -406,6 +412,11 @@ exports.paymentCancel = (req, res) => {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Cancelled – SAVR</title>
+  <script>
+    window.onload = function () {
+      window.location.href = 'savrmobile://';
+    };
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {

@@ -133,9 +133,8 @@ export default function DonorDashboard({ navigation }: any) {
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
 
-        // Use demo fallback values if API returns 0 so the dashboard always shows meaningful content
-        setDonationAmount(data.total_donations > 0 ? data.total_donations : 5000);
-        setTotalFoodDonations(data.total_food > 0 ? data.total_food : 30);
+        setDonationAmount(data.total_donations || 0);
+        setTotalFoodDonations(data.total_food || 0);
       }
 
       const badgesRes = await ApiService.getBadges();
@@ -150,15 +149,10 @@ export default function DonorDashboard({ navigation }: any) {
         setUnreadCount(notifRes?.data?.notifications?.length || 0);
       } catch {}
     } catch (error) {
-      // API unavailable — show meaningful demo values
-      setDonationAmount(5000);
-      setTotalFoodDonations(30);
+      console.error('Dashboard load failed', error);
     } finally {
       setIsLoading(false);
       runEntryAnimations();
-      setTimeout(() => {
-        showNotification('Donation confirmed. Thank you for your generosity!');
-      }, 900);
     }
   };
 

@@ -94,24 +94,17 @@ export default function BeneficiaryDashboard({ navigation }: any) {
           setUnreadCount(notifRes?.data?.notifications?.length || 0);
         } catch {}
 
-        // Show popup based on live data
+        // Only show banner when there is something actionable to report
         setTimeout(() => {
           if ((data.active_requests ?? 0) > 0) {
             showNotification('You have an active request being processed.');
           } else if ((data.pending_requests ?? 0) > 0) {
-            showNotification(`You have ${data.pending_requests} request(s) are pending.`);
-          } else {
-            showNotification('Welcome back! Submit a request if you need support.');
+            showNotification(`You have ${data.pending_requests} request(s) pending.`);
           }
         }, 800);
-      } else {
-        // API responded but not success — show default
-        setTimeout(() => showNotification('Welcome back! Submit a request if you need support.'), 800);
       }
     } catch (e) {
       console.error('Failed to load dashboard', e);
-      // API failed — still show popup
-      setTimeout(() => showNotification('Welcome back! Submit a request if you need support.'), 800);
     } finally {
       setIsLoading(false);
     }

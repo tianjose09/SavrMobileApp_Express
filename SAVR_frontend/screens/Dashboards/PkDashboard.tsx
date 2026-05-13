@@ -89,16 +89,7 @@ export default function PkDashboard({ navigation }: any) {
           throw new Error('API not available yet');
         }
       } catch (err) {
-        // Safe mapping fallback identical to inventory module
-        items = [
-          { id: '1', name: 'Rice', qty: '48 kg', expiry: '2026-06-30', category: 'Grains and Cereal' },
-          { id: '2', name: 'Chicken', qty: '17 kg', expiry: '2026-06-30', category: 'Meat' },
-          { id: '3', name: 'Mango', qty: '48 kg', expiry: '2026-07-28', category: 'Fruits' },
-          { id: '4', name: 'Carrots', qty: '17 kg', expiry: '2026-06-30', category: 'Vegetables' },
-          { id: '5', name: 'Bread', qty: '680 pcs', expiry: '2026-06-30', category: 'Grains and Cereal' },
-          { id: '6', name: 'Milk', qty: '17 L', expiry: '2026-01-30', category: 'Dairy' },
-          { id: '7', name: 'Eggs', qty: '17 pcs', expiry: '2026-06-30', category: 'Poultry' },
-        ];
+        items = [];
       }
 
       setInventoryCount(items.length);
@@ -276,29 +267,9 @@ export default function PkDashboard({ navigation }: any) {
             {isLoading && activities.length === 0 ? (
               <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
             ) : activities.length === 0 ? (
-              <>
-                <View style={styles.activityRow}>
-                  <View style={styles.activityLeft}>
-                    <Text style={styles.actTitle}>Carrots Received</Text>
-                    <Text style={styles.actDesc}>80 pieces of Carrots - Vegetables</Text>
-                  </View>
-                  <Text style={styles.actTime}>2 hours ago</Text>
-                </View>
-                <View style={styles.activityRow}>
-                  <View style={styles.activityLeft}>
-                    <Text style={styles.actTitle}>Chicken Received</Text>
-                    <Text style={styles.actDesc}>17 kilogram of Chicken - Meat</Text>
-                  </View>
-                  <Text style={styles.actTime}>3 hours ago</Text>
-                </View>
-                <View style={styles.activityRow}>
-                  <View style={styles.activityLeft}>
-                    <Text style={styles.actTitle}>Rice Received</Text>
-                    <Text style={styles.actDesc}>50 kilogram of Rice - Grains</Text>
-                  </View>
-                  <Text style={styles.actTime}>5 hours ago</Text>
-                </View>
-              </>
+              <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
+              </View>
             ) : (
               activities.slice(0, 3).map((act, i) => (
                 <View key={i} style={styles.activityRow}>
