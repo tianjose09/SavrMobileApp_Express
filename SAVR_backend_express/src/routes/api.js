@@ -70,6 +70,8 @@ router.post('/donation/my-requests/:id/cancel',        donationController.cancel
 router.put('/donation/requests/:id/status',            donationController.updateRequestStatus);
 router.get('/donation/stats',                          donationController.getDonationStats);
 router.get('/donation/upcoming',                       donationController.getUpcomingPickups);
+router.put('/donation/pickup/:id',                     donationController.updatePickup);
+router.delete('/donation/pickup/:id',                  donationController.deletePickup);
 
 // Badges & Activities
 router.get('/badges',     donationController.getBadges);

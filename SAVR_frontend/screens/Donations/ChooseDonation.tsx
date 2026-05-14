@@ -1,64 +1,130 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, StatusBar, Image, Animated, Easing } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
+  ActivityIndicator, StatusBar, Image, Animated, Easing,
+  Alert, Modal, TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 
 export default function ChooseDonation({ navigation }: any) {
   const [pickups, setPickups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Edit modal
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingPickup, setEditingPickup] = useState<any>(null);
+  const [editDate, setEditDate] = useState<Date>(new Date());
+  const [editTime, setEditTime] = useState<Date>(() => {
+    const d = new Date(); d.setHours(7, 0, 0, 0); return d;
+  });
+  const [editAddress, setEditAddress] = useState('');
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  // Trigger animation on mount
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]).start();
   }, []);
 
-  useEffect(() => {
-    const fetchPickups = async () => {
-      try {
-        const response = await ApiService.getUpcomingPickups();
-        if (response.data.success) {
-          setPickups(response.data.pickups || []);
-        }
-      } catch (e) {
-        console.error("Failed to fetch pickups", e);
-      } finally {
-        setLoading(false);
+  const fetchPickups = async () => {
+    setLoading(true);
+    try {
+      const response = await ApiService.getUpcomingPickups();
+      if (response.data.success) {
+        const sorted = (response.data.pickups || []).sort((a: any, b: any) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setPickups(sorted);
       }
-    };
+    } catch (e) {
+      console.error('Failed to fetch pickups', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Refresh whenever screen focuses
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchPickups();
-    });
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', fetchPickups);
     fetchPickups();
-
     return unsubscribe;
   }, [navigation]);
+
+  const openEditModal = (pickup: any) => {
+    setEditingPickup(pickup);
+    if (pickup.preferred_date) {
+      const [y, m, d] = pickup.preferred_date.split('-').map(Number);
+      setEditDate(new Date(y, m - 1, d));
+    } else {
+      setEditDate(new Date());
+    }
+    const timeStr = (pickup.time_slot || '07:00').split(' ')[0].substring(0, 5);
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const t = new Date(); t.setHours(hh || 7, mm || 0, 0, 0);
+    setEditTime(t);
+    setEditAddress(pickup.pickup_address || '');
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingPickup) return;
+    setIsSaving(true);
+    try {
+      const preferredDate = editDate.toISOString().split('T')[0];
+      const timeSlot = editTime.toTimeString().split(' ')[0].substring(0, 5);
+      await ApiService.updatePickup(editingPickup.id, {
+        preferred_date: preferredDate,
+        time_slot: timeSlot,
+        pickup_address: editAddress,
+        schedule_type: editingPickup.status,
+      });
+      setEditModalVisible(false);
+      fetchPickups();
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.message || 'Failed to update pickup.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeletePickup = (pickup: any) => {
+    Alert.alert(
+      'Delete Pickup',
+      'Are you sure you want to delete this pickup? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await ApiService.deletePickup(pickup.id);
+              setPickups(prev => prev.filter(p => p.id !== pickup.id));
+            } catch (e: any) {
+              Alert.alert('Error', e?.response?.data?.message || 'Failed to delete pickup.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const displayedPickups = pickups.slice(0, 3);
+  const hasMore = pickups.length > 3;
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
       <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
-      {/* 
-        HERO SECTION WITH CURVED BOTTOM
-      */}
+
+      {/* HERO */}
       <View style={styles.heroBackground}>
-        {/* Top Navbar */}
         <View style={styles.topNav}>
           <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -77,9 +143,7 @@ export default function ChooseDonation({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </View>
-        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, width: '100%', alignSelf: 'center', marginTop: 8 }} />
-
-        {/* Hero Content */}
+        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, width: '100%', marginTop: 8 }} />
         <View style={styles.heroContent}>
           <Text style={styles.heroTitleMain}>
             CHOOSE WHAT TO <Text style={styles.heroTitleHighlight}>DONATE</Text>
@@ -96,60 +160,57 @@ export default function ChooseDonation({ navigation }: any) {
             <Text style={styles.sectionTitle}>Ways to Contribute</Text>
           </View>
           <View style={styles.badgePill}>
-            <Text style={styles.badgeText}>3 Categories</Text>
+            <Text style={styles.badgePillText}>3 Categories</Text>
           </View>
         </View>
 
-        {/* Donation Images Row */}
+        {/* Donation Cards */}
         <View style={styles.cardsRow}>
-          {/* Financial */}
           <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('FinancialDonation')} style={styles.imageCardBtn}>
             <Image source={require('../../assets/images/cards/choosedonation_financial.png')} style={styles.cardImage} resizeMode="stretch" />
           </TouchableOpacity>
-
-          {/* Food */}
           <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('FoodDonationDetails')} style={styles.imageCardBtn}>
             <Image source={require('../../assets/images/cards/choosedonation_food.png')} style={styles.cardImage} resizeMode="stretch" />
           </TouchableOpacity>
-
-          {/* Service */}
           <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('ServiceDonation')} style={styles.imageCardBtn}>
             <Image source={require('../../assets/images/cards/choosedonation_service.png')} style={styles.cardImage} resizeMode="stretch" />
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
         {/* Upcoming Pickups */}
         <View style={styles.pickupsHeaderInfoRow}>
           <Text style={styles.pickupsTitle}>Upcoming Pickups</Text>
-          <TouchableOpacity style={styles.viewAllBtn}>
+          <TouchableOpacity
+            style={styles.viewAllBtn}
+            onPress={() => navigation.navigate('AllUpcomingPickups')}
+          >
             <Text style={styles.viewAllText}>View All</Text>
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <ActivityIndicator size="small" color="#00592d" style={{ marginVertical: 20 }} />
-        ) : pickups.length === 0 ? (
+        ) : displayedPickups.length === 0 ? (
           <Text style={styles.noPickupsText}>You have no upcoming pickups scheduled.</Text>
         ) : (
-          pickups.map(item => (
+          displayedPickups.map(item => (
             <View key={item.id} style={styles.pickupRow}>
               <View style={styles.pickupLeft}>
                 <Text style={styles.pickupDateTime}>
                   {item.preferred_date || 'TBD'} | {item.time_slot || 'Anytime'}
                 </Text>
                 <Text style={styles.pickupAddress} numberOfLines={1}>
-                  Address: {item.pickup_address || 'TBD'} | Contact: Pending
+                  Address: {item.pickup_address || 'TBD'}
                 </Text>
               </View>
               <View style={styles.pickupRight}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => openEditModal(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Text style={styles.editText}>edit</Text>
                 </TouchableOpacity>
                 <Text style={styles.pickupSep}>/</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeletePickup(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Text style={styles.deleteText}>delete</Text>
                 </TouchableOpacity>
               </View>
@@ -159,6 +220,103 @@ export default function ChooseDonation({ navigation }: any) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Pickup</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#444" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>Preferred Date</Text>
+            <TouchableOpacity
+              style={styles.modalInput}
+              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('date')}
+            >
+              <Text style={styles.modalInputText}>{editDate.toLocaleDateString()}</Text>
+              {Platform.OS === 'ios' && (
+                <DateTimePicker
+                  style={styles.iosPicker}
+                  value={editDate}
+                  mode="date"
+                  display="compact"
+                  minimumDate={new Date()}
+                  onChange={(_, d) => { if (d) setEditDate(d); }}
+                />
+              )}
+              <Ionicons name="calendar-outline" size={18} color="#00592d" />
+            </TouchableOpacity>
+
+            <Text style={styles.modalLabel}>Time Slot</Text>
+            <TouchableOpacity
+              style={styles.modalInput}
+              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('time')}
+            >
+              <Text style={styles.modalInputText}>
+                {editTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+              {Platform.OS === 'ios' && (
+                <DateTimePicker
+                  style={styles.iosPicker}
+                  value={editTime}
+                  mode="time"
+                  display="compact"
+                  onChange={(_, d) => { if (d) setEditTime(d); }}
+                />
+              )}
+              <Ionicons name="time-outline" size={18} color="#00592d" />
+            </TouchableOpacity>
+
+            <Text style={styles.modalLabel}>Pickup Address</Text>
+            <TextInput
+              style={styles.modalTextInput}
+              value={editAddress}
+              onChangeText={setEditAddress}
+              placeholder="Enter pickup address"
+              placeholderTextColor="#B0B0B0"
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[styles.saveBtn, isSaving && { opacity: 0.7 }]}
+              onPress={handleSaveEdit}
+              disabled={isSaving}
+            >
+              {isSaving
+                ? <ActivityIndicator color="#FFF" />
+                : <Text style={styles.saveBtnText}>Save Changes</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Android date/time picker */}
+        {Platform.OS !== 'ios' && datePickerMode && (
+          <DateTimePicker
+            value={datePickerMode === 'date' ? editDate : editTime}
+            mode={datePickerMode}
+            minimumDate={datePickerMode === 'date' ? new Date() : undefined}
+            display="default"
+            onChange={(event, selectedDate) => {
+              const mode = datePickerMode;
+              setDatePickerMode(null);
+              if (event.type === 'set' && selectedDate) {
+                if (mode === 'date') setEditDate(selectedDate);
+                else setEditTime(selectedDate);
+              }
+            }}
+          />
+        )}
+      </Modal>
     </Animated.View>
   );
 }
@@ -179,11 +337,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#00592d',
   },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
+  badgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
 
   heroBackground: {
     backgroundColor: '#00592d',
@@ -191,7 +345,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     paddingTop: Platform.OS === 'ios' ? 45 : 35,
     paddingBottom: 15,
-    // Add shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -206,12 +359,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     marginTop: 15,
   },
-  backButton: {
-    padding: 5,
-  },
-  logoRow: { alignItems: 'center' },
   logoImage: { width: 170, height: 58 },
-
   heroContent: { paddingHorizontal: 25, marginTop: 35, marginBottom: 25, alignItems: 'center' },
   heroTitleMain: { fontSize: 25, fontWeight: '800', color: '#FFF', letterSpacing: -0.5, textAlign: 'center' },
   heroTitleHighlight: { color: '#FACC15' },
@@ -222,7 +370,7 @@ const styles = StyleSheet.create({
   sectionOverline: { color: '#00592d', fontWeight: '800', fontSize: 13, letterSpacing: 0.5, marginBottom: 2 },
   sectionTitle: { fontSize: 26, fontWeight: '800', color: '#B57448', letterSpacing: -1 },
   badgePill: { backgroundColor: '#F0F6F3', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 },
-  badgeText: { color: '#666', fontWeight: 'bold', fontSize: 12 },
+  badgePillText: { color: '#666', fontWeight: 'bold', fontSize: 12 },
 
   cardsRow: { flexDirection: 'row', justifyContent: 'space-between' },
   imageCardBtn: { width: '31%', aspectRatio: 0.62 },
@@ -247,14 +395,54 @@ const styles = StyleSheet.create({
     borderColor: '#CCC',
     borderRadius: 20,
     marginBottom: 10,
-    backgroundColor: '#FFF'
+    backgroundColor: '#FFF',
   },
   pickupLeft: { flex: 1, paddingRight: 10 },
   pickupDateTime: { fontSize: 12, fontWeight: '800', color: '#222', marginBottom: 4 },
   pickupAddress: { fontSize: 10, color: '#666' },
-
   pickupRight: { flexDirection: 'row', alignItems: 'center' },
-  editText: { fontSize: 11, color: '#888', fontWeight: '600' },
+  editText: { fontSize: 11, color: '#00592d', fontWeight: '700' },
   pickupSep: { fontSize: 11, color: '#CCC', marginHorizontal: 4 },
-  deleteText: { fontSize: 11, color: '#888', fontWeight: '600' }
+  deleteText: { fontSize: 11, color: '#D17C31', fontWeight: '700' },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 36,
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#1A2E23' },
+  modalLabel: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 6, marginTop: 12 },
+  modalInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 48,
+    backgroundColor: '#FAFAFA',
+  },
+  modalInputText: { fontSize: 14, color: '#333', flex: 1 },
+  iosPicker: { position: 'absolute', width: '100%', height: '100%', opacity: 0.011, zIndex: 999 },
+  modalTextInput: {
+    borderWidth: 1.5,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#333',
+    minHeight: 72,
+    textAlignVertical: 'top',
+    backgroundColor: '#FAFAFA',
+  },
+  saveBtn: { backgroundColor: '#00592d', borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 18 },
+  saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
 });

@@ -84,13 +84,14 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         expiry_date: fi.expiryDate
       }))));
 
-      foodItems.forEach((item: any, idx: number) => {
+      // Use plain 'food_images' field name (not indexed) so multer .array() picks them up
+      foodItems.forEach((item: any) => {
         if (item.photoUri) {
-          const filename = item.photoUri.split('/').pop() || `food_${idx}.jpg`;
+          const filename = item.photoUri.split('/').pop() || `food_photo.jpg`;
           const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : `image`;
+          const type = match ? `image/${match[1]}` : `image/jpeg`;
           // @ts-ignore
-          formData.append(`food_images[${idx}]`, { uri: item.photoUri, name: filename, type });
+          formData.append('food_images', { uri: item.photoUri, name: filename, type });
         }
       });
 
@@ -108,8 +109,12 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         Alert.alert('Error', response.data.message || 'Failed to submit.');
       }
     } catch (e: any) {
-      console.log(e.response?.data);
-      Alert.alert('Error', e.response?.data?.message || 'Connection error.');
+      console.log('Submit pickup error:', JSON.stringify(e?.response?.data ?? e?.message));
+      const msg = e?.response?.data?.message
+        || e?.response?.data?.errors
+        || e?.message
+        || 'Connection error. Make sure you are connected to the same network as the server.';
+      Alert.alert('Error', typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setIsLoading(false);
     }

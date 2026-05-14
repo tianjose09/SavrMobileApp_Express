@@ -623,12 +623,23 @@ exports.dashboard = async (req, res) => {
     [user.id]
   );
 
+  const [[{ totalfinancialcount }]] = await db.execute(
+    "SELECT COUNT(*) AS totalfinancialcount FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+    [user.id]
+  );
+  const [[{ totalservice }]] = await db.execute(
+    "SELECT COUNT(*) AS totalservice FROM service_donation_records WHERE user_id = ?",
+    [user.id]
+  );
+
   return res.json({
     success: true,
     display_name: displayName,
     role: user.role,
     total_donations: parseFloat(totalfinancial),
+    total_financial_count: parseInt(totalfinancialcount),
     total_food: parseInt(totalfood),
+    total_service: parseInt(totalservice),
     recent_activities: recentActivities,
     total_requests: parseInt(totalrequests),
     pending_requests: parseInt(pendingrequests),

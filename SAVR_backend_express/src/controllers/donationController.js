@@ -724,6 +724,47 @@ exports.getUpcomingPickups = async (req, res) => {
   });
 };
 
+exports.updatePickup = async (req, res) => {
+  const { id } = req.params;
+  const { preferred_date, time_slot, pickup_address, schedule_type } = req.body;
+
+  const [rows] = await db.execute(
+    "SELECT * FROM food_donations WHERE id = ? AND user_id = ? AND status IN ('pending','scheduled')",
+    [id, req.user.id]
+  );
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Pickup not found or cannot be edited.' });
+  }
+
+  const { start, end } = parseTimeSlot(time_slot || '07:00');
+
+  await db.execute(
+    `UPDATE food_donations SET mode = ?, preferred_date = ?, time_slot_start = ?, time_slot_end = ?, pickup_address = ?, updated_at = NOW() WHERE id = ?`,
+    [schedule_type || rows[0].mode, preferred_date || rows[0].preferred_date, start, end, pickup_address || rows[0].pickup_address, id]
+  );
+
+  const [updated] = await db.execute('SELECT * FROM food_donations WHERE id = ?', [id]);
+  return res.json({ success: true, message: 'Pickup updated.', pickup: updated[0] });
+};
+
+exports.deletePickup = async (req, res) => {
+  const { id } = req.params;
+
+  const [rows] = await db.execute(
+    "SELECT * FROM food_donations WHERE id = ? AND user_id = ? AND status IN ('pending','scheduled')",
+    [id, req.user.id]
+  );
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Pickup not found or cannot be deleted.' });
+  }
+
+  // Also delete related food items
+  await db.execute('DELETE FROM food_donation_items WHERE food_donation_id = ?', [id]);
+  await db.execute('DELETE FROM food_donations WHERE id = ?', [id]);
+
+  return res.json({ success: true, message: 'Pickup deleted successfully.' });
+};
+
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
 exports.getBadges = async (req, res) => {
