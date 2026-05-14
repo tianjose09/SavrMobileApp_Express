@@ -20,7 +20,7 @@ export default function EditProfile({ route, navigation }: any) {
     city_municipality: profile.city_municipality || '',
     province_region: profile.province_region || '',
     postal_zip_code: profile.postal_zip_code || '',
-    contact_number: profile.contact_number || '',
+    contact_number: (profile.contact_number || '').replace(/^\+63/, ''),
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +41,10 @@ export default function EditProfile({ route, navigation }: any) {
       const payload = {
         ...formData,
         name: `${formData.first_name} ${formData.last_name}`.trim(),
+        // Always store with +63 prefix
+        contact_number: formData.contact_number
+          ? `+63${formData.contact_number.replace(/^\+63/, '').replace(/^0/, '')}`
+          : '',
       };
 
       const response = await ApiService.updateProfile(payload);
@@ -80,9 +84,6 @@ export default function EditProfile({ route, navigation }: any) {
 
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Update Information</Text>
-            <View style={styles.infoBadge}>
-              <Text style={styles.infoBadgeText}>Email locked</Text>
-            </View>
           </View>
 
           {/* Dynamic Input Pills */}
@@ -199,12 +200,22 @@ export default function EditProfile({ route, navigation }: any) {
 
           <View style={styles.pillBox}>
             <Text style={styles.pillLabel}>Contact Number</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.contact_number}
-              keyboardType="phone-pad"
-              onChangeText={(t) => handleChange('contact_number', t)}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#00592d', marginRight: 2 }}>+63</Text>
+              <TextInput
+                style={[styles.pillInput, { flex: 1 }]}
+                value={formData.contact_number}
+                keyboardType="phone-pad"
+                maxLength={10}
+                placeholder="9XXXXXXXXX"
+                placeholderTextColor="#ccc"
+                onChangeText={(t) => {
+                  // Strip leading 0 or +63 if user pastes full number
+                  const cleaned = t.replace(/^\+63/, '').replace(/^0/, '').replace(/[^0-9]/g, '');
+                  handleChange('contact_number', cleaned);
+                }}
+              />
+            </View>
           </View>
 
           {/* Removed bottom tab spacer */}

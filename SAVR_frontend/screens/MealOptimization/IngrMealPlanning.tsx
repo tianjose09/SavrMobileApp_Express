@@ -18,6 +18,9 @@ export default function IngrMealPlanning({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [openUnitPickerId, setOpenUnitPickerId] = useState<number | null>(null);
+
+  const UNIT_OPTIONS = ['kg', 'g', 'pcs', 'L', 'mL', 'cans', 'bags', 'boxes', 'bundles', 'lbs'];
 
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -157,6 +160,11 @@ export default function IngrMealPlanning({ navigation }: any) {
 
   const removeSelected = (id: number) => {
     setIngredients(ingredients.map(i => i.id === id ? { ...i, selected: false } : i));
+  };
+
+  const updateInputUnit = (id: number, newUnit: string) => {
+    setIngredients(ingredients.map(i => i.id === id ? { ...i, inputUnit: newUnit } : i));
+    setOpenUnitPickerId(null);
   };
 
   const calculateMeals = () => {
@@ -428,7 +436,7 @@ export default function IngrMealPlanning({ navigation }: any) {
                               <Text style={styles.outOfStockTagText}>Out of Stock</Text>
                             </View>
                           ) : (
-                            <View style={[styles.categoryTag, item.selected && { marginRight: 26 }]}>
+                            <View style={[styles.categoryTag, item.selected && { marginRight: 38 }]}>
                               <Text style={[
                                 styles.categoryTagText,
                                 item.selected && { color: '#156133', backgroundColor: '#eef6f0' },
@@ -455,14 +463,13 @@ export default function IngrMealPlanning({ navigation }: any) {
                       {item.selected && (
                         <View style={styles.inlineQtySection}>
                           <View style={styles.inlineQtyRow}>
-                            
                             <View style={styles.qtyControlGroup}>
                               <TouchableOpacity
                                 style={styles.inlineQtyBtn}
                                 onPress={() => stepQty(item.id, -1)}
                                 activeOpacity={0.7}
                               >
-                                <Ionicons name="remove" size={20} color="#E87A1E" />
+                                <Ionicons name="remove" size={18} color="#E87A1E" />
                               </TouchableOpacity>
 
                               <View style={styles.inlineQtyInputWrap}>
@@ -474,7 +481,15 @@ export default function IngrMealPlanning({ navigation }: any) {
                                   maxLength={8}
                                   selectTextOnFocus
                                 />
-                                <Text style={styles.inlineQtyUnit}>{unit}</Text>
+                                {/* Tappable unit label */}
+                                <TouchableOpacity
+                                  onPress={() => setOpenUnitPickerId(openUnitPickerId === item.id ? null : item.id)}
+                                  activeOpacity={0.7}
+                                  style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 4 }}
+                                >
+                                  <Text style={styles.inlineQtyUnit}>{unit}</Text>
+                                  <Ionicons name="chevron-down" size={10} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
+                                </TouchableOpacity>
                               </View>
 
                               <TouchableOpacity
@@ -482,10 +497,35 @@ export default function IngrMealPlanning({ navigation }: any) {
                                 onPress={() => stepQty(item.id, 1)}
                                 activeOpacity={0.7}
                               >
-                                <Ionicons name="add" size={20} color="#E87A1E" />
+                                <Ionicons name="add" size={18} color="#E87A1E" />
                               </TouchableOpacity>
                             </View>
                           </View>
+
+                          {/* Unit picker — shows when tapped */}
+                          {openUnitPickerId === item.id && (
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              style={{ marginBottom: 8 }}
+                              contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}
+                            >
+                              {UNIT_OPTIONS.map((u) => (
+                                <TouchableOpacity
+                                  key={u}
+                                  onPress={() => updateInputUnit(item.id, u)}
+                                  style={{
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 5,
+                                    borderRadius: 99,
+                                    backgroundColor: unit === u ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
+                                  }}
+                                >
+                                  <Text style={{ fontSize: 12, fontWeight: '800', color: unit === u ? '#E87A1E' : '#FFF' }}>{u}</Text>
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          )}
 
                           {/* Mini progress bar */}
                           <View style={styles.progressSection}>
@@ -690,10 +730,10 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'column',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    marginBottom: 12,
-    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 16,
     backgroundColor: '#f7f7f7',
     borderWidth: 1,
     borderColor: '#eaeaea',
@@ -754,8 +794,8 @@ const styles = StyleSheet.create({
 
   // Inline quantity controls (inside selected row)
   inlineQtySection: {
-    marginTop: 18,
-    paddingTop: 18,
+    marginTop: 6,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.2)',
   },
@@ -763,57 +803,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 6,
   },
   qtyControlGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.1)',
     borderRadius: 99,
-    padding: 8,
+    padding: 4,
   },
   inlineQtyBtn: {
     backgroundColor: '#FFF',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   inlineQtyInputWrap: {
-    minWidth: 100,
+    minWidth: 80,
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)', // Make it look like an input box!
-    borderRadius: 12,
-    marginHorizontal: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 10,
+    marginHorizontal: 8,
   },
   inlineQtyInput: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: '900',
     color: '#FFF',
     textAlign: 'center',
     padding: 0,
-    minWidth: 40, // Give it a wide touch area
+    minWidth: 30,
   },
   inlineQtyUnit: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.9)',
-    marginLeft: 6,
+    marginLeft: 4,
   },
   cardCloseBtn: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: 10,
+    right: 6,
     width: 28,
     height: 28,
     borderRadius: 14,
