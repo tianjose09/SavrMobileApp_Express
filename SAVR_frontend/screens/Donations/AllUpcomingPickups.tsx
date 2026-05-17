@@ -118,7 +118,6 @@ export default function AllUpcomingPickups({ navigation }: any) {
         preferred_date: preferredDate,
         time_slot: timeSlot,
         pickup_address: editAddress,
-        schedule_type: editingPickup.status,
       });
       setEditModalVisible(false);
       fetchPickups();

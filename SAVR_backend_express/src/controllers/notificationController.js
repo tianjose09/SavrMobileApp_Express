@@ -3,7 +3,7 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 dayjs.extend(relativeTime);
 
-// Create the notifications table if it doesn't exist yet
+// Add is_critical column if it doesn't exist yet
 db.execute(`
   CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
@@ -11,15 +11,19 @@ db.execute(`
     type VARCHAR(50) NOT NULL DEFAULT 'system',
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    is_critical BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
   )
 `).catch(err => console.error('[notifications] table init failed:', err.message));
 
-async function createNotification(userId, type, title, description) {
+db.execute(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_critical BOOLEAN DEFAULT FALSE`)
+  .catch(() => {});
+
+async function createNotification(userId, type, title, description, isCritical = false) {
   try {
     await db.execute(
-      'INSERT INTO notifications (user_id, type, title, description, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [userId, type, title, description]
+      'INSERT INTO notifications (user_id, type, title, description, is_critical, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+      [userId, type, title, description, isCritical]
     );
   } catch (e) {
     console.error('[createNotification]', e.message);
@@ -29,18 +33,24 @@ async function createNotification(userId, type, title, description) {
 exports.createNotification = createNotification;
 
 // GET /api/notifications
+// ?critical=true  → only critical notifications (for the bell badge)
+// no param        → all notifications (for the full notification screen)
 exports.getNotifications = async (req, res) => {
   try {
     const uid = req.user.id;
-    const [rows] = await db.execute(
-      'SELECT id, type, title, description, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC',
-      [uid]
-    );
+    const criticalOnly = req.query.critical === 'true';
+
+    const sql = criticalOnly
+      ? 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? AND is_critical = TRUE ORDER BY created_at DESC'
+      : 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC';
+
+    const [rows] = await db.execute(sql, [uid]);
     const notifications = rows.map(n => ({
       id: n.id,
       type: n.type,
       title: n.title,
       desc: n.description,
+      is_critical: !!n.is_critical,
       time: dayjs(n.created_at).fromNow(),
     }));
     return res.json({ success: true, notifications });
@@ -50,7 +60,7 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
-// DELETE /api/notifications/:id  — reading a notification deletes it
+// DELETE /api/notifications/:id
 exports.deleteNotification = async (req, res) => {
   try {
     const uid = req.user.id;
@@ -63,7 +73,7 @@ exports.deleteNotification = async (req, res) => {
   }
 };
 
-// DELETE /api/notifications  — mark all read = delete all for user
+// DELETE /api/notifications
 exports.deleteAllNotifications = async (req, res) => {
   try {
     const uid = req.user.id;

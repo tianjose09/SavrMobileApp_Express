@@ -26,6 +26,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const bannerShownRef = React.useRef(false);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   const showNotification = (msg: string) => {
@@ -36,7 +37,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
         duration: 400,
         useNativeDriver: true,
       }),
-      Animated.delay(3500),
+      Animated.delay(2000),
       Animated.timing(slideAnim, {
         toValue: -150,
         duration: 400,
@@ -91,11 +92,16 @@ export default function BeneficiaryDashboard({ navigation }: any) {
         setActiveRequests(data.active_requests ?? 0);
 
         try {
-          const notifRes = await ApiService.getNotifications();
-          const notifs = notifRes?.data?.notifications || [];
-          setUnreadCount(notifs.length);
-          if (notifs.length > 0) {
-            setTimeout(() => showNotification(notifs[0].title), 800);
+          const critRes = await ApiService.getCriticalNotifications();
+          setUnreadCount(critRes?.data?.notifications?.length || 0);
+
+          if (!bannerShownRef.current) {
+            const allRes = await ApiService.getNotifications();
+            const successNotifs = (allRes?.data?.notifications || []).filter((n: any) => !n.is_critical);
+            if (successNotifs.length > 0) {
+              bannerShownRef.current = true;
+              setTimeout(() => showNotification(successNotifs[0].title), 800);
+            }
           }
         } catch {}
       }

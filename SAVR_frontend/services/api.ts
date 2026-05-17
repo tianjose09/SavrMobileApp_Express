@@ -81,7 +81,7 @@ export const ApiService = {
   getMyRequests: () => api.get('api/donation/my-requests'),
   cancelBeneficiaryRequest: (id: number) => api.post(`api/donation/my-requests/${id}/cancel`),
   // Staff-only: change status to 'Pending' | 'Allocated' | 'Urgent'
-  updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent') =>
+  updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied') =>
     api.put(`api/donation/requests/${id}/status`, { status }),
 
   // PayMongo
@@ -99,6 +99,7 @@ export const ApiService = {
 
   // Notifications
   getNotifications: () => api.get('api/notifications'),
+  getCriticalNotifications: () => api.get('api/notifications?critical=true'),
   deleteNotification: (id: number) => api.delete(`api/notifications/${id}`),
   deleteAllNotifications: () => api.delete('api/notifications'),
 };

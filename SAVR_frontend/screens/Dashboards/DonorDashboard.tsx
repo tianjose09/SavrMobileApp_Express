@@ -30,6 +30,7 @@ export default function DonorDashboard({ navigation }: any) {
   const [nextBadge, setNextBadge] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasAnimated = useRef(false);
+  const bannerShownRef = useRef(false);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
@@ -56,7 +57,7 @@ export default function DonorDashboard({ navigation }: any) {
     setNotificationMsg(msg);
     Animated.sequence([
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-      Animated.delay(3500),
+      Animated.delay(2000),
       Animated.timing(slideAnim, { toValue: -150, duration: 400, useNativeDriver: true }),
     ]).start(() => setNotificationMsg(null));
   };
@@ -154,11 +155,16 @@ export default function DonorDashboard({ navigation }: any) {
       }
 
       try {
-        const notifRes = await ApiService.getNotifications();
-        const notifs = notifRes?.data?.notifications || [];
-        setUnreadCount(notifs.length);
-        if (notifs.length > 0) {
-          setTimeout(() => showNotification(notifs[0].title), 800);
+        const critRes = await ApiService.getCriticalNotifications();
+        setUnreadCount(critRes?.data?.notifications?.length || 0);
+
+        if (!bannerShownRef.current) {
+          const allRes = await ApiService.getNotifications();
+          const successNotifs = (allRes?.data?.notifications || []).filter((n: any) => !n.is_critical);
+          if (successNotifs.length > 0) {
+            bannerShownRef.current = true;
+            setTimeout(() => showNotification(successNotifs[0].title), 800);
+          }
         }
       } catch {}
     } catch (error) {
