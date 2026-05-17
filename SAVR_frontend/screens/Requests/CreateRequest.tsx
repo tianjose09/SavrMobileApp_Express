@@ -12,12 +12,34 @@ import CustomDropdown from '../../components/CustomDropdown';
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
 type RequestedFood = { id: number; name: string; category: string; qty: string; unit: string };
 
-// ─── Category icons map ───────────────────────────────────────────────────────
-const CATEGORY_ICONS: Record<string, string> = {
-  Meat: '🥩', Vegetables: '🥦', Fruits: '🍎', Grains: '🌾',
-  'Canned Goods': '🥫', Dairy: '🧀', Seafood: '🐟', Bakery: '🍞',
-  Beverages: '🧃', 'Rice/Grains': '🌾', Mixed: '🍱',
+// ─── Category icon map (MaterialCommunityIcons names) ────────────────────────
+type IconEntry = { lib: 'mci' | 'ion'; name: string };
+const ICON_COLOR = '#6B7280';
+const ICON_COLOR_ACTIVE = '#fff';
+const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
+  Meat: { lib: 'mci', name: 'food-steak' },
+  Vegetables: { lib: 'mci', name: 'leaf' },
+  Fruits: { lib: 'mci', name: 'fruit-cherries' },
+  Grains: { lib: 'mci', name: 'barley' },
+  'Canned Goods': { lib: 'mci', name: 'package-variant-closed' },
+  Dairy: { lib: 'mci', name: 'cheese' },
+  Seafood: { lib: 'ion', name: 'fish-outline' },
+  Bakery: { lib: 'mci', name: 'bread-slice' },
+  Beverages: { lib: 'mci', name: 'cup-water' },
+  'Rice/Grains': { lib: 'mci', name: 'rice' },
+  Mixed: { lib: 'mci', name: 'food-variant' },
 };
+const DEFAULT_CAT_ICON: IconEntry = { lib: 'mci', name: 'package-variant' };
+
+function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: number; active?: boolean }) {
+  const entry = CATEGORY_ICON_MAP[cat] || DEFAULT_CAT_ICON;
+  const c = active ? ICON_COLOR_ACTIVE : ICON_COLOR;
+  if (entry.lib === 'ion') return <Ionicons name={entry.name as any} size={size} color={c} />;
+  return <MaterialCommunityIcons name={entry.name as any} size={size} color={c} />;
+}
+
+// ─── Common units ─────────────────────────────────────────────────────────────
+const UNIT_OPTIONS = ['kg', 'g', 'lbs', 'oz', 'L', 'mL', 'pcs', 'packs', 'cans', 'boxes', 'bags', 'bottles', 'trays', 'dozens'];
 
 export default function CreateRequest({ navigation }: any) {
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
@@ -34,6 +56,8 @@ export default function CreateRequest({ navigation }: any) {
   const [showItemModal, setShowItemModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [itemQty, setItemQty] = useState('');
+  const [itemUnit, setItemUnit] = useState('kg');
+  const [showUnitPicker, setShowUnitPicker] = useState(false);
   const [requestedFoods, setRequestedFoods] = useState<RequestedFood[]>([]);
 
   const [form, setForm] = useState({
@@ -44,7 +68,7 @@ export default function CreateRequest({ navigation }: any) {
 
   const updateForm = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
-  // Fetch inventory
+  // Fetch inventory — all data comes live from the food_inventory table via ApiService.getInventory()
   useEffect(() => {
     if (requestType !== 'food') return;
     setInventoryLoading(true);
@@ -52,16 +76,17 @@ export default function CreateRequest({ navigation }: any) {
       .then(res => {
         if (res.data?.success) {
           const raw = res.data.items || [];
-          // items come as { id, name, category, qty: "10 kg" }
-          const parsed: FoodItem[] = raw.map((i: any) => {
-            const parts = String(i.qty || '').trim().split(' ');
-            const unit = parts.length > 1 ? parts[parts.length - 1] : 'pcs';
-            return { id: i.id, name: i.name, category: i.category || 'Other', qty: i.qty, unit };
-          });
+          const parsed: FoodItem[] = raw.map((i: any) => ({
+            id: i.id,
+            name: i.name,
+            category: i.category || 'Other',
+            qty: i.qty,
+            unit: i.unit || 'pcs',
+          }));
           setInventoryItems(parsed);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setInventoryLoading(false));
   }, [requestType]);
 
@@ -100,9 +125,9 @@ export default function CreateRequest({ navigation }: any) {
     }
     const already = requestedFoods.find(f => f.id === selectedItem.id);
     if (already) {
-      setRequestedFoods(prev => prev.map(f => f.id === selectedItem.id ? { ...f, qty: itemQty } : f));
+      setRequestedFoods(prev => prev.map(f => f.id === selectedItem.id ? { ...f, qty: itemQty, unit: itemUnit } : f));
     } else {
-      setRequestedFoods(prev => [...prev, { ...selectedItem, qty: itemQty }]);
+      setRequestedFoods(prev => [...prev, { ...selectedItem, qty: itemQty, unit: itemUnit }]);
     }
     setSelectedItem(null);
     setItemQty('');
@@ -198,115 +223,7 @@ export default function CreateRequest({ navigation }: any) {
               onChangeText={(val) => updateForm('title', val)}
             />
 
-            {requestType === 'food' ? (
-              <View>
-                {/* ── Food Selector Section ── */}
-                <Text style={styles.sectionLabel}>
-                  <MaterialCommunityIcons name="food-variant" size={14} color="#A5D1B8" />  Food Items Needed
-                </Text>
-
-                {/* Step 1 – Category Chips */}
-                {inventoryLoading ? (
-                  <ActivityIndicator color="#A5D1B8" style={{ marginBottom: 14 }} />
-                ) : categories.length === 0 ? (
-                  <Text style={styles.emptyHint}>No inventory available.</Text>
-                ) : (
-                  <>
-                    <Text style={styles.stepLabel}>① Select a Category</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                      {categories.map(cat => (
-                        <TouchableOpacity
-                          key={cat}
-                          style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
-                          onPress={() => {
-                            setSelectedCategory(selectedCategory === cat ? null : cat);
-                            setSelectedItem(null);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.categoryChipIcon}>{CATEGORY_ICONS[cat] || '📦'}</Text>
-                          <Text style={[styles.categoryChipText, selectedCategory === cat && styles.categoryChipTextActive]}>{cat}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-
-                    {/* Step 2 – Items in Category */}
-                    {selectedCategory && (
-                      <>
-                        <Text style={styles.stepLabel}>② Choose a Food Item from <Text style={{ color: '#FFCF77' }}>{selectedCategory}</Text></Text>
-                        {itemsInCategory.length === 0 ? (
-                          <Text style={styles.emptyHint}>No items in this category.</Text>
-                        ) : (
-                          <View style={styles.itemGrid}>
-                            {itemsInCategory.map(item => {
-                              const isSelected = selectedItem?.id === item.id;
-                              return (
-                                <TouchableOpacity
-                                  key={item.id}
-                                  style={[styles.itemChip, isSelected && styles.itemChipActive]}
-                                  onPress={() => {
-                                    setSelectedItem(isSelected ? null : item);
-                                    setItemQty('');
-                                  }}
-                                  activeOpacity={0.8}
-                                >
-                                  <Text style={[styles.itemChipName, isSelected && styles.itemChipNameActive]} numberOfLines={1}>{item.name}</Text>
-                                  <Text style={styles.itemChipStock}>Stock: {item.qty}</Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
-
-                        {/* Step 3 – Qty + Add */}
-                        {selectedItem && (
-                          <View style={styles.addItemRow}>
-                            <View style={styles.selectedItemBadge}>
-                              <Text style={styles.selectedItemName} numberOfLines={1}>{selectedItem.name}</Text>
-                            </View>
-                            <TextInput
-                              style={styles.qtyInput}
-                              placeholder="Qty"
-                              placeholderTextColor="#A5D1B8"
-                              keyboardType="numeric"
-                              value={itemQty}
-                              onChangeText={setItemQty}
-                              textAlign="center"
-                            />
-                            <Text style={styles.unitLabel}>{selectedItem.unit}</Text>
-                            <TouchableOpacity style={styles.addBtn} onPress={addFoodToList} activeOpacity={0.8}>
-                              <Ionicons name="add" size={20} color="#fff" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* Requested Foods List */}
-                {requestedFoods.length > 0 && (
-                  <View style={styles.foodListCard}>
-                    <View style={styles.foodListHeader}>
-                      <Text style={styles.foodListTitle}>📋  Request List</Text>
-                      <Text style={styles.foodListCount}>{requestedFoods.length} item{requestedFoods.length > 1 ? 's' : ''}</Text>
-                    </View>
-                    {requestedFoods.map((f, idx) => (
-                      <View key={f.id} style={[styles.foodListRow, idx < requestedFoods.length - 1 && styles.foodListRowBorder]}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.foodListName} numberOfLines={1}>{f.name}</Text>
-                          <Text style={styles.foodListCategory}>{f.category}</Text>
-                        </View>
-                        <Text style={styles.foodListQty}>{f.qty} {f.unit}</Text>
-                        <TouchableOpacity onPress={() => removeFood(f.id)} style={{ marginLeft: 10 }}>
-                          <Ionicons name="trash-outline" size={16} color="#FF7A7A" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : (
+            {requestType === 'financial' && (
               <View>
                 <Text style={styles.inputLabel}>Amount of Money Needed</Text>
                 <TextInput
@@ -416,6 +333,172 @@ export default function CreateRequest({ navigation }: any) {
             </View>
           </View>
 
+          {/* ── Food Details Card (outside green card) ── */}
+          {requestType === 'food' && (
+            <View style={styles.foodDetailsCard}>
+              <View style={styles.foodDetailsHeader}>
+                <MaterialCommunityIcons name="food-variant" size={18} color="#00592d" />
+                <Text style={styles.foodDetailsTitle}>Food Details</Text>
+              </View>
+
+              {/* Category selector */}
+              <Text style={styles.fdLabel}>Select Food Type</Text>
+              {inventoryLoading ? (
+                <View style={styles.loadingWrap}>
+                  <ActivityIndicator color="#00592d" size="small" />
+                  <Text style={styles.loadingText}>Loading...</Text>
+                </View>
+              ) : categories.length === 0 ? (
+                <View style={styles.emptyWrap}>
+                  <MaterialCommunityIcons name="package-variant" size={32} color="#ccc" />
+                  <Text style={styles.fdEmptyHint}>No inventory available.</Text>
+                </View>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ paddingRight: 8 }}>
+                  {categories.map(cat => {
+                    const isActive = selectedCategory === cat;
+                    const count = inventoryItems.filter(i => i.category === cat).length;
+                    return (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.fdCatCard, isActive && styles.fdCatCardActive]}
+                        onPress={() => { setSelectedCategory(isActive ? null : cat); setSelectedItem(null); setItemQty(''); }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.fdCatIconWrap, isActive && styles.fdCatIconWrapActive]}>
+                          <CatIcon cat={cat} size={22} active={isActive} />
+                        </View>
+                        <Text style={[styles.fdCatName, isActive && styles.fdCatNameActive]} numberOfLines={1}>{cat}</Text>
+                        <View style={[styles.fdCatBadge, isActive && styles.fdCatBadgeActive]}>
+                          <Text style={[styles.fdCatBadgeText, isActive && styles.fdCatBadgeTextActive]}>{count}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+
+              {/* Items list */}
+              {selectedCategory && (
+                <View style={styles.fdItemsWrap}>
+                  <View style={styles.fdItemsHeader}>
+                    <Text style={styles.fdItemsTitle}>{selectedCategory}</Text>
+                    <Text style={styles.fdItemsCount}>{itemsInCategory.length} items</Text>
+                  </View>
+                  {itemsInCategory.length === 0 ? (
+                    <Text style={styles.fdEmptyHint}>No items in this category.</Text>
+                  ) : (
+                    itemsInCategory.map((item, idx) => {
+                      const isSel = selectedItem?.id === item.id;
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={[styles.fdItemRow, isSel && styles.fdItemRowActive, idx < itemsInCategory.length - 1 && styles.fdItemRowBorder]}
+                          onPress={() => { setSelectedItem(isSel ? null : item); setItemQty(''); setItemUnit(item.unit || 'kg'); }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.fdItemIcon, isSel && styles.fdItemIconActive]}>
+                            <CatIcon cat={item.category} size={18} active={false} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.fdItemName, isSel && styles.fdItemNameActive]} numberOfLines={1}>{item.name}</Text>
+                            <Text style={styles.fdItemCat}>{item.category}</Text>
+                          </View>
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={styles.fdItemStockLabel}>In Stock</Text>
+                          </View>
+                          {isSel && <Ionicons name="checkmark-circle" size={20} color="#00592d" style={{ marginLeft: 8 }} />}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </View>
+              )}
+
+              {/* Qty + Add row */}
+              {selectedItem && (
+                <View style={styles.fdAddRow}>
+                  <View style={styles.fdAddBadge}>
+                    <CatIcon cat={selectedItem.category} size={13} active={false} />
+                    <Text style={[styles.fdAddName, { marginLeft: 5 }]} numberOfLines={1}>{selectedItem.name}</Text>
+                  </View>
+                  <TextInput
+                    style={styles.fdQtyInput}
+                    placeholder="Qty"
+                    placeholderTextColor="#aaa"
+                    keyboardType="numeric"
+                    value={itemQty}
+                    onChangeText={setItemQty}
+                    textAlign="center"
+                  />
+                  {/* Unit selector */}
+                  <TouchableOpacity style={styles.fdUnitBtn} onPress={() => setShowUnitPicker(true)} activeOpacity={0.8}>
+                    <Text style={styles.fdUnitBtnText}>{itemUnit}</Text>
+                    <Ionicons name="chevron-down" size={11} color="#00592d" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.fdAddBtn} onPress={addFoodToList} activeOpacity={0.8}>
+                    <Ionicons name="add" size={20} color="#fff" />
+                    <Text style={styles.fdAddBtnText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Unit picker modal */}
+              <Modal visible={showUnitPicker} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalSheet}>
+                    <View style={styles.modalHeader}>
+                      <TouchableOpacity onPress={() => setShowUnitPicker(false)}>
+                        <Text style={styles.modalCancel}>Cancel</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.modalTitle}>Select Unit</Text>
+                      <View style={{ width: 60 }} />
+                    </View>
+                    <ScrollView style={{ maxHeight: 320 }}>
+                      {UNIT_OPTIONS.map(u => (
+                        <TouchableOpacity
+                          key={u}
+                          style={[styles.unitPickerRow, itemUnit === u && styles.unitPickerRowActive]}
+                          onPress={() => { setItemUnit(u); setShowUnitPicker(false); }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.unitPickerText, itemUnit === u && styles.unitPickerTextActive]}>{u}</Text>
+                          {itemUnit === u && <Ionicons name="checkmark" size={18} color="#00592d" />}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              </Modal>
+
+              {/* Table header */}
+              <View style={styles.fdTableHeader}>
+                <Text style={[styles.fdTableCol, { flex: 1 }]}>TYPE</Text>
+                <Text style={[styles.fdTableCol, { flex: 2 }]}>FOOD NAME</Text>
+                <Text style={[styles.fdTableCol, { flex: 1, textAlign: 'right' }]}>QTY</Text>
+                <Text style={styles.fdTableCol}> </Text>
+              </View>
+
+              {/* Table rows */}
+              {requestedFoods.length === 0 ? (
+                <View style={styles.fdTableEmpty}>
+                  <Text style={styles.fdTableEmptyText}>No items added yet</Text>
+                </View>
+              ) : (
+                requestedFoods.map((f, idx) => (
+                  <View key={f.id} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
+                    <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{f.category}</Text>
+                    <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
+                    <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
+                    <TouchableOpacity onPress={() => removeFood(f.id)} style={{ paddingLeft: 10 }}>
+                      <Ionicons name="trash-outline" size={15} color="#E74C3C" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
           {/* Submit */}
           <View style={styles.submitRow}>
             <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isLoading}>
@@ -456,46 +539,75 @@ const styles = StyleSheet.create({
   rowInputs: { flexDirection: 'row', justifyContent: 'space-between' },
   rowInputsNoMargin: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
 
-  // Food selector
-  sectionLabel: { color: '#A5D1B8', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 10, textTransform: 'uppercase' },
-  stepLabel: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginBottom: 10 },
-  emptyHint: { color: '#A5D1B8', fontSize: 12, marginBottom: 14, fontStyle: 'italic' },
+  // ── Food Details white card ───────────────────────────────────────────────────
+  foodDetailsCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, marginTop: 18, borderWidth: 1, borderColor: '#E8EEE9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 5 },
+  foodDetailsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#EAF2EC' },
+  foodDetailsTitle: { fontSize: 16, fontWeight: '800', color: '#00592d', marginLeft: 8 },
 
-  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#71A987', marginRight: 10, marginBottom: 14, backgroundColor: 'transparent' },
-  categoryChipActive: { backgroundColor: '#D87A38', borderColor: '#D87A38' },
-  categoryChipIcon: { fontSize: 16, marginRight: 6 },
-  categoryChipText: { color: '#A5D1B8', fontSize: 12, fontWeight: '700' },
-  categoryChipTextActive: { color: '#FFFFFF' },
+  fdLabel: { fontSize: 11, fontWeight: '700', color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fdEmptyHint: { color: '#999', fontSize: 12, fontStyle: 'italic', textAlign: 'center', paddingVertical: 10 },
 
-  itemGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },
-  itemChip: { width: '47%', marginRight: '3%', marginBottom: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#71A987' },
-  itemChipActive: { backgroundColor: 'rgba(216,122,56,0.25)', borderColor: '#D87A38' },
-  itemChipName: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginBottom: 3 },
-  itemChipNameActive: { color: '#FFCF77' },
-  itemChipStock: { color: '#A5D1B8', fontSize: 10 },
+  loadingWrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 8 },
+  loadingText: { color: '#888', fontSize: 12 },
+  emptyWrap: { alignItems: 'center', paddingVertical: 14 },
+  emptyIcon: { fontSize: 26, marginBottom: 4 },
 
-  addItemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 10, marginBottom: 14, gap: 8 },
-  selectedItemBadge: { flex: 1, backgroundColor: 'rgba(216,122,56,0.2)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 },
-  selectedItemName: { color: '#FFCF77', fontSize: 11, fontWeight: '700' },
-  qtyInput: { width: 52, height: 36, borderWidth: 1, borderColor: '#71A987', borderRadius: 6, color: '#FFF', fontSize: 13, backgroundColor: 'transparent' },
-  unitLabel: { color: '#A5D1B8', fontSize: 11, fontWeight: '700', minWidth: 28 },
-  addBtn: { backgroundColor: '#D87A38', width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  catScroll: { marginBottom: 16 },
+  fdCatCard: { alignItems: 'center', marginRight: 10, backgroundColor: '#F5F9F6', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1.5, borderColor: '#C8DFD0', minWidth: 74, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 1 },
+  fdCatCardActive: { backgroundColor: '#00592d', borderColor: '#00592d', shadowColor: '#00592d', shadowOpacity: 0.25, elevation: 5 },
+  fdCatIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#EEF7F1', justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  fdCatIconWrapActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  fdCatName: { color: '#4A7A5A', fontSize: 10, fontWeight: '700', textAlign: 'center' },
+  fdCatNameActive: { color: '#FFF' },
+  fdCatBadge: { marginTop: 5, backgroundColor: '#E4F0E8', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 1 },
+  fdCatBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  fdCatBadgeText: { color: '#4A7A5A', fontSize: 9, fontWeight: '800' },
+  fdCatBadgeTextActive: { color: '#FFF' },
 
-  foodListCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 14, marginBottom: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  foodListHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  foodListTitle: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  foodListCount: { color: '#A5D1B8', fontSize: 11 },
-  foodListRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  foodListRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  foodListName: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  foodListCategory: { color: '#A5D1B8', fontSize: 10, marginTop: 1 },
-  foodListQty: { color: '#FFCF77', fontWeight: '800', fontSize: 13 },
+  fdItemsWrap: { borderRadius: 12, borderWidth: 1, borderColor: '#E8EEE9', overflow: 'hidden', marginBottom: 14 },
+  fdItemsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F5F9F6', paddingHorizontal: 14, paddingVertical: 10 },
+  fdItemsTitle: { fontSize: 13, fontWeight: '800', color: '#00592d' },
+  fdItemsCount: { fontSize: 11, color: '#888' },
+  fdItemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: 14, paddingVertical: 12 },
+  fdItemRowActive: { backgroundColor: '#F0FAF4' },
+  fdItemRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F5F1' },
+  fdItemIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#EEF7F1', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  fdItemIconActive: { backgroundColor: '#D4EDDA' },
+  fdItemName: { color: '#1a1a1a', fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  fdItemNameActive: { color: '#00592d' },
+  fdItemCat: { color: '#999', fontSize: 10 },
+  fdItemStock: { color: '#4A7A5A', fontSize: 12, fontWeight: '800' },
+  fdItemStockActive: { color: '#00592d' },
+  fdItemStockLabel: { color: '#aaa', fontSize: 9, marginTop: 1 },
+
+  fdAddRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5FBF7', borderRadius: 12, padding: 10, marginBottom: 16, gap: 8, borderWidth: 1, borderColor: '#C8DFD0' },
+  fdAddBadge: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#E4F0E8', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 },
+  fdAddName: { color: '#00592d', fontSize: 11, fontWeight: '700', flex: 1 },
+  fdQtyInput: { width: 50, height: 36, borderWidth: 1, borderColor: '#C8DFD0', borderRadius: 6, color: '#1a1a1a', fontSize: 13, backgroundColor: '#FFF' },
+  fdUnitBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF7F1', borderRadius: 6, borderWidth: 1, borderColor: '#C8DFD0', paddingHorizontal: 8, paddingVertical: 6, gap: 3, minWidth: 44 },
+  fdUnitBtnText: { color: '#00592d', fontSize: 12, fontWeight: '800' },
+  fdAddBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#00592d', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, gap: 4 },
+  fdAddBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+
+  unitPickerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  unitPickerRowActive: { backgroundColor: '#F0FAF4' },
+  unitPickerText: { fontSize: 15, color: '#333', fontWeight: '500' },
+  unitPickerTextActive: { color: '#00592d', fontWeight: '800' },
+
+  fdTableHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F9F6', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 2 },
+  fdTableCol: { fontSize: 10, fontWeight: '800', color: '#4A7A5A', textTransform: 'uppercase', letterSpacing: 0.4 },
+  fdTableEmpty: { alignItems: 'center', paddingVertical: 20 },
+  fdTableEmptyText: { color: '#bbb', fontSize: 12, fontStyle: 'italic' },
+  fdTableRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
+  fdTableRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F5F1' },
+  fdTableCell: { fontSize: 12, color: '#555' },
+  fdTableCellBold: { fontWeight: '700', color: '#1a1a1a' },
+  fdTableCellQty: { color: '#00592d', fontWeight: '800' },
 
   submitRow: { alignItems: 'flex-end', marginTop: 20, paddingRight: 10 },
   submitBtn: { backgroundColor: '#267A41', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, minWidth: 120, alignItems: 'center' },
   submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 
-  // iOS date picker modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },

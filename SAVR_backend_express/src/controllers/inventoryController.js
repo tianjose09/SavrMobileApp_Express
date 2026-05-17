@@ -13,6 +13,8 @@ exports.index = async (req, res) => {
       id: item.id,
       name: item.food_name,
       category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
       qty: `${item.quantity} ${item.unit}`,
       expiry: item.expiration_date ? dayjs(item.expiration_date).format('YYYY-MM-DD') : 'N/A',
     })),
