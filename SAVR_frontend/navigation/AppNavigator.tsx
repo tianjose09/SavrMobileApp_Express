@@ -26,6 +26,7 @@ import ChooseDonation from '../screens/Donations/ChooseDonation';
 import FinancialDonation from '../screens/Donations/FinancialDonation';
 import FoodDonationDetails from '../screens/Donations/FoodDonationDetails';
 import FoodDonationPickup from '../screens/Donations/FoodDonationPickup';
+import AllUpcomingPickups from '../screens/Donations/AllUpcomingPickups';
 import FoodDonationDelivery from '../screens/Donations/FoodDonationDelivery';
 import ServiceDonation from '../screens/Donations/ServiceDonation';
 import Activities from '../screens/Activities/Activities';
@@ -342,6 +343,11 @@ function MainTabs() {
       <Tab.Screen
         name="Notifications"
         component={Notifications}
+        options={{ tabBarItemStyle: { display: 'none' } }}
+      />
+      <Tab.Screen
+        name="AllUpcomingPickups"
+        component={AllUpcomingPickups}
         options={{ tabBarItemStyle: { display: 'none' } }}
       />
     </Tab.Navigator>

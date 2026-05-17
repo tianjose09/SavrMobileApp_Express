@@ -230,9 +230,6 @@ export default function Profile({ navigation }: any) {
             <Text style={styles.sectionOverline}>{roleDisplay}</Text>
             <Text style={styles.sectionTitle}>Your Information</Text>
           </View>
-          <View style={styles.updatedBadge}>
-            <Text style={styles.updatedBadgeText}>Updated Today</Text>
-          </View>
         </View>
 
         {/* Dynamic Pills */}
@@ -277,7 +274,13 @@ export default function Profile({ navigation }: any) {
 
         <View style={styles.pillBox}>
           <Text style={styles.pillLabel}>Contact Number</Text>
-          <Text style={styles.pillValue}>{profile?.contact_number || 'N/A'}</Text>
+          <Text style={styles.pillValue}>
+            {profile?.contact_number
+              ? (profile.contact_number.startsWith('+63')
+                  ? profile.contact_number.replace(/\s/g, '')
+                  : `+63${profile.contact_number.replace(/^0/, '')}`)
+              : 'N/A'}
+          </Text>
         </View>
 
         <TouchableOpacity style={styles.deactivateWrapper} onPress={handleDeactivate}>

@@ -24,6 +24,8 @@ export default function DonorDashboard({ navigation }: any) {
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [donationAmount, setDonationAmount] = useState(0);
   const [totalFoodDonations, setTotalFoodDonations] = useState(0);
+  const [totalFinancialCount, setTotalFinancialCount] = useState(0);
+  const [totalServiceDonations, setTotalServiceDonations] = useState(0);
   const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
   const [nextBadge, setNextBadge] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,13 +137,19 @@ export default function DonorDashboard({ navigation }: any) {
 
         setDonationAmount(data.total_donations || 0);
         setTotalFoodDonations(data.total_food || 0);
+        setTotalFinancialCount(data.total_financial_count || 0);
+        setTotalServiceDonations(data.total_service || 0);
       }
 
       const badgesRes = await ApiService.getBadges();
       if (badgesRes?.data?.success) {
-        setFeaturedBadges(badgesRes.data.earned ? badgesRes.data.earned.slice(0, 3) : []);
-        const next = badgesRes.data.in_progress[0] || badgesRes.data.all.find((b: any) => b.status === 'not_started');
-        setNextBadge(next);
+        // Use only truly earned badges for the featured section
+        const earnedBadges = badgesRes.data.earned || [];
+        setFeaturedBadges(earnedBadges.slice(0, 3));
+        // Next badge = first in_progress, else first not_started
+        const next = (badgesRes.data.in_progress || [])[0]
+          || (badgesRes.data.all || []).find((b: any) => b.status === 'not_started');
+        setNextBadge(next || null);
       }
 
       try {
@@ -160,13 +168,17 @@ export default function DonorDashboard({ navigation }: any) {
     }
   };
 
-  const currentLevel = Math.floor(donationAmount / 50000);
-  const goalStart = currentLevel * 50000;
-  const goalEnd = (currentLevel + 1) * 50000;
+  // Total donations made = food + financial count + service (all categories)
+  const totalDonationsMade = totalFoodDonations + totalFinancialCount + totalServiceDonations;
+
+  // Progress bar: 0 to 100 donations
+  const MILESTONE = 100;
+  const goalStart = 0;
+  const goalEnd = MILESTONE;
 
   const progressPct = Math.max(
     0,
-    Math.min(((donationAmount - goalStart) / (goalEnd - goalStart)) * 100, 100)
+    Math.min((totalDonationsMade / MILESTONE) * 100, 100)
   );
 
   const nextBadgeGoal = nextBadge ? nextBadge.goal_value : 100000;
@@ -297,26 +309,20 @@ export default function DonorDashboard({ navigation }: any) {
                   </View>
 
                   <Text style={styles.totalAmount}>
-                    ₱ {donationAmount.toLocaleString('en-US')}
+                    {totalDonationsMade.toLocaleString('en-US')}
                   </Text>
 
-                  <View style={styles.progressWrapper}>
-                    <View style={styles.progressTrack} />
-                    <View
-                      style={[styles.progressFill, { width: `${progressPct}%` }]}
-                    />
-                    <View style={styles.leftDot} />
-                    <View style={[styles.middleDot, { left: `${progressPct}%` }]} />
-                    <View style={styles.rightDot} />
+                  {/* Progress bar: flex-based for reliable RN rendering */}
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { flex: progressPct }]} />
+                    <View style={{ flex: 100 - progressPct }} />
                   </View>
 
                   <View style={styles.progressLabels}>
                     <Text style={styles.currentLabel}>
-                      ₱ {goalStart.toLocaleString('en-US')}
+                      {totalDonationsMade} / 100 donations
                     </Text>
-                    <Text style={styles.goalLabel}>
-                      ₱ {goalEnd.toLocaleString('en-US')}
-                    </Text>
+                    <Text style={styles.goalLabel}>100</Text>
                   </View>
                 </View>
               </Animated.View>
@@ -370,25 +376,25 @@ export default function DonorDashboard({ navigation }: any) {
                 </View>
               </Animated.View>
 
-              <Animated.View
-                style={{
-                  opacity: badgesFadeAnim,
-                  transform: [{ translateY: badgesTranslateAnim }],
-                }}
-              >
-                <View style={styles.badgesSection}>
-                  <View style={styles.badgesHeader}>
-                    <Text style={styles.badgesTitle}>Achievement Badges</Text>
+              {featuredBadges && featuredBadges.length > 0 && (
+                <Animated.View
+                  style={{
+                    opacity: badgesFadeAnim,
+                    transform: [{ translateY: badgesTranslateAnim }],
+                  }}
+                >
+                  <View style={styles.badgesSection}>
+                    <View style={styles.badgesHeader}>
+                      <Text style={styles.badgesTitle}>Achievement Badges</Text>
 
-                    <TouchableOpacity
-                      style={styles.viewAllButton}
-                      onPress={() => navigation.navigate?.('Badges')}
-                    >
-                      <Text style={styles.viewAllText}>View All</Text>
-                    </TouchableOpacity>
-                  </View>
+                      <TouchableOpacity
+                        style={styles.viewAllButton}
+                        onPress={() => navigation.navigate?.('Badges')}
+                      >
+                        <Text style={styles.viewAllText}>View All</Text>
+                      </TouchableOpacity>
+                    </View>
 
-                  {featuredBadges && featuredBadges.length > 0 ? (
                     <View style={styles.badgesRow}>
                       {featuredBadges.map((badge, idx) => (
                         <View style={styles.badgeCard} key={badge.id || idx}>
@@ -402,69 +408,67 @@ export default function DonorDashboard({ navigation }: any) {
                         </View>
                       ))}
                     </View>
-                  ) : (
-                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                      <Text style={{ color: '#8A8A8A', fontSize: 13, textAlign: 'center' }}>
-                        No achievements yet.
-                      </Text>
+                  </View>
+                </Animated.View>
+              )}
+
+              {nextBadge && (
+                <Animated.View
+                  style={{
+                    opacity: nextBadgeFadeAnim,
+                    transform: [{ translateY: nextBadgeTranslateAnim }],
+                  }}
+                >
+                  <View style={styles.nextBadgeSection}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <Text style={styles.nextBadgeTitle}>Next Badge Goal</Text>
+                      <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}> NOT YET EARNED</Text>
+                      </View>
                     </View>
-                  )}
-                </View>
-              </Animated.View>
 
-              <Animated.View
-                style={{
-                  opacity: nextBadgeFadeAnim,
-                  transform: [{ translateY: nextBadgeTranslateAnim }],
-                }}
-              >
-                <View style={styles.nextBadgeSection}>
-                  <Text style={styles.nextBadgeTitle}>Next Badge</Text>
-
-                  {featuredBadges && featuredBadges.length > 0 ? (
-                    nextBadge ? (
-                      <View style={styles.nextBadgeCard}>
+                    <View style={styles.nextBadgeCard}>
+                      {/* Locked badge image with overlay */}
+                      <View style={{ position: 'relative' }}>
                         <Image
                           source={BADGE_IMAGES[nextBadge.icon]}
-                          style={styles.nextBadgeImage}
+                          style={[styles.nextBadgeImage, { opacity: 0.25 }]}
                           resizeMode="contain"
                         />
-
-                        <View style={styles.nextBadgeTextWrap}>
-                          <Text style={styles.nextBadgeName}>{nextBadge.name}</Text>
-                          <Text style={styles.nextBadgeDesc}>
-                            {nextBadge.description}
-                          </Text>
-
-                          <View style={styles.nextProgressBar}>
-                            <View
-                              style={[
-                                styles.nextProgressFill,
-                                { width: `${nextBadgePct}%` },
-                              ]}
-                            />
-                          </View>
-
-                          <Text style={styles.nextProgressText}>
-                            {isFinancial ? '₱ ' : ''}{nextBadgeAmount.toLocaleString('en-US')} / {isFinancial ? '₱ ' : ''}{nextBadgeGoal.toLocaleString('en-US')}
-                          </Text>
+                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                          <FontAwesome5 name="lock" size={22} color="#8A8A8A" />
                         </View>
                       </View>
-                    ) : null
-                  ) : (
-                    <View style={{ paddingVertical: 15, alignItems: 'center' }}>
-                      <Text style={{ color: '#8A8A8A', fontSize: 13, textAlign: 'center' }}>
-                        Start donating to reveal your first badge goal!
-                      </Text>
+
+                      <View style={styles.nextBadgeTextWrap}>
+                        <Text style={styles.nextBadgeName}>{nextBadge.name}</Text>
+                        <Text style={styles.nextBadgeDesc}>
+                          {nextBadge.description}
+                        </Text>
+
+                        <View style={styles.nextProgressBar}>
+                          <View
+                            style={[
+                              styles.nextProgressFill,
+                              { width: `${nextBadgePct}%` },
+                            ]}
+                          />
+                        </View>
+
+                        <Text style={styles.nextProgressText}>
+                          {isFinancial ? '₱ ' : ''}{nextBadgeAmount.toLocaleString('en-US')} / {isFinancial ? '₱ ' : ''}{nextBadgeGoal.toLocaleString('en-US')}
+                        </Text>
+                      </View>
                     </View>
-                  )}
-                </View>
-              </Animated.View>
+                  </View>
+                </Animated.View>
+              )}
 
               <View style={{ height: 110 }} />
             </ScrollView>
           </Animated.View>
         </View>
+
       </SafeAreaView>
     </>
   );
@@ -662,58 +666,19 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  progressWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-    height: 18,
+  progressTrack: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#E0E0E0',
+    width: '100%',
+    flexDirection: 'row',
+    overflow: 'hidden',
     marginBottom: 10,
   },
 
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#959595',
-    width: '100%',
-    position: 'absolute',
-  },
-
   progressFill: {
-    height: 8,
-    borderRadius: 4,
+    height: '100%',
     backgroundColor: '#D1AC22',
-    position: 'absolute',
-    left: 0,
-    zIndex: 1,
-  },
-
-  leftDot: {
-    position: 'absolute',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#D1AC22',
-    left: 0,
-    zIndex: 2,
-  },
-
-  middleDot: {
-    position: 'absolute',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#D1AC22',
-    marginLeft: -9,
-    zIndex: 3,
-  },
-
-  rightDot: {
-    position: 'absolute',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#868686',
-    right: 0,
-    zIndex: 2,
   },
 
   progressLabels: {
@@ -930,4 +895,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#00592d',
   },
+
 });

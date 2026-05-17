@@ -134,22 +134,11 @@ export default function BeneficiaryRegistration({ navigation }: any) {
   };
 
   const handleRegister = async () => {
+    // Basic validations
     if (!form.email) {
-      const devRole = 'beneficiary';
-      StorageUtils.setItem(StorageKeys.AUTH_TOKEN, 'dev_token');
-      StorageUtils.setItem(StorageKeys.USER_ROLE, devRole);
-
-      navigation.reset({
-        index: 0,
-        routes: [{
-          name: 'MainDrawer',
-          params: { screen: 'HomeTabs' }
-        }],
-      });
+      Alert.alert('Error', 'Please enter your email address.');
       return;
     }
-
-    // Basic validations
     if (!form.password || !form.contact_number) {
       Alert.alert('Error', 'Please fill out all required fields.');
       return;
@@ -402,7 +391,7 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                             items={[
                               { label: "Male", value: "Male" },
                               { label: "Female", value: "Female" },
-                              { label: "Prefer not to say", value: "Prefer not to say" }
+                              { label: "Other", value: "Other" }
                             ]}
                             style={{ borderWidth: 0, paddingHorizontal: 0, height: 30 }}
                           />

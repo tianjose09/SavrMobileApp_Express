@@ -25,6 +25,9 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
     try {
       const formData = new FormData();
       formData.append('schedule_type', 'delivery');
+      formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232, Metro Manila, Philippines');
+      formData.append('pickup_latitude', '14.5547');
+      formData.append('pickup_longitude', '121.0244');
 
       const dateStr = deliveryDate.toISOString().split('T')[0];
       const timeStr = deliveryTime.toTimeString().split(' ')[0].substring(0, 5);

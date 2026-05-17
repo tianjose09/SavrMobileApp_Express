@@ -127,7 +127,6 @@ export default function DonorRegistration({ navigation }: any) {
 
       const payload = {
         ...form,
-        contact_number: form.contact_number ? `+63${form.contact_number}` : '',
         role,
         registrationType: role,
         targetDashboard
@@ -352,7 +351,7 @@ export default function DonorRegistration({ navigation }: any) {
                             items={[
                               { label: "Male", value: "Male" },
                               { label: "Female", value: "Female" },
-                              { label: "Prefer not to say", value: "Prefer not to say" }
+                              { label: "Other", value: "Other" }
                             ]}
                             style={{ borderWidth: 0, paddingHorizontal: 0, height: 30 }}
                           />
@@ -489,7 +488,7 @@ export default function DonorRegistration({ navigation }: any) {
 
                   <View style={styles.twoColRow}>
                     <View style={styles.col}>
-                      {renderLineInput('Contact Person', 'contact_person', { isRequired: true })}
+                      {renderLineInput('First Name', 'first_name', { isRequired: true })}
                     </View>
                     <View style={styles.col}>
                       {renderLineInput('Last Name', 'last_name', { isRequired: true })}

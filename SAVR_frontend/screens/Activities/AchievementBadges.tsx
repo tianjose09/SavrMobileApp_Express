@@ -26,7 +26,9 @@ export default function AchievementBadges({ navigation }: any) {
       setLoading(true);
       const response = await ApiService.getBadges();
       if (response?.data?.success) {
-        setAllBadges(response.data.all ?? []);
+        const all = response.data.all ?? [];
+        // Only show badges that are fully EARNED — hide in_progress and not_started
+        setAllBadges(all.filter((b: any) => b.status === 'earned'));
         setFeaturedBadges(response.data.earned ? response.data.earned.slice(0, 3) : []);
         setTotalUnlocked(response.data.earned ? response.data.earned.length : 0);
       }
@@ -245,23 +247,41 @@ export default function AchievementBadges({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
 
-                {allBadges.map((badge) => (
-                  <View style={styles.badgeListCard} key={badge.id}>
-                    <Image
-                      source={BADGE_IMAGES[badge.icon]}
-                      style={styles.badgeListImage}
-                      resizeMode="contain"
-                    />
-
-                    <View style={styles.badgeListTextWrap}>
-                      <Text style={styles.badgeListName}>{badge.name}</Text>
-                      <Text style={styles.badgeListDesc}>{badge.description}</Text>
-                      {renderProgressBar(badge)}
-                    </View>
-
-                    {renderStatusPill(badge.status)}
+                {allBadges.length === 0 ? (
+                  <View style={{ padding: 24, alignItems: 'center' }}>
+                    <Text style={{ color: '#8A8A8A', fontSize: 13, textAlign: 'center' }}>
+                      No badges in progress yet. Start donating to earn your first badge!
+                    </Text>
                   </View>
-                ))}
+                ) : (
+                  allBadges.map((badge) => {
+                    const isEarned = badge.status === 'earned';
+                    return (
+                      <View style={styles.badgeListCard} key={badge.id}>
+                        <View style={{ position: 'relative' }}>
+                          <Image
+                            source={BADGE_IMAGES[badge.icon]}
+                            style={[styles.badgeListImage, !isEarned && { opacity: 0.2 }]}
+                            resizeMode="contain"
+                          />
+                          {!isEarned && (
+                            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                              <Ionicons name="lock-closed" size={26} color="#8A8A8A" />
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.badgeListTextWrap}>
+                          <Text style={styles.badgeListName}>{badge.name}</Text>
+                          <Text style={styles.badgeListDesc}>{badge.description}</Text>
+                          {renderProgressBar(badge)}
+                        </View>
+
+                        {renderStatusPill(badge.status)}
+                      </View>
+                    );
+                  })
+                )}
               </View>
             )}
 
