@@ -12,6 +12,7 @@ import {
   Image,
   StatusBar,
   SafeAreaView,
+  Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -44,6 +45,8 @@ export default function FoodDonationDetails({ navigation }: any) {
     },
   ]);
   const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
+  const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
+  const [iosTempDate, setIosTempDate] = useState(new Date());
   const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
 
   useEffect(() => {
@@ -234,10 +237,17 @@ export default function FoodDonationDetails({ navigation }: any) {
                   <Text style={styles.label}>Expiration Date</Text>
                   <TouchableOpacity
                     style={styles.dateInput}
-                    onPress={() => Platform.OS !== 'ios' && setShowDatePickerId(item.id)}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') {
+                        setIosTempDate(item.expiryDate || new Date());
+                        setShowIOSDatePickerId(item.id);
+                      } else {
+                        setShowDatePickerId(item.id);
+                      }
+                    }}
                     activeOpacity={0.8}
                   >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
                       <Text
                         style={[
                           styles.dateText,
@@ -250,25 +260,6 @@ export default function FoodDonationDetails({ navigation }: any) {
                       </Text>
                       <Ionicons name="calendar-outline" size={20} color={item.expiryDate ? "#FFF" : "rgba(255,255,255,0.65)"} />
                     </View>
-
-                    {Platform.OS === 'ios' && (
-                      <DateTimePicker
-                        style={{
-                          position: 'absolute',
-                          width: '100%',
-                          height: '100%',
-                          opacity: 0.011,
-                          zIndex: 999,
-                        }}
-                        value={item.expiryDate || new Date()}
-                        mode="date"
-                        display="compact"
-                        minimumDate={new Date()}
-                        onChange={(_, date) => {
-                          if (date) updateItem(item.id, 'expiryDate', date);
-                        }}
-                      />
-                    )}
                   </TouchableOpacity>
 
 
@@ -358,6 +349,27 @@ export default function FoodDonationDetails({ navigation }: any) {
           }}
         />
       )}
+
+      {/* iOS date picker modal */}
+      <Modal visible={showIOSDatePickerId !== null} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowIOSDatePickerId(null)}>
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Expiration Date</Text>
+              <TouchableOpacity onPress={() => {
+                if (showIOSDatePickerId) updateItem(showIOSDatePickerId, 'expiryDate', iosTempDate);
+                setShowIOSDatePickerId(null);
+              }}>
+                <Text style={styles.modalDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker value={iosTempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setIosTempDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+          </View>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -666,5 +678,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalCancel: { fontSize: 15, color: '#888' },
+  modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 
 });

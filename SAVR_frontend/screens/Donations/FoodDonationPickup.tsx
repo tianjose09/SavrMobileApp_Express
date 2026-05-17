@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, SafeAreaView, Modal } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,6 +27,10 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     return d;
   });
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [showIOSDate, setShowIOSDate] = useState(false);
+  const [showIOSTime, setShowIOSTime] = useState(false);
+  const [tempPickupDate, setTempPickupDate] = useState(new Date());
+  const [tempPickupTime, setTempPickupTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
 
@@ -249,58 +253,67 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           <View style={styles.halfInput}>
             <Text style={styles.inputLabel}>Preferred Date</Text>
             <TouchableOpacity
-              style={[styles.pickerInputWrapper, { position: 'relative' }]}
-              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('date')}
+              style={styles.pickerInputWrapper}
+              onPress={() => {
+                if (Platform.OS === 'ios') { setTempPickupDate(pickupDate); setShowIOSDate(true); }
+                else setDatePickerMode('date');
+              }}
               activeOpacity={0.8}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
-                <Text style={styles.pickerTextInput}>{pickupDate.toLocaleDateString()}</Text>
-                <View style={styles.pickerIconBtn}>
-                  <Ionicons name="calendar-outline" size={20} color="#CA6118" />
-                </View>
+              <Text style={styles.pickerTextInput}>{pickupDate.toLocaleDateString()}</Text>
+              <View style={styles.pickerIconBtn}>
+                <Ionicons name="calendar-outline" size={20} color="#CA6118" />
               </View>
-              {Platform.OS === 'ios' && (
-                <DateTimePicker
-                  style={styles.invisiblePicker}
-                  value={pickupDate}
-                  mode="date"
-                  display="compact"
-                  minimumDate={new Date()}
-                  onChange={(_, date) => { if (date) setPickupDate(date); }}
-                />
-              )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.halfInput}>
             <Text style={styles.inputLabel}>Time Slot</Text>
             <TouchableOpacity
-              style={[styles.pickerInputWrapper, { position: 'relative' }]}
-              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('time')}
+              style={styles.pickerInputWrapper}
+              onPress={() => {
+                if (Platform.OS === 'ios') { setTempPickupTime(pickupTime); setShowIOSTime(true); }
+                else setDatePickerMode('time');
+              }}
               activeOpacity={0.8}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }} pointerEvents="none">
-                <Text style={styles.pickerTextInput}>
-                  {pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-                <View style={styles.pickerIconBtn}>
-                  <Ionicons name="time-outline" size={20} color="#CA6118" />
-                </View>
+              <Text style={styles.pickerTextInput}>
+                {pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+              <View style={styles.pickerIconBtn}>
+                <Ionicons name="time-outline" size={20} color="#CA6118" />
               </View>
-              {Platform.OS === 'ios' && (
-                <DateTimePicker
-                  style={styles.invisiblePicker}
-                  value={pickupTime}
-                  mode="time"
-                  display="compact"
-                  minimumDate={(() => { const d = new Date(); d.setHours(7, 0, 0, 0); return d; })()}
-                  maximumDate={(() => { const d = new Date(); d.setHours(17, 0, 0, 0); return d; })()}
-                  onChange={(_, date) => { if (date) setPickupTime(date); }}
-                />
-              )}
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* iOS Date Modal */}
+        <Modal visible={showIOSDate} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+                <Text style={styles.modalTitle}>Select Date</Text>
+                <TouchableOpacity onPress={() => { setPickupDate(tempPickupDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+              </View>
+              <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            </View>
+          </View>
+        </Modal>
+
+        {/* iOS Time Modal */}
+        <Modal visible={showIOSTime} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+                <Text style={styles.modalTitle}>Select Time</Text>
+                <TouchableOpacity onPress={() => { setPickupTime(tempPickupTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+              </View>
+              <DateTimePicker value={tempPickupTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempPickupTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            </View>
+          </View>
+        </Modal>
 
 
 
@@ -317,7 +330,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       </ScrollView>
 
       {/* Shared Android date/time picker */}
-      {Platform.OS !== 'ios' && datePickerMode && (
+      {Platform.OS === 'android' && datePickerMode && (
         <DateTimePicker
           value={datePickerMode === 'date' ? pickupDate : pickupTime}
           mode={datePickerMode}
@@ -506,13 +519,14 @@ const styles = StyleSheet.create({
     padding: 5,
     overflow: 'hidden',
   },
-  invisiblePicker: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    opacity: 0.011,
-    zIndex: 999,
-  },
+  invisiblePicker: { display: 'none' },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalCancel: { fontSize: 15, color: '#888' },
+  modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 
   submitWrap: {
     alignItems: 'flex-end',

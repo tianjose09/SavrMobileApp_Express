@@ -11,6 +11,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -40,7 +41,8 @@ export default function BeneficiaryRegistration({ navigation }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false); // Android
+  const [showIOSDatePicker, setShowIOSDatePicker] = useState(false); // iOS Modal
   const [dob, setDob] = useState(new Date());
 
   const {
@@ -115,15 +117,24 @@ export default function BeneficiaryRegistration({ navigation }: any) {
   );
 
   const onDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'dismissed' || !selectedDate) return;
+    }
     const currentDate = selectedDate || dob;
-    setShowDatePicker(Platform.OS === 'ios');
     setDob(currentDate);
-
-    // Format YYYY-MM-DD
     const yyyy = currentDate.getFullYear();
     const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
     const dd = String(currentDate.getDate()).padStart(2, '0');
     updateForm('date_of_birth', `${yyyy}-${mm}-${dd}`);
+  };
+
+  const confirmIOSDate = () => {
+    const yyyy = dob.getFullYear();
+    const mm = String(dob.getMonth() + 1).padStart(2, '0');
+    const dd = String(dob.getDate()).padStart(2, '0');
+    updateForm('date_of_birth', `${yyyy}-${mm}-${dd}`);
+    setShowIOSDatePicker(false);
   };
 
   const updateForm = (key: string, value: string) => {
@@ -346,38 +357,32 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                             onChangeText={(val) => updateForm('date_of_birth', val)}
                             keyboardType="default"
                           />
-                          <View style={[{ position: 'absolute', right: 0, height: '100%', justifyContent: 'center' }, Platform.OS === 'ios' && { width: 30, zIndex: 999 }]}>
-                            <TouchableOpacity
-                              onPress={() => Platform.OS !== 'ios' && setShowDatePicker(true)}
-                              style={{ height: '100%', justifyContent: 'center', paddingLeft: 10 }}
-                            >
-                              <Ionicons
-                                name="calendar"
-                                size={18}
-                                color="#FFF"
-                              />
-                            </TouchableOpacity>
-                            {Platform.OS === 'ios' && (
-                              <DateTimePicker
-                                style={{ position: 'absolute', right: 0, width: 30, height: '100%', opacity: 0.011 }}
-                                value={dob}
-                                mode="date"
-                                display="compact"
-                                maximumDate={new Date()}
-                                onChange={onDateChange}
-                              />
-                            )}
-                          </View>
+                          <TouchableOpacity
+                            onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : setShowDatePicker(true)}
+                            style={{ position: 'absolute', right: 0, height: '100%', justifyContent: 'center', paddingLeft: 10 }}
+                          >
+                            <Ionicons name="calendar" size={18} color="#FFF" />
+                          </TouchableOpacity>
                         </View>
-                        {Platform.OS !== 'ios' && showDatePicker && (
-                          <DateTimePicker
-                            value={dob}
-                            mode="date"
-                            display="default"
-                            onChange={onDateChange}
-                            maximumDate={new Date()}
-                          />
+                        {Platform.OS === 'android' && showDatePicker && (
+                          <DateTimePicker value={dob} mode="date" display="default" onChange={onDateChange} maximumDate={new Date()} />
                         )}
+                        <Modal visible={showIOSDatePicker} transparent animationType="slide">
+                          <View style={styles.modalOverlay}>
+                            <View style={styles.modalSheet}>
+                              <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setShowIOSDatePicker(false)}>
+                                  <Text style={styles.modalCancel}>Cancel</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.modalTitle}>Date of Birth</Text>
+                                <TouchableOpacity onPress={confirmIOSDate}>
+                                  <Text style={styles.modalDone}>Done</Text>
+                                </TouchableOpacity>
+                              </View>
+                              <DateTimePicker value={dob} mode="date" display="spinner" maximumDate={new Date()} onChange={(e, d) => { if (d) setDob(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                            </View>
+                          </View>
+                        </Modal>
                       </View>
                     </View>
                     <View style={styles.col}>
@@ -872,4 +877,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalCancel: { fontSize: 15, color: '#888' },
+  modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 });

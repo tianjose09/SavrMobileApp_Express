@@ -21,6 +21,8 @@ export default function ChooseDonation({ navigation }: any) {
   });
   const [editAddress, setEditAddress] = useState('');
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [showIOSDate, setShowIOSDate] = useState(false);
+  const [showIOSTime, setShowIOSTime] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Animation values
@@ -240,39 +242,20 @@ export default function ChooseDonation({ navigation }: any) {
             <Text style={styles.modalLabel}>Preferred Date</Text>
             <TouchableOpacity
               style={styles.modalInput}
-              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('date')}
+              onPress={() => Platform.OS === 'ios' ? setShowIOSDate(true) : setDatePickerMode('date')}
             >
               <Text style={styles.modalInputText}>{editDate.toLocaleDateString()}</Text>
-              {Platform.OS === 'ios' && (
-                <DateTimePicker
-                  style={styles.iosPicker}
-                  value={editDate}
-                  mode="date"
-                  display="compact"
-                  minimumDate={new Date()}
-                  onChange={(_, d) => { if (d) setEditDate(d); }}
-                />
-              )}
               <Ionicons name="calendar-outline" size={18} color="#00592d" />
             </TouchableOpacity>
 
             <Text style={styles.modalLabel}>Time Slot</Text>
             <TouchableOpacity
               style={styles.modalInput}
-              onPress={() => Platform.OS !== 'ios' && setDatePickerMode('time')}
+              onPress={() => Platform.OS === 'ios' ? setShowIOSTime(true) : setDatePickerMode('time')}
             >
               <Text style={styles.modalInputText}>
                 {editTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
-              {Platform.OS === 'ios' && (
-                <DateTimePicker
-                  style={styles.iosPicker}
-                  value={editTime}
-                  mode="time"
-                  display="compact"
-                  onChange={(_, d) => { if (d) setEditTime(d); }}
-                />
-              )}
               <Ionicons name="time-outline" size={18} color="#00592d" />
             </TouchableOpacity>
 
@@ -299,8 +282,8 @@ export default function ChooseDonation({ navigation }: any) {
           </View>
         </View>
 
-        {/* Android date/time picker */}
-        {Platform.OS !== 'ios' && datePickerMode && (
+        {/* Android pickers */}
+        {Platform.OS === 'android' && datePickerMode && (
           <DateTimePicker
             value={datePickerMode === 'date' ? editDate : editTime}
             mode={datePickerMode}
@@ -316,6 +299,34 @@ export default function ChooseDonation({ navigation }: any) {
             }}
           />
         )}
+
+        {/* iOS Date nested modal */}
+        <Modal visible={showIOSDate} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={{ color: '#888', fontSize: 15 }}>Cancel</Text></TouchableOpacity>
+                <Text style={styles.modalTitle}>Select Date</Text>
+                <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
+              </View>
+              <DateTimePicker value={editDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setEditDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            </View>
+          </View>
+        </Modal>
+
+        {/* iOS Time nested modal */}
+        <Modal visible={showIOSTime} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={{ color: '#888', fontSize: 15 }}>Cancel</Text></TouchableOpacity>
+                <Text style={styles.modalTitle}>Select Time</Text>
+                <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
+              </View>
+              <DateTimePicker value={editTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setEditTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            </View>
+          </View>
+        </Modal>
       </Modal>
     </Animated.View>
   );
@@ -430,7 +441,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   modalInputText: { fontSize: 14, color: '#333', flex: 1 },
-  iosPicker: { position: 'absolute', width: '100%', height: '100%', opacity: 0.011, zIndex: 999 },
   modalTextInput: {
     borderWidth: 1.5,
     borderColor: '#DDD',
