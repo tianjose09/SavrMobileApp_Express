@@ -543,7 +543,9 @@ export default function ServiceDonation({ navigation }: any) {
               <Text style={styles.modalTitle}>Select Date</Text>
               <TouchableOpacity onPress={() => { setDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
-            <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+              <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+            </View>
           </View>
         </View>
       </Modal>
@@ -557,7 +559,9 @@ export default function ServiceDonation({ navigation }: any) {
               <Text style={styles.modalTitle}>Select Time</Text>
               <TouchableOpacity onPress={() => { setTime(tempTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
-            <DateTimePicker value={tempTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+              <DateTimePicker value={tempTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+            </View>
           </View>
         </View>
       </Modal>

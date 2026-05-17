@@ -320,7 +320,9 @@ export default function AllUpcomingPickups({ navigation }: any) {
                   <Text style={styles.modalTitle}>Select Date</Text>
                   <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
                 </View>
-                <DateTimePicker value={editDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setEditDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                  <DateTimePicker value={editDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setEditDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                </View>
               </View>
             </View>
           </Modal>
@@ -334,7 +336,9 @@ export default function AllUpcomingPickups({ navigation }: any) {
                   <Text style={styles.modalTitle}>Select Time</Text>
                   <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
                 </View>
-                <DateTimePicker value={editTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setEditTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                  <DateTimePicker value={editTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setEditTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                </View>
               </View>
             </View>
           </Modal>

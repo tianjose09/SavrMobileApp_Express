@@ -244,7 +244,8 @@ export default function CreateRequest({ navigation }: any) {
               <View style={{ flex: 1.5 }}>
                 <Text style={styles.inputLabel}>Age Range</Text>
                 <View style={styles.rowInputsNoMargin}>
-                  <TextInput style={[styles.inputBox, { flex: 1, marginRight: 8 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                  <Text style={{ color: '#e4e1e1ff', fontSize: 12, fontWeight: '500', alignSelf: 'center', marginBottom: 15, paddingHorizontal: 6 }}>-</Text>
                   <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
                 </View>
               </View>
@@ -307,15 +308,17 @@ export default function CreateRequest({ navigation }: any) {
                           <Text style={styles.modalDone}>Done</Text>
                         </TouchableOpacity>
                       </View>
-                      <DateTimePicker
-                        value={dateObj}
-                        mode="date"
-                        display="spinner"
-                        minimumDate={new Date()}
-                        onChange={(e, d) => { if (d) setDateObj(d); }}
-                        style={{ width: '100%' }}
-                        textColor="#1a1a1a"
-                      />
+                      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                        <DateTimePicker
+                          value={dateObj}
+                          mode="date"
+                          display="spinner"
+                          minimumDate={new Date()}
+                          onChange={(e, d) => { if (d) setDateObj(d); }}
+                          style={{ width: '100%', alignSelf: 'center' }}
+                          textColor="#1a1a1a"
+                        />
+                      </View>
                     </View>
                   </View>
                 </Modal>
