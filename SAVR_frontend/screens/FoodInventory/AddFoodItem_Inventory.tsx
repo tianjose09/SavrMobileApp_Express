@@ -210,7 +210,9 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                       <Text style={styles.modalDone}>Done</Text>
                     </TouchableOpacity>
                   </View>
-                  <DateTimePicker value={expiryDate} mode="date" display="spinner" minimumDate={today} onChange={(e, d) => { if (d) setExpiryDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                    <DateTimePicker value={expiryDate} mode="date" display="spinner" minimumDate={today} onChange={(e, d) => { if (d) setExpiryDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                  </View>
                 </View>
               </View>
             </Modal>
