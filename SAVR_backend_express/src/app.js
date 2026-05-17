@@ -27,9 +27,11 @@ app.use((_req, res) => {
 });
 
 const PORT = process.env.APP_PORT || 8000;
-const HOST = process.env.APP_HOST || '0.0.0.0';
+// '::' creates a dual-stack socket — accepts both IPv4 and IPv6.
+// Required on Windows because ngrok dials localhost as [::1] (IPv6).
+const HOST = process.env.APP_HOST || '::';
 app.listen(PORT, HOST, () => {
-  console.log(`SAVR API running on http://${HOST}:${PORT}`);
+  console.log(`SAVR API running on http://localhost:${PORT}`);
 });
 
 module.exports = app;
