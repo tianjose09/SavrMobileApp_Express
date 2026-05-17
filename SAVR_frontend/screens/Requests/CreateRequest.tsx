@@ -229,6 +229,8 @@ export default function CreateRequest({ navigation }: any) {
                 <TextInput
                   style={styles.inputBox}
                   keyboardType="numeric"
+                  placeholder="₱ 0.00"
+                  placeholderTextColor="#A5D1B8"
                   value={form.financial_amount}
                   onChangeText={(val) => updateForm('financial_amount', val)}
                 />
