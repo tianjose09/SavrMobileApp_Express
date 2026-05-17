@@ -163,7 +163,7 @@ exports.paymongoWebhook = async (req, res) => {
   const event = req.body?.data?.attributes?.type;
   const data = req.body?.data?.attributes?.data;
 
-  if (event === 'checkout_session.payment.paid') {
+  if (event === 'checkout_session.payment.paid' || event === 'checkout_session.completed') {
     const checkoutId = data?.id;
     if (checkoutId) {
       const [rows] = await db.execute(
@@ -212,10 +212,10 @@ exports.checkPaymentStatus = async (req, res) => {
       const attrs = pmRes.data?.data?.attributes;
 
       // Checkout session can be confirmed via:
-      // 1. Top-level status = 'paid' (GCash, Maya e-wallets)
-      // 2. payments array with any paid entry (card payments)
+      // 1. Top-level status = 'completed' (GCash, Maya — PayMongo uses 'completed' not 'paid')
+      // 2. payments array with any paid entry
       // 3. payment_intent succeeded (card flow)
-      const sessionPaid = attrs?.status === 'paid';
+      const sessionPaid = attrs?.status === 'completed' || attrs?.status === 'paid';
       const hasPayment = Array.isArray(attrs?.payments)
         && attrs.payments.some(p => p?.attributes?.status === 'paid');
       const piSucceeded = attrs?.payment_intent?.attributes?.status === 'succeeded';
