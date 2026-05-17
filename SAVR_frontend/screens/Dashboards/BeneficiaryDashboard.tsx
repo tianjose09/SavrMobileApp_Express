@@ -13,7 +13,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { StorageUtils, StorageKeys } from '../../utils/storage';
+import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
 
 export default function BeneficiaryDashboard({ navigation }: any) {
@@ -67,7 +67,8 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const fetchDashboardData = async () => {
     const localName =
       (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'Beneficiary Name';
-    const localPic = await StorageUtils.getItem('LOCAL_PROFILE_PIC');
+    const picKey = await getProfilePicKey();
+      const localPic = await StorageUtils.getItem(picKey);
     if (localPic) setProfilePic(localPic);
 
     setUserName(localName);

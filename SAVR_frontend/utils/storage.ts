@@ -8,6 +8,17 @@ export const StorageKeys = {
   USER_INFO: 'user_info', // Fixes <null> crash on Login
 };
 
+export async function getProfilePicKey(): Promise<string> {
+  try {
+    const raw = await AsyncStorage.getItem(StorageKeys.USER_INFO);
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user?.id) return `LOCAL_PROFILE_PIC_${user.id}`;
+    }
+  } catch {}
+  return 'LOCAL_PROFILE_PIC';
+}
+
 export const StorageUtils = {
   async setItem(key: string, value: string): Promise<void> {
     try {

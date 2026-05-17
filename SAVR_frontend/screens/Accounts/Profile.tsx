@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Act
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ApiService } from '../../services/api';
-import { StorageUtils, StorageKeys } from '../../utils/storage';
+import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 
 export default function Profile({ navigation }: any) {
   const [profile, setProfile] = useState<any>(null);
@@ -23,8 +23,10 @@ export default function Profile({ navigation }: any) {
       quality: 0.8,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setProfileImage(result.assets[0].uri);
-      StorageUtils.setItem('LOCAL_PROFILE_PIC', result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setProfileImage(uri);
+      const key = await getProfilePicKey();
+      StorageUtils.setItem(key, uri);
     }
   };
 
@@ -39,7 +41,8 @@ export default function Profile({ navigation }: any) {
   const fetchProfile = async () => {
     setIsLoading(true);
     try {
-      const localPic = await StorageUtils.getItem('LOCAL_PROFILE_PIC');
+      const picKey = await getProfilePicKey();
+      const localPic = await StorageUtils.getItem(picKey);
       if (localPic) setProfileImage(localPic);
 
       const response = await ApiService.getProfile();
@@ -165,17 +168,17 @@ export default function Profile({ navigation }: any) {
 
   const fName = profile?.first_name || profile?.name?.split(' ')[0] || 'User';
   const lName = profile?.last_name || profile?.name?.split(' ').slice(1).join(' ') || '';
-  const mInit = profile?.middle_initial || '-';
-  const suff = profile?.suffix || 'None';
+  const mInit = profile?.middle_initial || profile?.middle_name || null;
+  const suff = profile?.suffix || null;
   const dob = profile?.date_of_birth || 'Not Specified';
   const gender = profile?.gender || 'Not Specified';
 
-  const houseNo = profile?.house_no || '-';
+  const houseNo = profile?.house_no || null;
   const street = profile?.street || 'Not Specified';
   const brgy = profile?.barangay || 'Not Specified';
   const city = profile?.city_municipality || 'Not Specified';
   const prov = profile?.province_region || 'Not Specified';
-  const zip = profile?.postal_zip_code || '-';
+  const zip = profile?.postal_zip_code || null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -239,23 +242,22 @@ export default function Profile({ navigation }: any) {
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Kitchen Name</Text><Text style={styles.pillValue}>{profile?.kitchen_name || 'Not Specified'}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Person</Text><Text style={styles.pillValue}>{profile?.contact_person || 'Not Specified'}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile?.position_role || 'Not Specified'}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile?.website_url || 'Not Specified'}</Text></View>
+            {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
         ) : isDonor ? (
           <>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>First Name</Text><Text style={styles.pillValue}>{fName}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Last Name</Text><Text style={styles.pillValue}>{lName}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Middle Initial</Text><Text style={styles.pillValue}>{mInit}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Suffix</Text><Text style={styles.pillValue}>{suff}</Text></View>
+            {!!mInit && <View style={styles.pillBox}><Text style={styles.pillLabel}>Middle Initial</Text><Text style={styles.pillValue}>{mInit}</Text></View>}
+            {!!suff && <View style={styles.pillBox}><Text style={styles.pillLabel}>Suffix</Text><Text style={styles.pillValue}>{suff}</Text></View>}
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Date of Birth</Text><Text style={styles.pillValue}>{dob}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Gender</Text><Text style={styles.pillValue}>{gender}</Text></View>
-
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>House #</Text><Text style={styles.pillValue}>{houseNo}</Text></View>
+            {!!houseNo && <View style={styles.pillBox}><Text style={styles.pillLabel}>House #</Text><Text style={styles.pillValue}>{houseNo}</Text></View>}
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Street</Text><Text style={styles.pillValue}>{street}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Brgy.</Text><Text style={styles.pillValue}>{brgy}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>Province / Region</Text><Text style={styles.pillValue}>{prov}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Postal / ZIP Code</Text><Text style={styles.pillValue}>{zip}</Text></View>
+            {!!zip && <View style={styles.pillBox}><Text style={styles.pillLabel}>Postal / ZIP Code</Text><Text style={styles.pillValue}>{zip}</Text></View>}
           </>
         ) : (
           <>
@@ -264,6 +266,7 @@ export default function Profile({ navigation }: any) {
               <Text style={styles.pillValue}>{profile?.name}</Text>
             </View>
             <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>
+            {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
         )}
 

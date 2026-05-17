@@ -13,7 +13,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { StorageUtils, StorageKeys } from '../../utils/storage';
+import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
 
@@ -92,7 +92,8 @@ export default function OrgDashboard({ navigation }: any) {
   const fetchDashboardData = async () => {
     const localName =
       (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'Juana Dela Cruz';
-    const localPic = await StorageUtils.getItem('LOCAL_PROFILE_PIC');
+    const picKey = await getProfilePicKey();
+      const localPic = await StorageUtils.getItem(picKey);
     if (localPic) setProfilePic(localPic);
 
     setUserName(localName);
