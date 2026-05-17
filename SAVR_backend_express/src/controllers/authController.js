@@ -11,6 +11,18 @@ dayjs.extend(relativeTime);
 db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
   .catch(() => {});
 
+// Ensure financial_donation_records.status allows 'paid'
+db.execute(`
+  ALTER TABLE financial_donation_records
+    DROP CONSTRAINT IF EXISTS financial_donation_records_status_check
+`).then(() =>
+  db.execute(`
+    ALTER TABLE financial_donation_records
+      ADD CONSTRAINT financial_donation_records_status_check
+      CHECK (status IN ('pending', 'paid', 'completed', 'failed', 'cancelled'))
+  `)
+).catch(() => {});
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function normalizeEmail(value) {
