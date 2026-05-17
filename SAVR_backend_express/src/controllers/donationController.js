@@ -130,7 +130,7 @@ exports.createPaymongoCheckout = async (req, res) => {
               quantity: 1,
               description: message || 'Donation to SAVR Food Bank',
             }],
-            payment_method_types: ['gcash', 'paymaya', 'card'],
+            payment_method_types: ['gcash', 'paymaya', 'card', 'qrph'],
             success_url: `${baseUrl}/api/payment/success?donation_id=${donationId}`,
             cancel_url: `${baseUrl}/api/payment/cancel`,
             description: 'SAVR Food Bank Donation',
@@ -159,66 +159,6 @@ exports.createPaymongoCheckout = async (req, res) => {
   }
 };
 
-exports.createQrPhPayment = async (req, res) => {
-  const { amount, message } = req.body;
-
-  if (!amount || isNaN(amount) || parseFloat(amount) < 1) {
-    return res.status(422).json({ success: false, errors: { amount: ['Amount must be at least 1.'] } });
-  }
-
-  const amountCentavos = Math.round(parseFloat(amount) * 100);
-  const secretKey = process.env.PAYMONGO_SECRET_KEY;
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-  try {
-    const [donationResult] = await db.execute(
-      "INSERT INTO financial_donation_records (user_id, amount, payment_method, message, status, created_at, updated_at) VALUES (?, ?, 'qrph', ?, 'pending', NOW(), NOW())",
-      [req.user.id, amount, message || null]
-    );
-    const donationId = donationResult.insertId;
-
-    const response = await axios.post(
-      'https://api.paymongo.com/v1/sources',
-      {
-        data: {
-          attributes: {
-            amount: amountCentavos,
-            currency: 'PHP',
-            type: 'qrph',
-            redirect: {
-              success: `${baseUrl}/api/payment/success?donation_id=${donationId}`,
-              failed: `${baseUrl}/api/payment/cancel`,
-            },
-          },
-        },
-      },
-      {
-        auth: { username: secretKey, password: '' },
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
-      }
-    );
-
-    const source = response.data.data;
-    const sourceId = source.id;
-    const qrImage = source.attributes?.qr_image || null;
-
-    await db.execute(
-      'UPDATE financial_donation_records SET paymongo_payment_id = ? WHERE id = ?',
-      [sourceId, donationId]
-    );
-
-    return res.json({
-      success: true,
-      qr_image: qrImage,
-      source_id: sourceId,
-      donation_id: donationId,
-      expires_in: 900,
-    });
-  } catch (err) {
-    console.error('[createQrPhPayment]', err?.response?.data || err.message);
-    return res.status(500).json({ success: false, message: err?.response?.data ? JSON.stringify(err.response.data) : err.message });
-  }
-};
 
 exports.paymongoWebhook = async (req, res) => {
   const event = req.body?.data?.attributes?.type;
@@ -264,49 +204,6 @@ exports.checkPaymentStatus = async (req, res) => {
     const secretKey = process.env.PAYMONGO_SECRET_KEY;
     const httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
 
-    // QR Ph source (src_...) — check source status, then charge it
-    if (donation.paymongo_payment_id.startsWith('src_')) {
-      try {
-        const srcRes = await axios.get(
-          `https://api.paymongo.com/v1/sources/${donation.paymongo_payment_id}`,
-          { auth: { username: secretKey, password: '' }, httpsAgent }
-        );
-        const srcAttrs = srcRes.data?.data?.attributes;
-        console.log('[checkPaymentStatus QR] source status:', srcAttrs?.status);
-
-        if (srcAttrs?.status === 'chargeable') {
-          const payRes = await axios.post(
-            'https://api.paymongo.com/v1/payments',
-            {
-              data: {
-                attributes: {
-                  amount: Math.round(parseFloat(donation.amount) * 100),
-                  currency: 'PHP',
-                  source: { id: donation.paymongo_payment_id, type: 'source' },
-                  description: donation.message || 'SAVR Food Bank Donation',
-                },
-              },
-            },
-            { auth: { username: secretKey, password: '' }, httpsAgent }
-          );
-          const payStatus = payRes.data?.data?.attributes?.status;
-          console.log('[checkPaymentStatus QR] payment status after charge:', payStatus);
-
-          if (payStatus === 'paid') {
-            await db.execute("UPDATE financial_donation_records SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
-            await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed via QR Ph`, 'financialiconyellow');
-            await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your QR Ph donation of ₱${formatAmount(donation.amount)} has been received. Thank you!`, true);
-            await recalculateBadges(donation.user_id);
-            return res.json({ success: true, status: 'paid', amount: donation.amount });
-          }
-        }
-      } catch (err) {
-        console.error('[checkPaymentStatus QR ERROR]', err?.response?.status, err?.response?.data || err.message);
-      }
-      return res.json({ success: true, status: donation.status, amount: donation.amount });
-    }
-
-    // Checkout session (cs_...) — existing logic
     try {
       const pmRes = await axios.get(
         `https://api.paymongo.com/v1/checkout_sessions/${donation.paymongo_payment_id}`,

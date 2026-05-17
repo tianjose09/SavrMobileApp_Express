@@ -4,23 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import ToastBanner from '../../components/ToastBanner';
 
-type PaymentMethod = 'paymongo' | 'qrph';
-
 export default function FinancialDonation({ navigation }: any) {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('paymongo');
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
   const [paymentLinkOpened, setPaymentLinkOpened] = useState(false);
-  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
-  const [qrCountdown, setQrCountdown] = useState(0);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
 
   const appStateRef = useRef(AppState.currentState);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const qrTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
@@ -29,40 +23,10 @@ export default function FinancialDonation({ navigation }: any) {
     }
   };
 
-  const stopQrTimer = () => {
-    if (qrTimerRef.current) {
-      clearInterval(qrTimerRef.current);
-      qrTimerRef.current = null;
-    }
-  };
-
-  const startQrTimer = (seconds: number) => {
-    stopQrTimer();
-    setQrCountdown(seconds);
-    qrTimerRef.current = setInterval(() => {
-      setQrCountdown(prev => {
-        if (prev <= 1) {
-          stopQrTimer();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const formatCountdown = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
   const handlePaymentConfirmed = (confirmedAmount: string) => {
     stopPolling();
-    stopQrTimer();
     setPendingDonationId(null);
     setPaymentLinkOpened(false);
-    setQrImageUrl(null);
-    setQrCountdown(0);
     const donatedAmt = parseFloat(confirmedAmount).toLocaleString('en-US');
     setToast({
       visible: true,
@@ -143,39 +107,21 @@ export default function FinancialDonation({ navigation }: any) {
     setIsLoading(true);
 
     try {
-      if (selectedMethod === 'qrph') {
-        const response = await ApiService.createQrPhPayment({ amount: amountNum, message });
-        if (response.data.success) {
-          const donationId = response.data.donation_id;
-          const qrImage = response.data.qr_image;
-          const expiresIn = response.data.expires_in || 900;
-
-          if (donationId) setPendingDonationId(donationId);
-          if (qrImage) setQrImageUrl(qrImage);
-          startQrTimer(expiresIn);
-          setPaymentLinkOpened(true);
-          setAmount('');
-          setMessage('');
-        } else {
-          Alert.alert('Error', 'Failed to generate QR code.');
-        }
+      const response = await ApiService.createPaymongoCheckout({ amount: amountNum, remarks: message });
+      if (response.data.success && response.data.checkout_url) {
+        const donationId = response.data.donation_id;
+        if (donationId) setPendingDonationId(donationId);
+        setAmount('');
+        setMessage('');
+        setPaymentLinkOpened(true);
+        Linking.openURL(response.data.checkout_url);
+        Alert.alert(
+          'Payment Page Opened',
+          'Complete your payment in the browser. Your dashboard will update automatically when you return.',
+          [{ text: 'Got it' }]
+        );
       } else {
-        const response = await ApiService.createPaymongoCheckout({ amount: amountNum, remarks: message });
-        if (response.data.success && response.data.checkout_url) {
-          const donationId = response.data.donation_id;
-          if (donationId) setPendingDonationId(donationId);
-          setAmount('');
-          setMessage('');
-          setPaymentLinkOpened(true);
-          Linking.openURL(response.data.checkout_url);
-          Alert.alert(
-            'Payment Page Opened',
-            'Complete your payment in the browser. Your dashboard will update automatically when you return.',
-            [{ text: 'Got it' }]
-          );
-        } else {
-          Alert.alert('Error', 'Failed to generate payment link.');
-        }
+        Alert.alert('Error', 'Failed to generate payment link.');
       }
     } catch (e: any) {
       const errors = e.response?.data?.errors;
@@ -207,9 +153,6 @@ export default function FinancialDonation({ navigation }: any) {
       setAmount('');
     }
   };
-
-  const isPaymentPending = paymentLinkOpened && !!pendingDonationId;
-  const buttonLabel = selectedMethod === 'qrph' ? 'Generate QR Code' : 'Proceed via PayMongo';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -262,7 +205,6 @@ export default function FinancialDonation({ navigation }: any) {
                 selectionColor="#FFF"
                 placeholder="Enter amount to donate"
                 placeholderTextColor="rgba(255,255,255,0.7)"
-                editable={!isPaymentPending}
               />
             </View>
 
@@ -281,88 +223,37 @@ export default function FinancialDonation({ navigation }: any) {
               value={message}
               onChangeText={setMessage}
               multiline
-              editable={!isPaymentPending}
             />
           </View>
 
-          {/* Payment Method Toggle */}
+          {/* Payment Method */}
           <Text style={styles.paymentMethodTitle}>Payment Method</Text>
-          <View style={styles.methodToggleRow}>
-            <TouchableOpacity
-              style={[styles.methodToggleBtn, selectedMethod === 'paymongo' && styles.methodToggleBtnActive]}
-              onPress={() => { if (!isPaymentPending) setSelectedMethod('paymongo'); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="shield-checkmark" size={20} color={selectedMethod === 'paymongo' ? '#FFF' : '#A75D20'} style={{ marginBottom: 4 }} />
-              <Text style={[styles.methodToggleLabel, selectedMethod === 'paymongo' && styles.methodToggleLabelActive]}>PayMongo</Text>
-              <Text style={[styles.methodToggleSub, selectedMethod === 'paymongo' && { color: 'rgba(255,255,255,0.8)' }]}>GCash · Maya · Card</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.methodToggleBtn, selectedMethod === 'qrph' && styles.methodToggleBtnActive]}
-              onPress={() => { if (!isPaymentPending) setSelectedMethod('qrph'); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="qr-code-outline" size={20} color={selectedMethod === 'qrph' ? '#FFF' : '#00592d'} style={{ marginBottom: 4 }} />
-              <Text style={[styles.methodToggleLabel, selectedMethod === 'qrph' && styles.methodToggleLabelActive]}>QR Ph</Text>
-              <Text style={[styles.methodToggleSub, selectedMethod === 'qrph' && { color: 'rgba(255,255,255,0.8)' }]}>Scan with any bank app</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* QR Code Display */}
-          {qrImageUrl ? (
-            <View style={styles.qrCard}>
-              <Text style={styles.qrTitle}>Scan to Pay</Text>
-              <Text style={styles.qrSubtitle}>Open your GCash, Maya, or bank app and scan this QR code</Text>
-              <View style={styles.qrImageWrapper}>
-                <Image
-                  source={{ uri: qrImageUrl }}
-                  style={styles.qrImage}
-                  resizeMode="contain"
-                />
-              </View>
-              {qrCountdown > 0 ? (
-                <View style={styles.qrCountdownRow}>
-                  <Ionicons name="time-outline" size={14} color={qrCountdown < 120 ? '#C62828' : '#666'} />
-                  <Text style={[styles.qrCountdownText, qrCountdown < 120 && { color: '#C62828' }]}>
-                    Expires in {formatCountdown(qrCountdown)}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[styles.qrCountdownText, { color: '#C62828' }]}>QR code expired. Generate a new one.</Text>
-              )}
+          <View style={styles.secureMethodCard}>
+            <Ionicons name="shield-checkmark" size={28} color="#A75D20" style={{ marginBottom: 8 }} />
+            <Text style={styles.secureMethodTitle}>Secured via PayMongo</Text>
+            <Text style={styles.secureMethodDesc}>Accepts GCash, Maya, QR Ph, Credit & Debit Cards</Text>
+            <View style={styles.badgesRow}>
+              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>GCash</Text></View>
+              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Maya</Text></View>
+              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>QR Ph</Text></View>
+              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Visa/MC</Text></View>
             </View>
-          ) : null}
+          </View>
 
           <View style={styles.spacer} />
 
-          {/* Authorize Button */}
-          {!isPaymentPending || selectedMethod === 'paymongo' ? (
-            <TouchableOpacity
-              style={[styles.donateButton, (isLoading || (isPaymentPending && selectedMethod === 'paymongo')) && { backgroundColor: '#A7C2B2' }]}
-              onPress={handleDonate}
-              disabled={isLoading || (isPaymentPending && selectedMethod === 'paymongo')}
-            >
-              {isLoading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.donateBtnText}>{isPaymentPending ? 'Awaiting Payment...' : buttonLabel}</Text>
-              }
-            </TouchableOpacity>
-          ) : null}
+          {/* Proceed Button */}
+          <TouchableOpacity
+            style={[styles.donateButton, isLoading && { backgroundColor: '#A7C2B2' }]}
+            onPress={handleDonate}
+            disabled={isLoading}
+          >
+            {isLoading ? <ActivityIndicator color="#fff" /> : (
+              <Text style={styles.donateBtnText}>Proceed details via PayMongo</Text>
+            )}
+          </TouchableOpacity>
 
-          {/* QR: regenerate button if expired and pending */}
-          {selectedMethod === 'qrph' && isPaymentPending && qrCountdown === 0 ? (
-            <TouchableOpacity
-              style={styles.donateButton}
-              onPress={handleDonate}
-              disabled={isLoading}
-            >
-              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.donateBtnText}>Regenerate QR Code</Text>}
-            </TouchableOpacity>
-          ) : null}
-
-          {/* Check Payment Status */}
-          {isPaymentPending ? (
+          {paymentLinkOpened && pendingDonationId ? (
             <TouchableOpacity
               style={[styles.checkPaymentButton, isCheckingPayment && { opacity: 0.6 }]}
               onPress={handleManualCheck}
@@ -429,53 +320,29 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  paymentMethodTitle: { fontSize: 26, fontWeight: '700', color: '#00592d', marginBottom: 14, paddingHorizontal: 8 },
+  paymentMethodTitle: { fontSize: 26, fontWeight: '700', color: '#00592d', marginBottom: 20, paddingHorizontal: 8 },
 
-  methodToggleRow: { flexDirection: 'row', gap: 12, marginHorizontal: 5, marginBottom: 24 },
-  methodToggleBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 16,
+  secureMethodCard: {
+    backgroundColor: '#Faf6F2',
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
-  },
-  methodToggleBtnActive: { backgroundColor: '#00592d', borderColor: '#00592d' },
-  methodToggleLabel: { fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 2 },
-  methodToggleLabelActive: { color: '#FFF' },
-  methodToggleSub: { fontSize: 10, fontWeight: '500', color: '#999', textAlign: 'center' },
-
-  qrCard: {
-    backgroundColor: '#F6FBF8',
-    borderRadius: 20,
-    padding: 22,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#00592d',
+    borderColor: '#A75D20',
     marginHorizontal: 5,
-    marginBottom: 24,
-  },
-  qrTitle: { fontSize: 18, fontWeight: '800', color: '#00592d', marginBottom: 6 },
-  qrSubtitle: { fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 18, lineHeight: 18 },
-  qrImageWrapper: {
-    width: 220,
-    height: 220,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 35,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-    marginBottom: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
-  qrImage: { width: 200, height: 200 },
-  qrCountdownRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  qrCountdownText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  secureMethodTitle: { fontSize: 16, fontWeight: '700', color: '#A75D20', marginBottom: 2 },
+  secureMethodDesc: { fontSize: 12, color: '#6A6A6A', textAlign: 'center', fontWeight: '700', marginBottom: 15 },
+  badgesRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
+  miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#E1E9E4', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  miniBadgeText: { fontSize: 10, fontWeight: '700', color: '#222' },
 
   spacer: { flex: 1, minHeight: 10 },
 

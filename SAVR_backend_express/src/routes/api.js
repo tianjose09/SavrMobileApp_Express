@@ -60,7 +60,6 @@ router.get('/dashboard',             authController.dashboard);
 
 // Donations
 router.post('/donation/paymongo',                      donationController.createPaymongoCheckout);
-router.post('/donation/qrph',                          donationController.createQrPhPayment);
 router.get('/donation/status/:id',                     donationController.checkPaymentStatus);
 router.post('/donation/food',   uploadFood.array('food_images'), donationController.submitFood);
 router.post('/donation/schedule',                      donationController.submitSchedule);
