@@ -107,7 +107,7 @@ exports.verifyCode = async (req, res) => {
   }
 
   const [rows] = await db.execute(
-    'SELECT *, (created_at < NOW() - INTERVAL 10 MINUTE) AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)',
+    "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
     [email]
   );
   const verification = rows[0];
@@ -183,7 +183,7 @@ exports.verifyResetCode = async (req, res) => {
   }
 
   const [rows] = await db.execute(
-    'SELECT *, (created_at < NOW() - INTERVAL 10 MINUTE) AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)',
+    "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
     [email]
   );
   const verification = rows[0];
