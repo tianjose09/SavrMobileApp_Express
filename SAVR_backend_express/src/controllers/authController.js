@@ -7,6 +7,10 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 dayjs.extend(relativeTime);
 
+// Add is_active column to users table if it doesn't exist yet
+db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
+  .catch(() => {});
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function normalizeEmail(value) {
@@ -564,7 +568,7 @@ exports.login = async (req, res) => {
   }
 
   const [rows] = await db.execute(
-    'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
+    'SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND is_active IS NOT FALSE',
     [loginInput]
   );
   const user = rows[0];

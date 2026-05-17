@@ -11,7 +11,7 @@ module.exports = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    const [rows] = await db.execute('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    const [rows] = await db.execute('SELECT * FROM users WHERE id = ? AND is_active IS NOT FALSE', [decoded.id]);
 
     if (!rows.length) {
       return res.status(401).json({ success: false, message: 'Unauthenticated.' });

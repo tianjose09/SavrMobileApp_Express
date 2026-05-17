@@ -964,6 +964,6 @@ exports.updateProfile = async (req, res) => {
 };
 
 exports.deactivateAccount = async (req, res) => {
-  await db.execute('DELETE FROM users WHERE id = ?', [req.user.id]);
+  await db.execute('UPDATE users SET is_active = false WHERE id = ?', [req.user.id]);
   return res.json({ success: true, message: 'Account deactivated.' });
 };
