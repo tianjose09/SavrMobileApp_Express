@@ -266,12 +266,17 @@ exports.paymentSuccess = async (req, res) => {
   <title>Payment Successful – SAVR</title>
   <script>
     window.onload = function () {
-      // Try standalone scheme first (production / dev build)
-      window.location.href = 'savrmobile://';
-      // Fallback to Expo Go scheme after 1.5s if app didn't open
-      setTimeout(function () {
-        window.location.href = 'exp+savr-mobile://';
-      }, 1500);
+      // Try all known schemes in sequence
+      var schemes = ['savrmobile://', 'exp+savr-mobile://'];
+      var i = 0;
+      function tryNext() {
+        if (i >= schemes.length) return;
+        window.location.href = schemes[i++];
+        setTimeout(tryNext, 1200);
+      }
+      tryNext();
+      // Auto-close tab after 4s as last resort (works on Android)
+      setTimeout(function () { window.close(); }, 4000);
     };
   </script>
   <style>
