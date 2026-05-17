@@ -568,8 +568,8 @@ exports.login = async (req, res) => {
   }
 
   const [rows] = await db.execute(
-    'SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND is_active IS NOT FALSE',
-    [loginInput]
+    'SELECT * FROM users WHERE (LOWER(email) = LOWER(?) OR LOWER(name) = LOWER(?)) AND is_active IS NOT FALSE',
+    [loginInput, loginInput]
   );
   const user = rows[0];
 

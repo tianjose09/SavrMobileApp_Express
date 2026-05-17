@@ -160,7 +160,7 @@ export default function Login({ navigation }: any) {
             <Text style={styles.subtitle}>Please enter your details</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Email or Username</Text>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -168,7 +168,7 @@ export default function Login({ navigation }: any) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholder="Enter your email"
+                placeholder="Enter your email or username"
                 placeholderTextColor="rgba(255,255,255,0.55)"
               />
             </View>
