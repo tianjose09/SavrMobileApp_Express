@@ -211,13 +211,16 @@ exports.checkPaymentStatus = async (req, res) => {
       );
       const attrs = pmRes.data?.data?.attributes;
 
-      // PayMongo checkout session never has status='paid' at top level.
-      // A paid checkout is confirmed via the payments array or payment_intent status.
+      // Checkout session can be confirmed via:
+      // 1. Top-level status = 'paid' (GCash, Maya e-wallets)
+      // 2. payments array with any paid entry (card payments)
+      // 3. payment_intent succeeded (card flow)
+      const sessionPaid = attrs?.status === 'paid';
       const hasPayment = Array.isArray(attrs?.payments)
         && attrs.payments.some(p => p?.attributes?.status === 'paid');
       const piSucceeded = attrs?.payment_intent?.attributes?.status === 'succeeded';
 
-      if (hasPayment || piSucceeded) {
+      if (sessionPaid || hasPayment || piSucceeded) {
         await db.execute("UPDATE financial_donation_records SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
         await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`);

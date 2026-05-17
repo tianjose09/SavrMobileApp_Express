@@ -8,42 +8,84 @@ export default function FinancialDonation({ navigation }: any) {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
+  const [paymentLinkOpened, setPaymentLinkOpened] = useState(false);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
   const appStateRef = useRef(AppState.currentState);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const pollPaymentStatus = async (donationId: number, attemptsLeft = 4) => {
-    if (attemptsLeft <= 0) return;
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const handlePaymentConfirmed = (amount: string) => {
+    stopPolling();
+    setPendingDonationId(null);
+    setPaymentLinkOpened(false);
+    const donatedAmt = parseFloat(amount).toLocaleString('en-US');
+    setToast({
+      visible: true,
+      title: 'Donation Confirmed!',
+      message: `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
+    });
+    setTimeout(() => navigation.navigate('Home'), 4500);
+  };
+
+  const checkOnce = async (donationId: number): Promise<boolean> => {
     try {
       const res = await ApiService.checkPaymentStatus(donationId);
       if (res?.data?.status === 'paid') {
-        setPendingDonationId(null);
-        const donatedAmt = parseFloat(res.data.amount).toLocaleString('en-US');
-        setToast({
-          visible: true,
-          title: 'Donation Confirmed!',
-          message: `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
-        });
-        setTimeout(() => navigation.navigate('Home'), 4500);
-        return;
+        handlePaymentConfirmed(res.data.amount);
+        return true;
       }
-      // Still pending — retry after 3 seconds
-      setTimeout(() => pollPaymentStatus(donationId, attemptsLeft - 1), 3000);
     } catch {}
+    return false;
+  };
+
+  const startPolling = (donationId: number) => {
+    stopPolling();
+    let attempts = 0;
+    const MAX_ATTEMPTS = 12;
+    pollIntervalRef.current = setInterval(async () => {
+      attempts++;
+      const paid = await checkOnce(donationId);
+      if (paid || attempts >= MAX_ATTEMPTS) stopPolling();
+    }, 5000);
   };
 
   useEffect(() => {
     if (!pendingDonationId) return;
 
+    // Start auto-polling immediately when a pending donation exists
+    startPolling(pendingDonationId);
+
+    // Also re-poll the moment the app comes back to foreground
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
-        pollPaymentStatus(pendingDonationId);
+        checkOnce(pendingDonationId);
       }
       appStateRef.current = nextState;
     });
 
-    return () => subscription.remove();
+    return () => {
+      stopPolling();
+      subscription.remove();
+    };
   }, [pendingDonationId]);
+
+  const handleManualCheck = async () => {
+    if (!pendingDonationId) return;
+    setIsCheckingPayment(true);
+    const paid = await checkOnce(pendingDonationId);
+    if (!paid) {
+      Alert.alert('Not Yet Confirmed', 'Payment not confirmed yet. Please wait a moment and try again, or complete the payment in the browser.');
+    }
+    setIsCheckingPayment(false);
+  };
 
   const handleDonate = async () => {
     const amountNum = parseFloat(amount.replace(/,/g, ''));
@@ -61,6 +103,7 @@ export default function FinancialDonation({ navigation }: any) {
         if (donationId) setPendingDonationId(donationId);
         setAmount('');
         setMessage('');
+        setPaymentLinkOpened(true);
         Linking.openURL(response.data.checkout_url);
         Alert.alert(
           'Payment Page Opened ✅',
@@ -206,6 +249,21 @@ export default function FinancialDonation({ navigation }: any) {
               <Text style={styles.donateBtnText}>Proceed details via PayMongo</Text>
             )}
           </TouchableOpacity>
+
+          {paymentLinkOpened && pendingDonationId ? (
+            <TouchableOpacity
+              style={[styles.checkPaymentButton, isCheckingPayment && { opacity: 0.6 }]}
+              onPress={handleManualCheck}
+              disabled={isCheckingPayment}
+            >
+              {isCheckingPayment ? <ActivityIndicator color="#00592d" size="small" /> : (
+                <>
+                  <Ionicons name="refresh-circle-outline" size={18} color="#00592d" style={{ marginRight: 6 }} />
+                  <Text style={styles.checkPaymentText}>Check Payment Status</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
 
           <View style={{ height: 50 }} />
         </ScrollView>
@@ -372,5 +430,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: -0.2
-  }
+  },
+  checkPaymentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    marginHorizontal: 15,
+    height: 48,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#00592d',
+    backgroundColor: '#FFFFFF',
+  },
+  checkPaymentText: {
+    color: '#00592d',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
 });
