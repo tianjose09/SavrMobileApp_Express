@@ -17,6 +17,7 @@ export default function PkDashboard({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const bannerShownRef = React.useRef(false);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function PkDashboard({ navigation }: any) {
         duration: 400,
         useNativeDriver: true,
       }),
-      Animated.delay(3500),
+      Animated.delay(2000),
       Animated.timing(slideAnim, {
         toValue: -150,
         duration: 400,
@@ -72,12 +73,8 @@ export default function PkDashboard({ navigation }: any) {
       }
 
       try {
-        const notifRes = await ApiService.getNotifications();
-        const notifs = notifRes?.data?.notifications || [];
-        setUnreadCount(notifs.length);
-        if (notifs.length > 0) {
-          setTimeout(() => showNotification(notifs[0].title), 800);
-        }
+        const critRes = await ApiService.getCriticalNotifications();
+        setUnreadCount(critRes?.data?.notifications?.length || 0);
       } catch {}
     } catch (e) {
       console.log('Backend dashboard API pending');
@@ -118,14 +115,15 @@ export default function PkDashboard({ navigation }: any) {
       });
       setExpiringCount(expiring.length);
 
-      // Trigger live notification banner
-      setTimeout(() => {
+      if (!bannerShownRef.current) {
         if (lowStock.length > 0) {
-          showNotification(`${lowStock.length} item(s) are low on stock.`);
+          bannerShownRef.current = true;
+          setTimeout(() => showNotification(`${lowStock.length} item(s) are low on stock.`), 800);
         } else if (expiring.length > 0) {
-          showNotification(`${expiring.length} item(s) are expiring soon.`);
+          bannerShownRef.current = true;
+          setTimeout(() => showNotification(`${expiring.length} item(s) are expiring soon.`), 800);
         }
-      }, 800);
+      }
 
     } catch (e) {
       console.log('Failed to parse inventory stats', e);

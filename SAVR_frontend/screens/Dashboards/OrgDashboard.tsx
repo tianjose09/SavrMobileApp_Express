@@ -128,8 +128,8 @@ export default function OrgDashboard({ navigation }: any) {
       }
 
       try {
-        const notifRes = await ApiService.getNotifications();
-        setUnreadCount(notifRes?.data?.notifications?.length || 0);
+        const critRes = await ApiService.getCriticalNotifications();
+        setUnreadCount(critRes?.data?.notifications?.length || 0);
       } catch {}
     } catch (e) {
       console.error('Failed to load dashboard', e);

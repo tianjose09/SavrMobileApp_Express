@@ -99,6 +99,7 @@ export const ApiService = {
 
   // Notifications
   getNotifications: () => api.get('api/notifications'),
+  getCriticalNotifications: () => api.get('api/notifications?critical=true'),
   deleteNotification: (id: number) => api.delete(`api/notifications/${id}`),
   deleteAllNotifications: () => api.delete('api/notifications'),
 };

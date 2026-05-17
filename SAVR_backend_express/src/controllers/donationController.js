@@ -63,7 +63,7 @@ async function recalculateBadges(userId) {
           [status, progress, earnedAt, userId, badge.id]
         );
         if (status === 'earned') {
-          await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`);
+          await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`, true);
         }
       }
     } else {
@@ -73,7 +73,7 @@ async function recalculateBadges(userId) {
         [userId, badge.id, status, progress, earnedAt]
       );
       if (status === 'earned') {
-        await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`);
+        await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`, true);
       }
     }
   }
@@ -925,7 +925,7 @@ exports.updateRequestStatus = async (req, res) => {
     Allocated: 'Great news! Your request has been allocated and will be processed soon.',
     Urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
   };
-  await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`);
+  await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, ['Allocated', 'Urgent'].includes(status));
 
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
