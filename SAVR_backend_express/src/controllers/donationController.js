@@ -265,9 +265,13 @@ exports.paymentSuccess = async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Successful – SAVR</title>
   <script>
-    // Auto-open the app as soon as the page loads
     window.onload = function () {
+      // Try standalone scheme first (production / dev build)
       window.location.href = 'savrmobile://';
+      // Fallback to Expo Go scheme after 1.5s if app didn't open
+      setTimeout(function () {
+        window.location.href = 'exp+savr-mobile://';
+      }, 1500);
     };
   </script>
   <style>
@@ -418,6 +422,9 @@ exports.paymentCancel = (req, res) => {
   <script>
     window.onload = function () {
       window.location.href = 'savrmobile://';
+      setTimeout(function () {
+        window.location.href = 'exp+savr-mobile://';
+      }, 1500);
     };
   </script>
   <style>

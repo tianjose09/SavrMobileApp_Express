@@ -49,7 +49,7 @@ export default function FinancialDonation({ navigation }: any) {
   const startPolling = (donationId: number) => {
     stopPolling();
     let attempts = 0;
-    const MAX_ATTEMPTS = 12;
+    const MAX_ATTEMPTS = 60; // 5 minutes — GCash OTP + authorization takes time
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
       const paid = await checkOnce(donationId);
@@ -63,10 +63,13 @@ export default function FinancialDonation({ navigation }: any) {
     // Start auto-polling immediately when a pending donation exists
     startPolling(pendingDonationId);
 
-    // Also re-poll the moment the app comes back to foreground
+    // When app returns to foreground: check immediately, then restart polling
+    // in case the user took longer than the initial polling window
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
-        checkOnce(pendingDonationId);
+        checkOnce(pendingDonationId).then(paid => {
+          if (!paid) startPolling(pendingDonationId);
+        });
       }
       appStateRef.current = nextState;
     });
