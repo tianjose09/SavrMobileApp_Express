@@ -211,14 +211,21 @@ exports.checkPaymentStatus = async (req, res) => {
       );
       const attrs = pmRes.data?.data?.attributes;
 
-      // Checkout session can be confirmed via:
-      // 1. Top-level status = 'completed' (GCash, Maya — PayMongo uses 'completed' not 'paid')
-      // 2. payments array with any paid entry
-      // 3. payment_intent succeeded (card flow)
+      // Log the full status for debugging
+      console.log('[checkPaymentStatus] session_id:', donation.paymongo_payment_id);
+      console.log('[checkPaymentStatus] attrs.status:', attrs?.status);
+      console.log('[checkPaymentStatus] payment_intent status:', attrs?.payment_intent?.attributes?.status);
+      console.log('[checkPaymentStatus] payments count:', attrs?.payments?.length);
+      if (attrs?.payments?.length) {
+        attrs.payments.forEach((p, i) => console.log(`  payment[${i}] status:`, p?.attributes?.status));
+      }
+
       const sessionPaid = attrs?.status === 'completed' || attrs?.status === 'paid';
       const hasPayment = Array.isArray(attrs?.payments)
         && attrs.payments.some(p => p?.attributes?.status === 'paid');
       const piSucceeded = attrs?.payment_intent?.attributes?.status === 'succeeded';
+
+      console.log('[checkPaymentStatus] sessionPaid:', sessionPaid, '| hasPayment:', hasPayment, '| piSucceeded:', piSucceeded);
 
       if (sessionPaid || hasPayment || piSucceeded) {
         await db.execute("UPDATE financial_donation_records SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
@@ -228,7 +235,7 @@ exports.checkPaymentStatus = async (req, res) => {
         return res.json({ success: true, status: 'paid', amount: donation.amount });
       }
     } catch (err) {
-      console.error('[checkPaymentStatus PayMongo verify]', err?.response?.data || err.message);
+      console.error('[checkPaymentStatus ERROR]', err?.response?.status, err?.response?.data || err.message);
     }
   }
 
