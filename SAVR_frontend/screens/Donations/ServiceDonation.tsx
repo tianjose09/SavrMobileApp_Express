@@ -13,6 +13,7 @@ import {
   StatusBar,
   Image,
   SafeAreaView,
+  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -75,6 +76,10 @@ export default function ServiceDonation({ navigation }: any) {
 
   // UI States
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [showIOSDate, setShowIOSDate] = useState(false);
+  const [showIOSTime, setShowIOSTime] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const [tempTime, setTempTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
 
@@ -331,27 +336,13 @@ export default function ServiceDonation({ navigation }: any) {
                 <Text style={styles.label}>Date</Text>
                 <TouchableOpacity
                   style={[styles.inputBox, { justifyContent: 'center' }]}
-                  onPress={() => Platform.OS !== 'ios' && setDatePickerMode('date')}
+                  onPress={() => {
+                    if (Platform.OS === 'ios') { setTempDate(date); setShowIOSDate(true); }
+                    else setDatePickerMode('date');
+                  }}
                   activeOpacity={0.8}
                 >
-                  <TextInput
-                    style={[styles.inputInner, { textAlign: 'center' }]}
-                    value={date.toLocaleDateString()}
-                    editable={false}
-                    pointerEvents="none"
-                  />
-                  {Platform.OS === 'ios' && (
-                    <DateTimePicker
-                      style={styles.absolutePicker}
-                      value={date}
-                      mode="date"
-                      display="compact"
-                      minimumDate={new Date()}
-                      onChange={(event, selectedDate) => {
-                        if (selectedDate) setDate(selectedDate);
-                      }}
-                    />
-                  )}
+                  <Text style={[styles.inputInner, { textAlign: 'center', lineHeight: 38 }]}>{date.toLocaleDateString()}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -359,26 +350,15 @@ export default function ServiceDonation({ navigation }: any) {
                 <Text style={styles.label}>Time</Text>
                 <TouchableOpacity
                   style={[styles.inputBox, { justifyContent: 'center' }]}
-                  onPress={() => Platform.OS !== 'ios' && setDatePickerMode('time')}
+                  onPress={() => {
+                    if (Platform.OS === 'ios') { setTempTime(time); setShowIOSTime(true); }
+                    else setDatePickerMode('time');
+                  }}
                   activeOpacity={0.8}
                 >
-                  <TextInput
-                    style={[styles.inputInner, { textAlign: 'center' }]}
-                    value={time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    editable={false}
-                    pointerEvents="none"
-                  />
-                  {Platform.OS === 'ios' && (
-                    <DateTimePicker
-                      style={styles.absolutePicker}
-                      value={time}
-                      mode="time"
-                      display="compact"
-                      onChange={(event, selectedDate) => {
-                        if (selectedDate) setTime(selectedDate);
-                      }}
-                    />
-                  )}
+                  <Text style={[styles.inputInner, { textAlign: 'center', lineHeight: 38 }]}>
+                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -537,7 +517,7 @@ export default function ServiceDonation({ navigation }: any) {
       </KeyboardAvoidingView>
 
       {/* Shared Absolute OS Date/Time Picker */}
-      {Platform.OS !== 'ios' && datePickerMode && (
+      {Platform.OS === 'android' && datePickerMode && (
         <DateTimePicker
           value={datePickerMode === 'date' ? date : time}
           mode={datePickerMode === 'date' ? 'date' : 'time'}
@@ -546,7 +526,6 @@ export default function ServiceDonation({ navigation }: any) {
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
             setDatePickerMode(null);
-
             if (event.type === 'set' && selectedDate) {
               if (currentMode === 'date') setDate(selectedDate);
               else if (currentMode === 'time') setTime(selectedDate);
@@ -554,6 +533,35 @@ export default function ServiceDonation({ navigation }: any) {
           }}
         />
       )}
+
+      {/* iOS Date Modal */}
+      <Modal visible={showIOSDate} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+              <Text style={styles.modalTitle}>Select Date</Text>
+              <TouchableOpacity onPress={() => { setDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+            </View>
+            <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+          </View>
+        </View>
+      </Modal>
+
+      {/* iOS Time Modal */}
+      <Modal visible={showIOSTime} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+              <Text style={styles.modalTitle}>Select Time</Text>
+              <TouchableOpacity onPress={() => { setTime(tempTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+            </View>
+            <DateTimePicker value={tempTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -675,7 +683,14 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   dropdownIcon: { marginLeft: 5 },
-  absolutePicker: { position: 'absolute', width: '100%', height: '100%', opacity: 0.011 },
+  absolutePicker: { display: 'none' },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalCancel: { fontSize: 15, color: '#888' },
+  modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 
   pillsContainer: {
     flexDirection: 'row',

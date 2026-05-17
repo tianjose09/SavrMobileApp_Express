@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, SafeAreaView, Modal } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,10 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
   const [deliveryDate, setDeliveryDate] = useState<Date>(new Date());
   const [deliveryTime, setDeliveryTime] = useState<Date>(new Date());
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [showIOSDate, setShowIOSDate] = useState(false);
+  const [showIOSTime, setShowIOSTime] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const [tempTime, setTempTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
   const { foodItems } = route.params || { foodItems: [] };
@@ -117,45 +121,58 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
           <Text style={styles.sectionTitle}>Expected Arrival Time</Text>
 
           <View style={styles.dateRow}>
-            <TouchableOpacity style={[styles.dateBtn, { position: 'relative' }]} onPress={() => Platform.OS !== 'ios' && setDatePickerMode('date')}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-                <Text style={styles.dateLabel}>Date: </Text>
-                <Text style={styles.dateValue}>{deliveryDate.toLocaleDateString()}</Text>
-              </View>
-              {Platform.OS === 'ios' && (
-                <DateTimePicker
-                  style={styles.invisiblePicker}
-                  value={deliveryDate}
-                  mode="date"
-                  display="compact"
-                  minimumDate={new Date()}
-                  onChange={(event, date) => {
-                    if (date) setDeliveryDate(date);
-                  }}
-                />
-              )}
+            <TouchableOpacity
+              style={styles.dateBtn}
+              onPress={() => {
+                if (Platform.OS === 'ios') { setTempDate(deliveryDate); setShowIOSDate(true); }
+                else setDatePickerMode('date');
+              }}
+            >
+              <Text style={styles.dateLabel}>Date: </Text>
+              <Text style={styles.dateValue}>{deliveryDate.toLocaleDateString()}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.dateBtn, { position: 'relative' }]} onPress={() => Platform.OS !== 'ios' && setDatePickerMode('time')}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-                <Text style={styles.dateLabel}>Time: </Text>
-                <Text style={styles.dateValue}>
-                  {deliveryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
-              {Platform.OS === 'ios' && (
-                <DateTimePicker
-                  style={styles.invisiblePicker}
-                  value={deliveryTime}
-                  mode="time"
-                  display="compact"
-                  onChange={(event, date) => {
-                    if (date) setDeliveryTime(date);
-                  }}
-                />
-              )}
+            <TouchableOpacity
+              style={styles.dateBtn}
+              onPress={() => {
+                if (Platform.OS === 'ios') { setTempTime(deliveryTime); setShowIOSTime(true); }
+                else setDatePickerMode('time');
+              }}
+            >
+              <Text style={styles.dateLabel}>Time: </Text>
+              <Text style={styles.dateValue}>
+                {deliveryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
             </TouchableOpacity>
           </View>
+
+          {/* iOS Date Modal */}
+          <Modal visible={showIOSDate} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+                  <Text style={styles.modalTitle}>Select Date</Text>
+                  <TouchableOpacity onPress={() => { setDeliveryDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                </View>
+                <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(e, d) => { if (d) setTempDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+              </View>
+            </View>
+          </Modal>
+
+          {/* iOS Time Modal */}
+          <Modal visible={showIOSTime} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+                  <Text style={styles.modalTitle}>Select Time</Text>
+                  <TouchableOpacity onPress={() => { setDeliveryTime(tempTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                </View>
+                <DateTimePicker value={tempTime} mode="time" display="spinner" onChange={(e, d) => { if (d) setTempTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+              </View>
+            </View>
+          </Modal>
 
 
 
@@ -243,11 +260,10 @@ const styles = StyleSheet.create({
     shadowColor: '#CA6F2E', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10
   },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
-  invisiblePicker: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    opacity: 0.011,
-    zIndex: 999,
-  }
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalCancel: { fontSize: 15, color: '#888' },
+  modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 });

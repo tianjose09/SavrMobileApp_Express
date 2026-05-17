@@ -7,7 +7,12 @@ const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false }, // required for Supabase
+  ssl: { rejectUnauthorized: false },
+  // Resilience settings for Railway / cloud-hosted DBs
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  keepAlive: true,
 });
 
 // Convert MySQL-style ? placeholders → PostgreSQL $1 $2 $3...

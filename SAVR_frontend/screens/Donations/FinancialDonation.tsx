@@ -166,10 +166,10 @@ export default function FinancialDonation({ navigation }: any) {
               <Text style={styles.dateTimeText}>Time : {getCurrentTime()}</Text>
             </View>
 
-            <Text style={styles.messageLabel}>Message <Text style={styles.optionalText}>(Optional)</Text></Text>
+            <Text style={styles.messageLabel}>Name of Drive</Text>
             <TextInput
               style={styles.messageInput}
-              placeholder="Add a message with your donation..."
+              placeholder="e.g. Kapatiran Fire Tondo Relief"
               placeholderTextColor="#B0CFBC"
               value={message}
               onChangeText={setMessage}

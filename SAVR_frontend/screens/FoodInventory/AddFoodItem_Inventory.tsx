@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Platform, StatusBar, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Platform, StatusBar, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import CustomDropdown from '../../components/CustomDropdown';
@@ -13,7 +13,8 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
 
   const [expiryText, setExpiryText] = useState('');
   const [expiryDate, setExpiryDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false); // Android
+  const [showIOSDatePicker, setShowIOSDatePicker] = useState(false); // iOS Modal
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -21,7 +22,10 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
   today.setHours(0, 0, 0, 0);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'dismissed' || !selectedDate) return;
+    }
     if (selectedDate) {
       setExpiryDate(selectedDate);
       const yyyy = selectedDate.getFullYear();
@@ -29,6 +33,14 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
       const dd = String(selectedDate.getDate()).padStart(2, '0');
       setExpiryText(`${yyyy}-${mm}-${dd}`);
     }
+  };
+
+  const confirmIOSExpiry = () => {
+    const yyyy = expiryDate.getFullYear();
+    const mm = String(expiryDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(expiryDate.getDate()).padStart(2, '0');
+    setExpiryText(`${yyyy}-${mm}-${dd}`);
+    setShowIOSDatePicker(false);
   };
 
   const handleAddFood = async () => {
@@ -176,35 +188,32 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 value={expiryText}
                 onChangeText={setExpiryText}
               />
-              <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 50, justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
-                <TouchableOpacity
-                  onPress={() => Platform.OS !== 'ios' && setShowDatePicker(true)}
-                  style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
-                >
-                  <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.9)" />
-                </TouchableOpacity>
-                {Platform.OS === 'ios' && (
-                  <DateTimePicker
-                    style={{ position: 'absolute', right: 0, width: 50, height: '100%', opacity: 0.011 }}
-                    value={expiryDate}
-                    mode="date"
-                    display="compact"
-                    minimumDate={today}
-                    onChange={onDateChange}
-                  />
-                )}
-              </View>
+              <TouchableOpacity
+                onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : setShowDatePicker(true)}
+                style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 50, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
             </View>
-
-            {Platform.OS !== 'ios' && showDatePicker && (
-              <DateTimePicker
-                value={expiryDate}
-                mode="date"
-                display="default"
-                minimumDate={today}
-                onChange={onDateChange}
-              />
+            {Platform.OS === 'android' && showDatePicker && (
+              <DateTimePicker value={expiryDate} mode="date" display="default" minimumDate={today} onChange={onDateChange} />
             )}
+            <Modal visible={showIOSDatePicker} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalSheet}>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => setShowIOSDatePicker(false)}>
+                      <Text style={styles.modalCancel}>Cancel</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.modalTitle}>Expiration Date</Text>
+                    <TouchableOpacity onPress={confirmIOSExpiry}>
+                      <Text style={styles.modalDone}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker value={expiryDate} mode="date" display="spinner" minimumDate={today} onChange={(e, d) => { if (d) setExpiryDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                </View>
+              </View>
+            </Modal>
           </View>
 
           <TouchableOpacity style={styles.submitBtn} onPress={handleAddFood} disabled={isSubmitting}>
@@ -320,5 +329,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.5,
-  }
+  },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalCancel: { fontSize: 15, color: '#888' },
+  modalDone: { fontSize: 15, fontWeight: '700', color: '#0E6A31' },
 });
