@@ -199,13 +199,7 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
             </TouchableOpacity>
 
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.headerIconButton}>
-                <Ionicons
-                  name="notifications-outline"
-                  size={25}
-                  color="#FFFFFF"
-                />
-              </TouchableOpacity>
+              <NotificationBell navigation={navigation} color="#FFFFFF" size={25} />
               <TouchableOpacity
                 style={styles.headerIconButton}
                 onPress={() => navigation.openDrawer?.()}

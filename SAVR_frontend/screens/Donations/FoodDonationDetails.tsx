@@ -130,9 +130,7 @@ export default function FoodDonationDetails({ navigation }: any) {
             />
 
             <View style={styles.topRightIcons}>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-                <Ionicons name="notifications-outline" size={28} color="#544434" />
-              </TouchableOpacity>
+              <NotificationBell navigation={navigation} color="#544434" size={28} />
 
               <TouchableOpacity
                 style={styles.iconBtn}

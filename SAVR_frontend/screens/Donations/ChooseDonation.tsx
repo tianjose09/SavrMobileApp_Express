@@ -130,16 +130,7 @@ export default function ChooseDonation({ navigation }: any) {
         <View style={styles.topNav}>
           <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
-              style={{ position: 'relative' }}
-              onPress={() => navigation.navigate('Notifications')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="notifications-outline" size={26} color="#FFF" style={{ marginRight: 15 }} />
-              <View style={styles.badgeDot}>
-                <Text style={styles.badgeText}>!</Text>
-              </View>
-            </TouchableOpacity>
+            <NotificationBell navigation={navigation} color="#FFF" size={26} />
             <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="menu" size={34} color="#FFF" />
             </TouchableOpacity>

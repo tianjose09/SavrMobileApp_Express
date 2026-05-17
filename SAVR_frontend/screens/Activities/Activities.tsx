@@ -205,19 +205,7 @@ export default function Activities({ navigation }: any) {
             </TouchableOpacity>
 
             <View style={styles.headerIcons}>
-              <TouchableOpacity
-                style={[styles.headerIconButton, { position: 'relative' }]}
-                onPress={() => navigation.navigate('Notifications')}
-              >
-                <Ionicons
-                  name="notifications-outline"
-                  size={25}
-                  color="#FFFFFF"
-                />
-                <View style={styles.badgeDot}>
-                  <Text style={styles.badgeText}>!</Text>
-                </View>
-              </TouchableOpacity>
+              <NotificationBell navigation={navigation} color="#FFFFFF" size={25} />
               <TouchableOpacity
                 style={styles.headerIconButton}
                 onPress={() => navigation.openDrawer?.()}

@@ -152,10 +152,7 @@ export default function CreateRequest({ navigation }: any) {
         <View style={styles.headerRow}>
           <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={{ marginRight: 15, position: 'relative' }} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={26} color="#4A4A4A" />
-              <View style={styles.badgeDot}><Text style={styles.badgeText}>!</Text></View>
-            </TouchableOpacity>
+            <NotificationBell navigation={navigation} color="#4A4A4A" size={26} />
             <TouchableOpacity onPress={() => navigation.openDrawer()}>
               <Ionicons name="menu-outline" size={34} color="#4A4A4A" />
             </TouchableOpacity>

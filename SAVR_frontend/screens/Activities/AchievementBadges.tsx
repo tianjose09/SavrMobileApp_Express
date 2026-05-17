@@ -118,19 +118,7 @@ export default function AchievementBadges({ navigation }: any) {
               </TouchableOpacity>
 
               <View style={styles.iconRow}>
-                <TouchableOpacity
-                  style={[styles.iconBtn, { position: 'relative' }]}
-                  onPress={() => navigation.navigate('Notifications')}
-                >
-                  <Ionicons
-                    name="notifications-outline"
-                    size={26}
-                    color="#FFFFFF"
-                  />
-                  <View style={styles.badgeDot}>
-                    <Text style={styles.badgeText}>!</Text>
-                  </View>
-                </TouchableOpacity>
+                <NotificationBell navigation={navigation} color="#FFFFFF" size={26} />
                 <TouchableOpacity
                   style={styles.iconBtn}
                   onPress={() => navigation.openDrawer?.()}
