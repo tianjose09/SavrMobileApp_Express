@@ -231,11 +231,10 @@ export default function FinancialDonation({ navigation }: any) {
           <View style={styles.secureMethodCard}>
             <Ionicons name="shield-checkmark" size={28} color="#A75D20" style={{ marginBottom: 8 }} />
             <Text style={styles.secureMethodTitle}>Secured via PayMongo</Text>
-            <Text style={styles.secureMethodDesc}>Accepts GCash, Maya, QR Ph, Credit & Debit Cards</Text>
+            <Text style={styles.secureMethodDesc}>Accepts GCash, Maya, Credit & Debit Cards</Text>
             <View style={styles.badgesRow}>
               <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>GCash</Text></View>
               <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Maya</Text></View>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>QR Ph</Text></View>
               <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Visa/MC</Text></View>
             </View>
           </View>
