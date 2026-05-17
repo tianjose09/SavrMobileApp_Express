@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image, AppState } from 'react-native';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import ToastBanner from '../../components/ToastBanner';
+
+type PaymentMethod = 'paymongo' | 'qrph';
 
 export default function FinancialDonation({ navigation }: any) {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('paymongo');
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
   const [paymentLinkOpened, setPaymentLinkOpened] = useState(false);
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
+  const [qrCountdown, setQrCountdown] = useState(0);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
+
   const appStateRef = useRef(AppState.currentState);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const qrTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
@@ -22,11 +29,41 @@ export default function FinancialDonation({ navigation }: any) {
     }
   };
 
-  const handlePaymentConfirmed = (amount: string) => {
+  const stopQrTimer = () => {
+    if (qrTimerRef.current) {
+      clearInterval(qrTimerRef.current);
+      qrTimerRef.current = null;
+    }
+  };
+
+  const startQrTimer = (seconds: number) => {
+    stopQrTimer();
+    setQrCountdown(seconds);
+    qrTimerRef.current = setInterval(() => {
+      setQrCountdown(prev => {
+        if (prev <= 1) {
+          stopQrTimer();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const handlePaymentConfirmed = (confirmedAmount: string) => {
     stopPolling();
+    stopQrTimer();
     setPendingDonationId(null);
     setPaymentLinkOpened(false);
-    const donatedAmt = parseFloat(amount).toLocaleString('en-US');
+    setQrImageUrl(null);
+    setQrCountdown(0);
+    const donatedAmt = parseFloat(confirmedAmount).toLocaleString('en-US');
     setToast({
       visible: true,
       title: 'Donation Confirmed!',
@@ -49,7 +86,7 @@ export default function FinancialDonation({ navigation }: any) {
   const startPolling = (donationId: number) => {
     stopPolling();
     let attempts = 0;
-    const MAX_ATTEMPTS = 60; // 5 minutes — GCash OTP + authorization takes time
+    const MAX_ATTEMPTS = 60;
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
       const paid = await checkOnce(donationId);
@@ -60,11 +97,8 @@ export default function FinancialDonation({ navigation }: any) {
   useEffect(() => {
     if (!pendingDonationId) return;
 
-    // Start auto-polling immediately when a pending donation exists
     startPolling(pendingDonationId);
 
-    // When app returns to foreground: check immediately, then restart polling
-    // in case the user took longer than the initial polling window
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
         checkOnce(pendingDonationId).then(paid => {
@@ -80,12 +114,21 @@ export default function FinancialDonation({ navigation }: any) {
     };
   }, [pendingDonationId]);
 
+  useEffect(() => {
+    return () => { stopQrTimer(); };
+  }, []);
+
   const handleManualCheck = async () => {
     if (!pendingDonationId) return;
     setIsCheckingPayment(true);
     const paid = await checkOnce(pendingDonationId);
     if (!paid) {
-      Alert.alert('Not Yet Confirmed', 'Payment not confirmed yet. Please wait a moment and try again, or complete the payment in the browser.');
+      Alert.alert(
+        'Not Yet Confirmed',
+        selectedMethod === 'qrph'
+          ? 'QR payment not detected yet. Make sure you scanned and authorized in your GCash or banking app, then try again.'
+          : 'Payment not confirmed yet. Please complete it in the browser and try again.'
+      );
     }
     setIsCheckingPayment(false);
   };
@@ -100,21 +143,39 @@ export default function FinancialDonation({ navigation }: any) {
     setIsLoading(true);
 
     try {
-      const response = await ApiService.createPaymongoCheckout({ amount: amountNum, remarks: message });
-      if (response.data.success && response.data.checkout_url) {
-        const donationId = response.data.donation_id;
-        if (donationId) setPendingDonationId(donationId);
-        setAmount('');
-        setMessage('');
-        setPaymentLinkOpened(true);
-        Linking.openURL(response.data.checkout_url);
-        Alert.alert(
-          'Payment Page Opened ✅',
-          'Complete your payment in the browser. Your dashboard will update automatically when you return.',
-          [{ text: 'Got it' }]
-        );
+      if (selectedMethod === 'qrph') {
+        const response = await ApiService.createQrPhPayment({ amount: amountNum, message });
+        if (response.data.success) {
+          const donationId = response.data.donation_id;
+          const qrImage = response.data.qr_image;
+          const expiresIn = response.data.expires_in || 900;
+
+          if (donationId) setPendingDonationId(donationId);
+          if (qrImage) setQrImageUrl(qrImage);
+          startQrTimer(expiresIn);
+          setPaymentLinkOpened(true);
+          setAmount('');
+          setMessage('');
+        } else {
+          Alert.alert('Error', 'Failed to generate QR code.');
+        }
       } else {
-        Alert.alert('Error', 'Failed to generate payment link.');
+        const response = await ApiService.createPaymongoCheckout({ amount: amountNum, remarks: message });
+        if (response.data.success && response.data.checkout_url) {
+          const donationId = response.data.donation_id;
+          if (donationId) setPendingDonationId(donationId);
+          setAmount('');
+          setMessage('');
+          setPaymentLinkOpened(true);
+          Linking.openURL(response.data.checkout_url);
+          Alert.alert(
+            'Payment Page Opened',
+            'Complete your payment in the browser. Your dashboard will update automatically when you return.',
+            [{ text: 'Got it' }]
+          );
+        } else {
+          Alert.alert('Error', 'Failed to generate payment link.');
+        }
       }
     } catch (e: any) {
       const errors = e.response?.data?.errors;
@@ -138,16 +199,17 @@ export default function FinancialDonation({ navigation }: any) {
     return new Date().toLocaleTimeString('en-US', options);
   };
 
-  // Replaces numeric input with formatted numbers on the fly
   const handleAmountChange = (text: string) => {
     const numericValue = text.replace(/[^0-9]/g, '');
     if (numericValue) {
-      const formatted = Number(numericValue).toLocaleString('en-US');
-      setAmount(formatted);
+      setAmount(Number(numericValue).toLocaleString('en-US'));
     } else {
       setAmount('');
     }
   };
+
+  const isPaymentPending = paymentLinkOpened && !!pendingDonationId;
+  const buttonLabel = selectedMethod === 'qrph' ? 'Generate QR Code' : 'Proceed via PayMongo';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -160,12 +222,10 @@ export default function FinancialDonation({ navigation }: any) {
       />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
 
-        {/* Top Header */}
+        {/* Header */}
         <View style={styles.topHeader}>
           <View style={styles.headerRow}>
-            {/* Logo Image - Brown Version */}
             <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
-
             <View style={styles.headerIcons}>
               <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 15 }} onPress={() => navigation.navigate('Notifications')}>
                 <Ionicons name="notifications-outline" size={26} color="#4A4A4A" />
@@ -180,7 +240,7 @@ export default function FinancialDonation({ navigation }: any) {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-          {/* Title Row */}
+          {/* Title */}
           <View style={styles.titleRow}>
             <Image
               source={require('../../assets/images/cards/financialdonationicongreen.png')}
@@ -190,7 +250,7 @@ export default function FinancialDonation({ navigation }: any) {
             <Text style={styles.pageTitle}>Financial Donation</Text>
           </View>
 
-          {/* Green Card Block */}
+          {/* Amount Card */}
           <View style={styles.greenCard}>
             <View style={styles.amountInputWrapper}>
               <Text style={styles.currencySymbol}>₱</Text>
@@ -202,6 +262,7 @@ export default function FinancialDonation({ navigation }: any) {
                 selectionColor="#FFF"
                 placeholder="Enter amount to donate"
                 placeholderTextColor="rgba(255,255,255,0.7)"
+                editable={!isPaymentPending}
               />
             </View>
 
@@ -220,40 +281,88 @@ export default function FinancialDonation({ navigation }: any) {
               value={message}
               onChangeText={setMessage}
               multiline
+              editable={!isPaymentPending}
             />
           </View>
 
-          {/* Payment Method Title */}
+          {/* Payment Method Toggle */}
           <Text style={styles.paymentMethodTitle}>Payment Method</Text>
+          <View style={styles.methodToggleRow}>
+            <TouchableOpacity
+              style={[styles.methodToggleBtn, selectedMethod === 'paymongo' && styles.methodToggleBtnActive]}
+              onPress={() => { if (!isPaymentPending) setSelectedMethod('paymongo'); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="shield-checkmark" size={20} color={selectedMethod === 'paymongo' ? '#FFF' : '#A75D20'} style={{ marginBottom: 4 }} />
+              <Text style={[styles.methodToggleLabel, selectedMethod === 'paymongo' && styles.methodToggleLabelActive]}>PayMongo</Text>
+              <Text style={[styles.methodToggleSub, selectedMethod === 'paymongo' && { color: 'rgba(255,255,255,0.8)' }]}>GCash · Maya · Card</Text>
+            </TouchableOpacity>
 
-
-          {/* Secure Payment Context - Solely PayMongo */}
-          <View style={styles.secureMethodCard}>
-            <Ionicons name="shield-checkmark" size={28} color="#A75D20" style={{ marginBottom: 8 }} />
-            <Text style={styles.secureMethodTitle}>Secured via PayMongo</Text>
-            <Text style={styles.secureMethodDesc}>Accepts GCash, Maya, Credit & Debit Cards</Text>
-            <View style={styles.badgesRow}>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>GCash</Text></View>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Maya</Text></View>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Visa/MC</Text></View>
-            </View>
+            <TouchableOpacity
+              style={[styles.methodToggleBtn, selectedMethod === 'qrph' && styles.methodToggleBtnActive]}
+              onPress={() => { if (!isPaymentPending) setSelectedMethod('qrph'); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="qr-code-outline" size={20} color={selectedMethod === 'qrph' ? '#FFF' : '#00592d'} style={{ marginBottom: 4 }} />
+              <Text style={[styles.methodToggleLabel, selectedMethod === 'qrph' && styles.methodToggleLabelActive]}>QR Ph</Text>
+              <Text style={[styles.methodToggleSub, selectedMethod === 'qrph' && { color: 'rgba(255,255,255,0.8)' }]}>Scan with any bank app</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Spacer */}
+          {/* QR Code Display */}
+          {qrImageUrl ? (
+            <View style={styles.qrCard}>
+              <Text style={styles.qrTitle}>Scan to Pay</Text>
+              <Text style={styles.qrSubtitle}>Open your GCash, Maya, or bank app and scan this QR code</Text>
+              <View style={styles.qrImageWrapper}>
+                <Image
+                  source={{ uri: qrImageUrl }}
+                  style={styles.qrImage}
+                  resizeMode="contain"
+                />
+              </View>
+              {qrCountdown > 0 ? (
+                <View style={styles.qrCountdownRow}>
+                  <Ionicons name="time-outline" size={14} color={qrCountdown < 120 ? '#C62828' : '#666'} />
+                  <Text style={[styles.qrCountdownText, qrCountdown < 120 && { color: '#C62828' }]}>
+                    Expires in {formatCountdown(qrCountdown)}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={[styles.qrCountdownText, { color: '#C62828' }]}>QR code expired. Generate a new one.</Text>
+              )}
+            </View>
+          ) : null}
+
           <View style={styles.spacer} />
 
-          {/* Proceed Button */}
-          <TouchableOpacity
-            style={[styles.donateButton, isLoading && { backgroundColor: '#A7C2B2' }]}
-            onPress={handleDonate}
-            disabled={isLoading}
-          >
-            {isLoading ? <ActivityIndicator color="#fff" /> : (
-              <Text style={styles.donateBtnText}>Proceed details via PayMongo</Text>
-            )}
-          </TouchableOpacity>
+          {/* Authorize Button */}
+          {!isPaymentPending || selectedMethod === 'paymongo' ? (
+            <TouchableOpacity
+              style={[styles.donateButton, (isLoading || (isPaymentPending && selectedMethod === 'paymongo')) && { backgroundColor: '#A7C2B2' }]}
+              onPress={handleDonate}
+              disabled={isLoading || (isPaymentPending && selectedMethod === 'paymongo')}
+            >
+              {isLoading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.donateBtnText}>{isPaymentPending ? 'Awaiting Payment...' : buttonLabel}</Text>
+              }
+            </TouchableOpacity>
+          ) : null}
 
-          {paymentLinkOpened && pendingDonationId ? (
+          {/* QR: regenerate button if expired and pending */}
+          {selectedMethod === 'qrph' && isPaymentPending && qrCountdown === 0 ? (
+            <TouchableOpacity
+              style={styles.donateButton}
+              onPress={handleDonate}
+              disabled={isLoading}
+            >
+              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.donateBtnText}>Regenerate QR Code</Text>}
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Check Payment Status */}
+          {isPaymentPending ? (
             <TouchableOpacity
               style={[styles.checkPaymentButton, isCheckingPayment && { opacity: 0.6 }]}
               onPress={handleManualCheck}
@@ -278,35 +387,15 @@ export default function FinancialDonation({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
 
-  topHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    backgroundColor: '#FFFFFF',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
+  topHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FFFFFF' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerDivider: { height: 1, backgroundColor: '#E0E0E0', marginHorizontal: -20, marginBottom: 5 },
 
   scrollContent: { paddingHorizontal: 22, paddingTop: 15 },
 
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    marginTop: 20,
-  },
-  pageTitle: {
-    fontSize: 27,
-    fontWeight: '800',
-    color: '#00592d',
-    letterSpacing: -0.5,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, marginTop: 20 },
+  pageTitle: { fontSize: 27, fontWeight: '800', color: '#00592d', letterSpacing: -0.5 },
 
   greenCard: {
     backgroundColor: '#00592d',
@@ -321,52 +410,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  amountInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  currencySymbol: {
-    fontSize: 42,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginRight: 8,
-    marginTop: -5,
-  },
-  amountInput: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    minWidth: 50,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    marginHorizontal: 15,
-    marginBottom: 20,
-  },
-  dateTimeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
-    paddingHorizontal: 5,
-  },
-  dateTimeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '400',
-  },
-  messageLabel: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  optionalText: {
-    fontWeight: '400',
-    fontSize: 14,
-  },
+  amountInputWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  currencySymbol: { fontSize: 42, fontWeight: '700', color: '#FFFFFF', marginRight: 8, marginTop: -5 },
+  amountInput: { fontSize: 48, fontWeight: '700', color: '#FFFFFF', minWidth: 50 },
+  cardDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.5)', marginHorizontal: 15, marginBottom: 20 },
+  dateTimeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25, paddingHorizontal: 5 },
+  dateTimeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '400' },
+  messageLabel: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', marginBottom: 12 },
   messageInput: {
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
@@ -379,41 +429,55 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  paymentMethodTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#00592d',
-    marginBottom: 20,
-    paddingHorizontal: 8,
-  },
+  paymentMethodTitle: { fontSize: 26, fontWeight: '700', color: '#00592d', marginBottom: 14, paddingHorizontal: 8 },
 
-
-  secureMethodCard: {
-    backgroundColor: '#Faf6F2',
+  methodToggleRow: { flexDirection: 'row', gap: 12, marginHorizontal: 5, marginBottom: 24 },
+  methodToggleBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
     borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 10,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FAFAFA',
+  },
+  methodToggleBtnActive: { backgroundColor: '#00592d', borderColor: '#00592d' },
+  methodToggleLabel: { fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 2 },
+  methodToggleLabelActive: { color: '#FFF' },
+  methodToggleSub: { fontSize: 10, fontWeight: '500', color: '#999', textAlign: 'center' },
+
+  qrCard: {
+    backgroundColor: '#F6FBF8',
+    borderRadius: 20,
+    padding: 22,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#A75D20',
+    borderColor: '#00592d',
     marginHorizontal: 5,
-    marginBottom: 35,
+    marginBottom: 24,
+  },
+  qrTitle: { fontSize: 18, fontWeight: '800', color: '#00592d', marginBottom: 6 },
+  qrSubtitle: { fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 18, lineHeight: 18 },
+  qrImageWrapper: {
+    width: 220,
+    height: 220,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    marginBottom: 16,
   },
-  secureMethodTitle: { fontSize: 16, fontWeight: '700', color: '#A75D20', marginBottom: 2 },
-  secureMethodDesc: { fontSize: 12, color: '#6A6A6A', textAlign: 'center', fontWeight: '700', marginBottom: 15 },
-  badgesRow: { flexDirection: 'row', gap: 10 },
-  miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#E1E9E4', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  miniBadgeText: { fontSize: 10, fontWeight: '700', color: '#222' },
+  qrImage: { width: 200, height: 200 },
+  qrCountdownRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  qrCountdownText: { fontSize: 12, fontWeight: '600', color: '#666' },
 
-  spacer: {
-    flex: 1,
-    minHeight: 10,
-  },
+  spacer: { flex: 1, minHeight: 10 },
 
   donateButton: {
     backgroundColor: '#00592d',
@@ -428,12 +492,8 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
-  donateBtnText: {
-    color: '#FFF',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: -0.2
-  },
+  donateBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
+
   checkPaymentButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -446,10 +506,5 @@ const styles = StyleSheet.create({
     borderColor: '#00592d',
     backgroundColor: '#FFFFFF',
   },
-  checkPaymentText: {
-    color: '#00592d',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
+  checkPaymentText: { color: '#00592d', fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
 });

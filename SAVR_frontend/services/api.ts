@@ -84,8 +84,9 @@ export const ApiService = {
   updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied') =>
     api.put(`api/donation/requests/${id}/status`, { status }),
 
-  // PayMongo
+  // PayMongo / QR Ph
   createPaymongoCheckout: (data: any) => api.post('api/donation/paymongo', data),
+  createQrPhPayment: (data: any) => api.post('api/donation/qrph', data),
   checkPaymentStatus: (id: number) => api.get(`api/donation/status/${id}`),
 
   // Inventory Integration
