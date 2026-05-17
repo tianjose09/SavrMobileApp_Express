@@ -91,17 +91,12 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
         try {
           const notifRes = await ApiService.getNotifications();
-          setUnreadCount(notifRes?.data?.notifications?.length || 0);
-        } catch {}
-
-        // Only show banner when there is something actionable to report
-        setTimeout(() => {
-          if ((data.active_requests ?? 0) > 0) {
-            showNotification('You have an active request being processed.');
-          } else if ((data.pending_requests ?? 0) > 0) {
-            showNotification(`You have ${data.pending_requests} request(s) pending.`);
+          const notifs = notifRes?.data?.notifications || [];
+          setUnreadCount(notifs.length);
+          if (notifs.length > 0) {
+            setTimeout(() => showNotification(notifs[0].title), 800);
           }
-        }, 800);
+        } catch {}
       }
     } catch (e) {
       console.error('Failed to load dashboard', e);
