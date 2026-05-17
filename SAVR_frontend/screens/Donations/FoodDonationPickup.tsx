@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, SafeAreaView, Modal } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -32,10 +32,30 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [tempPickupDate, setTempPickupDate] = useState(new Date());
   const [tempPickupTime, setTempPickupTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
-
-
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const mapRef = useRef<MapView>(null);
 
   const { foodItems } = route.params || { foodItems: [] };
+
+  const geocodeAddress = async (address: string) => {
+    if (!address.trim()) return;
+    setIsGeocoding(true);
+    try {
+      const results = await Location.geocodeAsync(address);
+      if (results.length > 0) {
+        const { latitude, longitude } = results[0];
+        const newRegion = { latitude, longitude, latitudeDelta: 0.0422, longitudeDelta: 0.0221 };
+        setLocation(newRegion);
+        mapRef.current?.animateToRegion(newRegion, 800);
+      } else {
+        Alert.alert('Address Not Found', 'Could not locate that address. Try adding more detail (city, country).');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to locate the address. Check your connection and try again.');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -44,11 +64,15 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
       try {
         let loc = await Location.getCurrentPositionAsync({});
-        setLocation({
-          ...location,
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
+        const { latitude, longitude } = loc.coords;
+        setLocation(prev => ({ ...prev, latitude, longitude }));
+
+        const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (place) {
+          const parts = [place.streetNumber, place.street, place.city, place.region, place.country]
+            .filter(Boolean);
+          setPickupAddress(parts.join(', '));
+        }
       } catch (e) { }
     })();
   }, []);
@@ -70,7 +94,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       if (scheduleType === 'pickup') {
         formData.append('pickup_latitude', location.latitude.toString());
         formData.append('pickup_longitude', location.longitude.toString());
-        formData.append('pickup_address', pickupAddress || 'Coordinates Pinned Location');
+        formData.append('pickup_address', pickupAddress.trim() || `${location.latitude}, ${location.longitude}`);
       } else {
         formData.append('pickup_latitude', '14.5332');
         formData.append('pickup_longitude', '121.0189');
@@ -204,13 +228,26 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           <Text style={styles.inputLabel}>{scheduleType === 'pickup' ? 'Pickup Address' : 'Warehouse Address'}</Text>
 
           {scheduleType === 'pickup' ? (
-            <TextInput
-              style={styles.addressInput}
-              placeholder="Enter pickup address"
-              placeholderTextColor="#A9A9A9"
-              value={pickupAddress}
-              onChangeText={setPickupAddress}
-            />
+            <View style={styles.addressInputRow}>
+              <TextInput
+                style={[styles.addressInput, { flex: 1 }]}
+                placeholder="Enter pickup address"
+                placeholderTextColor="#A9A9A9"
+                value={pickupAddress}
+                onChangeText={setPickupAddress}
+                onSubmitEditing={() => geocodeAddress(pickupAddress)}
+                returnKeyType="search"
+              />
+              <TouchableOpacity
+                style={styles.geocodeBtn}
+                onPress={() => geocodeAddress(pickupAddress)}
+                disabled={isGeocoding}
+              >
+                {isGeocoding
+                  ? <ActivityIndicator size="small" color="#FFF" />
+                  : <Ionicons name="search" size={20} color="#FFF" />}
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.warehouseAddressWrap}>
               <Ionicons name="location" size={22} color="#111" style={{ marginRight: 6, flexShrink: 0, alignSelf: 'flex-start', marginTop: 2 }} />
@@ -222,6 +259,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         {/* MAP */}
         <View style={styles.mapContainer}>
           <MapView
+            ref={mapRef}
             provider={PROVIDER_GOOGLE}
             style={styles.map}
             region={scheduleType === 'pickup' ? location : {
@@ -453,6 +491,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: -0.5,
   },
+  addressInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   addressInput: {
     borderWidth: 1.5,
     borderColor: '#A9A9A9',
@@ -461,6 +504,14 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: 15,
     color: '#333',
+  },
+  geocodeBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 4,
+    backgroundColor: '#D17C31',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   warehouseAddressWrap: {
     flexDirection: 'row',

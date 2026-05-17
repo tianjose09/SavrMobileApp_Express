@@ -72,7 +72,11 @@ export default function PkDashboard({ navigation }: any) {
 
       try {
         const notifRes = await ApiService.getNotifications();
-        setUnreadCount(notifRes?.data?.notifications?.length || 0);
+        const notifs = notifRes?.data?.notifications || [];
+        setUnreadCount(notifs.length);
+        if (notifs.length > 0) {
+          setTimeout(() => showNotification(notifs[0].title), 800);
+        }
       } catch {}
     } catch (e) {
       console.log('Backend dashboard API pending');

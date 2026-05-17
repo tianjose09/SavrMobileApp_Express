@@ -29,6 +29,7 @@ export default function OrgDashboard({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
   const [nextBadge, setNextBadge] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const hasAnimated = useRef(false);
 
   const titleFadeAnim = useRef(new Animated.Value(0)).current;
@@ -124,6 +125,11 @@ export default function OrgDashboard({ navigation }: any) {
           || (badgesRes.data.all || []).find((b: any) => b.status === 'not_started');
         setNextBadge(next || null);
       }
+
+      try {
+        const notifRes = await ApiService.getNotifications();
+        setUnreadCount(notifRes?.data?.notifications?.length || 0);
+      } catch {}
     } catch (e) {
       console.error('Failed to load dashboard', e);
       setDonationAmount(0);
@@ -173,9 +179,11 @@ export default function OrgDashboard({ navigation }: any) {
               onPress={() => navigation.navigate('Notifications')}
             >
               <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
+              {unreadCount > 0 && (
               <View style={styles.badgeDot}>
-                <Text style={styles.badgeText}>!</Text>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
               </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconBtn}
