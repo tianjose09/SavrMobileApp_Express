@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -319,24 +320,6 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
   headerTitles: {
     alignItems: 'center', // Center aligned top header block!
     marginTop: 15,

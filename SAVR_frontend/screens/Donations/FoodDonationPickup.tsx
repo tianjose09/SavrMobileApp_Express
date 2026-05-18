@@ -6,6 +6,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import ToastBanner from '../../components/ToastBanner';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function FoodDonationPickup({ route, navigation }: any) {
   const initialType = route.params?.initialScheduleType || 'pickup';
@@ -179,9 +180,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             </TouchableOpacity>
 
             <View style={styles.topRightIcons}>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-                <Ionicons name="notifications-outline" size={28} color="#544434" />
-              </TouchableOpacity>
+              <NotificationBell navigation={navigation} color="#544434" size={28} />
 
               <TouchableOpacity
                 style={styles.iconBtn}

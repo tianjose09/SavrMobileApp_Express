@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function AchievementBadges({ navigation }: any) {
   const [showAllBadges, setShowAllBadges] = useState(false);
@@ -27,8 +28,7 @@ export default function AchievementBadges({ navigation }: any) {
       const response = await ApiService.getBadges();
       if (response?.data?.success) {
         const all = response.data.all ?? [];
-        // Only show badges that are fully EARNED — hide in_progress and not_started
-        setAllBadges(all.filter((b: any) => b.status === 'earned'));
+        setAllBadges(all);
         setFeaturedBadges(response.data.earned ? response.data.earned.slice(0, 3) : []);
         setTotalUnlocked(response.data.earned ? response.data.earned.length : 0);
       }
@@ -341,25 +341,6 @@ const styles = StyleSheet.create({
 
   iconBtn: {
     marginLeft: 15,
-  },
-
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
   },
 
   pageTitle: {

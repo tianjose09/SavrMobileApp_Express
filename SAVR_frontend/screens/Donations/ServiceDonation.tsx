@@ -20,6 +20,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
 import ToastBanner from '../../components/ToastBanner';
+import NotificationBell from '../../components/NotificationBell';
 
 const TRANSPORT_CATEGORIES = [
   'No Liquid Foods',
@@ -197,9 +198,7 @@ export default function ServiceDonation({ navigation }: any) {
           />
 
           <View style={styles.topRightIcons}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={28} color="#544434" />
-            </TouchableOpacity>
+            <NotificationBell navigation={navigation} color="#544434" size={28} />
 
             <TouchableOpacity
               style={styles.iconBtn}

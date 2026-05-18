@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function ChooseDonation({ navigation }: any) {
   const [pickups, setPickups] = useState<any[]>([]);
@@ -325,21 +326,6 @@ export default function ChooseDonation({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
-
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: 11,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
 
   heroBackground: {
     backgroundColor: '#00592d',

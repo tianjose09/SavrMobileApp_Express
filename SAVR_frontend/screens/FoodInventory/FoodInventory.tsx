@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Scro
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function FoodInventory({ route, navigation }: any) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -60,9 +61,7 @@ export default function FoodInventory({ route, navigation }: any) {
                         resizeMode="contain"
                     />
                     <View style={styles.topRightIcons}>
-                        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-                            <Ionicons name="notifications-outline" size={28} color="#544434" />
-                        </TouchableOpacity>
+                        <NotificationBell navigation={navigation} color="#544434" size={28} />
                         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
                             <Ionicons name="menu-outline" size={36} color="#544434" />
                         </TouchableOpacity>

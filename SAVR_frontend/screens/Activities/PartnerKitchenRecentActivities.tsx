@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function PartnerKitchenRecentActivities({ navigation }: any) {
   const [activities, setActivities] = useState<any[]>([]);

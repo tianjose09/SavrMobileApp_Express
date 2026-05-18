@@ -19,6 +19,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomDropdown from '../../components/CustomDropdown';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 interface FoodItem {
   id: string;

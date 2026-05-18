@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function Activities({ navigation }: any) {
   const [activities, setActivities] = useState<any[]>([]);
@@ -318,25 +319,6 @@ const styles = StyleSheet.create({
 
   headerIconButton: {
     marginLeft: 12,
-  },
-
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
   },
 
   pageTitle: {

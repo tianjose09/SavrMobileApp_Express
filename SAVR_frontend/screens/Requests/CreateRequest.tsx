@@ -7,6 +7,7 @@ import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-ico
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
+import NotificationBell from '../../components/NotificationBell';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
@@ -520,8 +521,6 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerDivider: { height: 1, backgroundColor: '#E0E0E0', marginHorizontal: -20 },
-  badgeDot: { position: 'absolute', top: -3, right: -4, backgroundColor: '#E74C3C', borderRadius: 9, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
-  badgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
   scrollContent: { paddingHorizontal: 22, paddingTop: 30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   titleIcon: { marginRight: 12 },

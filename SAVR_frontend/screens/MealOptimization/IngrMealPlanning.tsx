@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ApiService } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
 import { StorageUtils } from '../../utils/storage';
+import NotificationBell from '../../components/NotificationBell';
 
 // Parse a qty string like "48 kg" or "680 pcs" into { value, unit }
 const parseQty = (qtyStr: string): { value: number; unit: string } => {
@@ -231,9 +232,7 @@ export default function IngrMealPlanning({ navigation }: any) {
             />
           </View>
           <View style={styles.topActions}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={26} color="#544434" />
-            </TouchableOpacity>
+            <NotificationBell navigation={navigation} color="#544434" size={26} />
             <TouchableOpacity style={[styles.iconBtn, { marginLeft: 10 }]} onPress={() => navigation?.openDrawer?.()}>
               <Ionicons name="menu-outline" size={32} color="#544434" />
             </TouchableOpacity>

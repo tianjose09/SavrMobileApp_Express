@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import CustomDropdown from '../../components/CustomDropdown';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function AddFoodItem_Inventory({ navigation }: any) {
   const [foodName, setFoodName] = useState('');
@@ -97,9 +98,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
         </TouchableOpacity>
 
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={{ marginRight: 15 }}>
-            <Ionicons name="notifications-outline" size={28} color="#786F67" />
-          </TouchableOpacity>
+          <NotificationBell navigation={navigation} color="#786F67" size={28} />
           <TouchableOpacity onPress={() => navigation?.openDrawer?.()}>
             <Ionicons name="menu-outline" size={38} color="#786F67" />
           </TouchableOpacity>
