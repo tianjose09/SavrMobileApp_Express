@@ -901,19 +901,54 @@ exports.getBeneficiaryRequests = async (req, res) => {
     'SELECT * FROM beneficiary_requests WHERE user_id = ? ORDER BY created_at DESC',
     [req.user.id]
   );
-  const mapped = requests.map(r => {
-    let foodItems = [];
-    try {
-      foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []);
-    } catch { foodItems = []; }
-    return {
-      ...r,
-      food_items: foodItems,
-      food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
-      quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
-      unit: r.unit || (foodItems[0]?.unit ?? null),
-    };
-  });
+
+  const notableStatuses = ['rejected', 'denied', 'approved', 'accepted', 'allocated', 'urgent'];
+  const statusMessages = {
+    rejected:  'We regret to inform you that your request has been rejected. Please contact our team if you have any questions.',
+    denied:    'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
+    approved:  'Great news! Your request has been approved and is now being prepared for fulfillment.',
+    accepted:  'Great news! Your request has been accepted and is now being prepared for fulfillment.',
+    allocated: 'Your request has been allocated and will be processed soon. Thank you for your patience.',
+    urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
+  };
+  const statusTitles = {
+    rejected:  'Request Rejected',
+    denied:    'Request Denied',
+    approved:  'Request Approved',
+    accepted:  'Request Accepted',
+    allocated: 'Request Allocated',
+    urgent:    'Request Marked Urgent',
+  };
+
+  for (const r of requests) {
+    const s = (r.status || '').toLowerCase().trim();
+    if (notableStatuses.includes(s) && r.notified_status !== r.status) {
+      const name = r.request_name || 'Unnamed';
+      const msg = (statusMessages[s] || `Your request status has been updated to "${r.status}".`)
+        .replace('your request', `your request "${name}"`);
+      await createNotification(r.user_id, 'service', statusTitles[s] || `Request ${r.status}`, msg, true);
+      await db.execute(
+        'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
+        [r.status, r.id]
+      );
+    }
+  }
+
+  const mapped = requests
+    .filter(r => (r.status || '').toLowerCase() !== 'cancelled')
+    .map(r => {
+      let foodItems = [];
+      try {
+        foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []);
+      } catch { foodItems = []; }
+      return {
+        ...r,
+        food_items: foodItems,
+        food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
+        quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
+        unit: r.unit || (foodItems[0]?.unit ?? null),
+      };
+    });
   return res.json({ success: true, requests: mapped });
 };
 
@@ -933,7 +968,10 @@ exports.cancelBeneficiaryRequest = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Only Pending requests can be cancelled.' });
   }
 
-  await db.execute('DELETE FROM beneficiary_requests WHERE id = ?', [id]);
+  await db.execute(
+    "UPDATE beneficiary_requests SET status = 'Cancelled', updated_at = NOW() WHERE id = ?",
+    [id]
+  );
   return res.json({ success: true, message: 'Request cancelled successfully.' });
 };
 

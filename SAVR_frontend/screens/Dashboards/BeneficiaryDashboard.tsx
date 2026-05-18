@@ -22,7 +22,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const [initial, setInitial] = useState('B');
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState(0);
-  const [activeRequests, setActiveRequests] = useState(0);
+  const [acceptedRequests, setAcceptedRequests] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -89,7 +89,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
         }
 
         setPendingRequests(data.pending_requests ?? 0);
-        setActiveRequests(data.active_requests ?? 0);
+        setAcceptedRequests(data.accepted_requests ?? 0);
 
         try {
           const critRes = await ApiService.getCriticalNotifications();
@@ -205,8 +205,8 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                     resizeMode="contain"
                   >
                     <View style={styles.cardRightStack}>
-                      <Text style={styles.cardNumber}>{activeRequests}</Text>
-                      <Text style={styles.cardLabel}>ACTIVE REQUEST</Text>
+                      <Text style={styles.cardNumber}>{acceptedRequests}</Text>
+                      <Text style={styles.cardLabel}>ACCEPTED REQUEST</Text>
                     </View>
                   </ImageBackground>
                 </TouchableOpacity>

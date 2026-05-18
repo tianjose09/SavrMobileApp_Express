@@ -55,31 +55,74 @@ db.execute(`
   `)
 ).catch(err => console.error('[food donation trigger]', err.message));
 
+// Ensure beneficiary_requests.status has no restrictive check constraint
+db.execute(`ALTER TABLE beneficiary_requests DROP CONSTRAINT IF EXISTS beneficiary_requests_status_check`).catch(() => {});
+
+// Track last notified status per request so we can auto-notify on fetch
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS notified_status VARCHAR(100) DEFAULT NULL`).catch(() => {});
+
+// Trigger: intercept admin DELETE on beneficiary_requests → convert to Rejected + notify
+db.execute(`
+  CREATE OR REPLACE FUNCTION prevent_beneficiary_request_delete()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    UPDATE beneficiary_requests
+      SET status = 'Rejected', updated_at = NOW()
+      WHERE id = OLD.id;
+    INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+    VALUES (
+      OLD.user_id, 'service', 'Request Rejected',
+      'We regret to inform you that your request "' || COALESCE(OLD.request_name, 'Unnamed') || '" has been rejected. Please contact our team if you have any questions.',
+      TRUE, NOW()
+    );
+    RETURN NULL;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`DROP TRIGGER IF EXISTS trg_prevent_request_delete ON beneficiary_requests`)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_prevent_request_delete
+      BEFORE DELETE ON beneficiary_requests
+      FOR EACH ROW
+      WHEN (OLD.status IS DISTINCT FROM 'Cancelled')
+      EXECUTE FUNCTION prevent_beneficiary_request_delete()
+  `)
+).catch(err => console.error('[request delete trigger]', err.message));
+
 // Trigger: notify beneficiary when admin changes request status
 db.execute(`
   CREATE OR REPLACE FUNCTION notify_beneficiary_request_status()
   RETURNS TRIGGER AS $$
+  DECLARE
+    v_status TEXT;
   BEGIN
     IF NEW.status IS DISTINCT FROM OLD.status THEN
-      IF LOWER(NEW.status) IN ('approved', 'accepted') THEN
+      v_status := LOWER(TRIM(NEW.status));
+      IF v_status IN ('approved', 'accepted') THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Approved',
           'Great news! Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been approved and is now being prepared for fulfillment. We will be in touch with the next steps.',
           TRUE, NOW());
-      ELSIF LOWER(NEW.status) IN ('rejected', 'denied') THEN
+      ELSIF v_status IN ('rejected', 'denied', 'deny', 'reject', 'declined', 'disapproved', 'refused') OR v_status LIKE '%reject%' OR v_status LIKE '%den%' OR v_status LIKE '%declin%' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Denied',
           'We regret to inform you that your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been denied. Please contact our team if you have any questions.',
           TRUE, NOW());
-      ELSIF LOWER(NEW.status) = 'allocated' THEN
+      ELSIF v_status = 'allocated' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Allocated',
           'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been allocated and will be processed soon. Thank you for your patience.',
           TRUE, NOW());
-      ELSIF LOWER(NEW.status) = 'urgent' THEN
+      ELSIF v_status = 'urgent' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Marked Urgent',
           'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been marked as urgent and will be prioritized immediately.',
+          TRUE, NOW());
+      ELSIF v_status NOT IN ('pending', 'cancelled', 'canceled') THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'service', 'Request Status Updated',
+          'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" status has been updated to "' || NEW.status || '". Please contact us if you have any questions.',
           TRUE, NOW());
       END IF;
     END IF;
@@ -750,11 +793,11 @@ exports.dashboard = async (req, res) => {
     icon: a.icon, time_ago: dayjs(a.created_at).fromNow(),
   }));
 
-  let totalrequests = 0, pendingrequests = 0, fulfilledrequests = 0;
+  let totalrequests = 0, pendingrequests = 0, acceptedrequests = 0;
   if (user.role === 'beneficiary') {
     [[{ totalrequests }]] = await db.execute('SELECT COUNT(*) AS totalrequests FROM beneficiary_requests WHERE user_id = ?', [user.id]);
-    [[{ pendingrequests }]] = await db.execute("SELECT COUNT(*) AS pendingrequests FROM beneficiary_requests WHERE user_id = ? AND status = 'Pending'", [user.id]);
-    [[{ fulfilledrequests }]] = await db.execute("SELECT COUNT(*) AS fulfilledrequests FROM beneficiary_requests WHERE user_id = ? AND status IN ('Allocated','Urgent')", [user.id]);
+    [[{ pendingrequests }]] = await db.execute("SELECT COUNT(*) AS pendingrequests FROM beneficiary_requests WHERE user_id = ? AND LOWER(status) = 'pending'", [user.id]);
+    [[{ acceptedrequests }]] = await db.execute("SELECT COUNT(*) AS acceptedrequests FROM beneficiary_requests WHERE user_id = ? AND LOWER(status) IN ('accepted','approved','allocated','urgent')", [user.id]);
   }
 
   const [[{ totalmealsserved }]] = await db.execute(
@@ -782,7 +825,7 @@ exports.dashboard = async (req, res) => {
     recent_activities: recentActivities,
     total_requests: parseInt(totalrequests),
     pending_requests: parseInt(pendingrequests),
-    fulfilled_requests: parseInt(fulfilledrequests),
+    accepted_requests: parseInt(acceptedrequests),
     total_meals_served: parseInt(totalmealsserved),
   });
 };

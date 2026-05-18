@@ -21,7 +21,7 @@ export default function TrackMyRequest({ navigation }: any) {
     'FINANCIAL': false,
   });
 
-  const filters = ['All', 'Pending', 'Accepted', 'Completed', 'Rejected'];
+  const filters = ['All', 'Pending', 'Accepted', 'Rejected'];
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -89,16 +89,17 @@ export default function TrackMyRequest({ navigation }: any) {
     const s = status?.toUpperCase();
     if (s === 'PENDING') return '#A87919';
     if (s === 'COMPLETED' || s === 'APPROVED' || s === 'ACCEPTED') return '#00592d';
-    if (s === 'REJECTED' || s === 'CANCELLED') return '#C0392B';
+    if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s) || s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN')) return '#C0392B';
     return '#555555';
   };
 
   const getMappedFilterStatus = (status: string) => {
-    const s = status?.toUpperCase() || 'PENDING';
-    if (['PENDING'].includes(s)) return 'Pending';
-    if (['ACCEPTED', 'ALLOCATED', 'URGENT'].includes(s)) return 'Accepted';
-    if (['COMPLETED', 'FULFILLED'].includes(s)) return 'Completed';
-    if (['REJECTED', 'CANCELLED'].includes(s)) return 'Rejected';
+    const s = (status || 'PENDING').toUpperCase().trim();
+    if (s === 'PENDING') return 'Pending';
+    if (['ACCEPTED', 'ALLOCATED', 'URGENT', 'APPROVED'].includes(s)) return 'Accepted';
+    if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s)) return 'Rejected';
+    // Any unknown negative-sounding status → Rejected; anything else → Pending
+    if (s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN') || s.includes('REFUS')) return 'Rejected';
     return 'Pending';
   };
 
@@ -106,8 +107,8 @@ export default function TrackMyRequest({ navigation }: any) {
     ? requestsData
     : requestsData.filter(req => getMappedFilterStatus(req.status) === selectedFilter);
 
-  const foodRequests = filteredRequests.filter(req => req.type?.toLowerCase() === 'food');
   const financialRequests = filteredRequests.filter(req => req.type?.toLowerCase() === 'financial');
+  const foodRequests = filteredRequests.filter(req => req.type?.toLowerCase() !== 'financial');
 
   const renderSummaryRow = (label: string, value: string | number) => (
     <View style={styles.summaryRow}>
@@ -201,6 +202,18 @@ export default function TrackMyRequest({ navigation }: any) {
                             </View>
 
                             {renderSummaryRow('Food Type', req.food_type)}
+                            {Array.isArray(req.food_items) && req.food_items.length > 0 && (
+                              <View style={styles.reportTableRow}>
+                                <Text style={styles.reportTableCellLabel}>Food Items</Text>
+                                <View style={{ flex: 1.8 }}>
+                                  {req.food_items.map((item: any, i: number) => (
+                                    <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }]}>
+                                      {item.food_name || item.name || 'Unknown'} — {item.qty ?? item.quantity ?? 0} {item.unit || ''}
+                                    </Text>
+                                  ))}
+                                </View>
+                              </View>
+                            )}
                             {renderSummaryRow('Quantity', req.quantity ? `${req.quantity} ${req.unit && req.unit !== 'null' ? req.unit : ''}`.trim() : 'N/A')}
                             {renderSummaryRow('Target Population', req.population)}
                             {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}-${req.age_max} Years` : 'All Ages')}
