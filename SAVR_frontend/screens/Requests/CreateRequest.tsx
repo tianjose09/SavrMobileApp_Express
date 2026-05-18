@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
 import NotificationBell from '../../components/NotificationBell';
+import ToastBanner from '../../components/ToastBanner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
@@ -28,6 +29,7 @@ const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
   Bakery: { lib: 'mci', name: 'bread-slice' },
   Beverages: { lib: 'mci', name: 'cup-water' },
   'Rice/Grains': { lib: 'mci', name: 'rice' },
+  'Prepared Meals': { lib: 'mci', name: 'silverware-fork-knife' },
   Mixed: { lib: 'mci', name: 'food-variant' },
 };
 const DEFAULT_CAT_ICON: IconEntry = { lib: 'mci', name: 'package-variant' };
@@ -66,6 +68,18 @@ export default function CreateRequest({ navigation }: any) {
     age_start: '', age_end: '', street: '', barangay: '',
     city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
   });
+  const [toast, setToast] = useState({ visible: false, title: '', message: '' });
+
+  const resetForm = () => {
+    setForm({ title: '', financial_amount: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '' });
+    setRequestedFoods([]);
+    setSelectedCategory(null);
+    setSelectedItem(null);
+    setItemQty('');
+    setItemUnit('kg');
+    setRequestType('food');
+    setDateObj(new Date());
+  };
 
   const updateForm = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
@@ -153,12 +167,14 @@ export default function CreateRequest({ navigation }: any) {
       const payload = {
         ...form,
         type: requestType,
-        food_items: requestedFoods.map(f => ({ id: f.id, name: f.name, category: f.category, qty: f.qty, unit: f.unit })),
+        food_items: requestedFoods.map(f => ({ id: f.id, food_name: f.name, food_type: f.category, qty: f.qty, unit: f.unit })),
       };
       const res = await ApiService.submitBeneficiaryRequest(payload);
       if (res.data.success) {
-        Alert.alert('Success', 'Your request has been submitted successfully.');
-        navigation.navigate('HomeTabs', { screen: 'Track' });
+        resetForm();
+        isSubmitting.current = false;
+        setToast({ visible: true, title: 'Request Submitted!', message: 'Your assistance request has been received and is now being reviewed. We will notify you once it is processed.' });
+        setTimeout(() => navigation.navigate('HomeTabs', { screen: 'Track' }), 4500);
       } else {
         Alert.alert('Error', res.data.message || 'Failed to submit request.');
         isSubmitting.current = false;
@@ -173,6 +189,12 @@ export default function CreateRequest({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ToastBanner
+        visible={toast.visible}
+        title={toast.title}
+        message={toast.message}
+        onHide={() => setToast(t => ({ ...t, visible: false }))}
+      />
       {/* Header */}
       <View style={styles.topHeader}>
         <View style={styles.headerRow}>

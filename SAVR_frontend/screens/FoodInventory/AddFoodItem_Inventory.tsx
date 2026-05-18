@@ -141,6 +141,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 { label: "Fruits", value: "Fruits" },
                 { label: "Vegetables", value: "Vegetables" },
                 { label: "Sugars & Sweets", value: "Sugars & Sweets" },
+                { label: "Prepared Meals", value: "Prepared Meals" },
               ]}
               style={styles.input}
             />

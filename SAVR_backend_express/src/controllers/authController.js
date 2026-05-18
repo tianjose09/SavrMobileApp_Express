@@ -61,25 +61,25 @@ db.execute(`
   RETURNS TRIGGER AS $$
   BEGIN
     IF NEW.status IS DISTINCT FROM OLD.status THEN
-      IF NEW.status = 'Approved' OR NEW.status = 'Accepted' THEN
+      IF LOWER(NEW.status) IN ('approved', 'accepted') THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Approved',
-          'Great news! Your request has been approved and is now being prepared for fulfillment. We will be in touch with the next steps.',
+          'Great news! Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been approved and is now being prepared for fulfillment. We will be in touch with the next steps.',
           TRUE, NOW());
-      ELSIF NEW.status = 'Rejected' OR NEW.status = 'Denied' THEN
+      ELSIF LOWER(NEW.status) IN ('rejected', 'denied') THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Denied',
-          'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
+          'We regret to inform you that your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been denied. Please contact our team if you have any questions.',
           TRUE, NOW());
-      ELSIF NEW.status = 'Allocated' THEN
+      ELSIF LOWER(NEW.status) = 'allocated' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Allocated',
-          'Your request has been allocated and will be processed soon. Thank you for your patience.',
+          'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been allocated and will be processed soon. Thank you for your patience.',
           TRUE, NOW());
-      ELSIF NEW.status = 'Urgent' THEN
+      ELSIF LOWER(NEW.status) = 'urgent' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Marked Urgent',
-          'Your request has been marked as urgent and will be prioritized immediately.',
+          'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been marked as urgent and will be prioritized immediately.',
           TRUE, NOW());
       END IF;
     END IF;
@@ -97,7 +97,7 @@ db.execute(`
   `)
 ).catch(err => console.error('[beneficiary request trigger]', err.message));
 
-// Ensure financial_donation_records.status allows 'paid'
+// Ensure financial_donation_records.status allows all used values
 db.execute(`
   ALTER TABLE financial_donation_records
     DROP CONSTRAINT IF EXISTS financial_donation_records_status_check
@@ -105,9 +105,46 @@ db.execute(`
   db.execute(`
     ALTER TABLE financial_donation_records
       ADD CONSTRAINT financial_donation_records_status_check
-      CHECK (status IN ('pending', 'paid', 'completed', 'failed', 'cancelled'))
+      CHECK (status IN ('pending', 'paid', 'completed', 'failed', 'cancelled', 'approved', 'rejected', 'denied'))
   `)
 ).catch(() => {});
+
+// Trigger: notify donor when admin changes financial donation status
+db.execute(`
+  CREATE OR REPLACE FUNCTION notify_donor_financial_donation_status()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+      IF LOWER(NEW.status) IN ('approved', 'paid', 'completed') THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'financial', 'Financial Donation Confirmed',
+          'Your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been confirmed and received. Thank you for your generous contribution!',
+          TRUE, NOW());
+      ELSIF LOWER(NEW.status) IN ('rejected', 'denied') THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'financial', 'Financial Donation Denied',
+          'We regret to inform you that your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been denied. Please contact us for more details.',
+          TRUE, NOW());
+      ELSIF LOWER(NEW.status) IN ('cancelled', 'failed') THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'financial', 'Financial Donation Cancelled',
+          'Your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been cancelled. Please contact us if you have any questions.',
+          TRUE, NOW());
+      END IF;
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`DROP TRIGGER IF EXISTS trg_financial_donation_status_notify ON financial_donation_records`)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_financial_donation_status_notify
+      AFTER UPDATE ON financial_donation_records
+      FOR EACH ROW
+      EXECUTE FUNCTION notify_donor_financial_donation_status()
+  `)
+).catch(err => console.error('[financial donation trigger]', err.message));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
