@@ -51,14 +51,19 @@ export default function FoodDonationDetails({ navigation }: any) {
   const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
 
   useEffect(() => {
+    const BASE_CATEGORIES = [
+      'Meat', 'Vegetables', 'Fruits', 'Grains', 'Canned Goods',
+      'Dairy', 'Prepared Meals', 'Beverages', 'Snacks', 'Others',
+    ];
     ApiService.getInventoryCategories()
       .then(res => {
-        const cats: string[] = res.data?.categories ?? [];
-        if (cats.length > 0) {
-          setCategoryItems(cats.map(c => ({ label: c, value: c })));
-        }
+        const apiCats: string[] = res.data?.categories ?? [];
+        const merged = Array.from(new Set([...BASE_CATEGORIES, ...apiCats]));
+        setCategoryItems(merged.map(c => ({ label: c, value: c })));
       })
-      .catch(() => {});
+      .catch(() => {
+        setCategoryItems(BASE_CATEGORIES.map(c => ({ label: c, value: c })));
+      });
   }, []);
 
   const addItem = () => {

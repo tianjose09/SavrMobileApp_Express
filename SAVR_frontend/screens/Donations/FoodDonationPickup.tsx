@@ -110,7 +110,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       formData.append('food_items', JSON.stringify(foodItems.map((fi: any) => ({
         type: fi.type,
         quantity: fi.quantity,
-        expiry_date: fi.expiryDate
+        expiry_date: fi.expiryDate,
+        category: fi.category || '',
+        special_notes: fi.specialNotes || '',
       }))));
 
       // Use plain 'food_images' field name (not indexed) so multer .array() picks them up

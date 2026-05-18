@@ -11,6 +11,92 @@ dayjs.extend(relativeTime);
 db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
   .catch(() => {});
 
+// Trigger: notify donor when admin changes food donation status
+db.execute(`
+  CREATE OR REPLACE FUNCTION notify_donor_food_donation_status()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+      IF NEW.status = 'approved' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'food', 'Food Donation Approved',
+          'Great news! Your food donation has been approved. We will be in touch regarding the pickup or delivery schedule. Thank you!',
+          TRUE, NOW());
+      ELSIF NEW.status = 'rejected' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'food', 'Food Donation Denied',
+          'We regret to inform you that your food donation has been denied. Please contact us for more details.',
+          TRUE, NOW());
+      ELSIF NEW.status = 'received' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'food', 'Food Donation Received',
+          'Your food donation has been successfully received and is now being processed into our inventory. Thank you for your generous contribution!',
+          TRUE, NOW());
+      ELSIF NEW.status = 'cancelled' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'food', 'Food Donation Cancelled',
+          'Your food donation has been cancelled. Please contact us if you have any questions.',
+          TRUE, NOW());
+      END IF;
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`
+    DROP TRIGGER IF EXISTS trg_food_donation_status_notify ON food_donation_records
+  `)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_food_donation_status_notify
+      AFTER UPDATE ON food_donation_records
+      FOR EACH ROW
+      EXECUTE FUNCTION notify_donor_food_donation_status()
+  `)
+).catch(err => console.error('[food donation trigger]', err.message));
+
+// Trigger: notify beneficiary when admin changes request status
+db.execute(`
+  CREATE OR REPLACE FUNCTION notify_beneficiary_request_status()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+      IF NEW.status = 'Approved' OR NEW.status = 'Accepted' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'service', 'Request Approved',
+          'Great news! Your request has been approved and is now being prepared for fulfillment. We will be in touch with the next steps.',
+          TRUE, NOW());
+      ELSIF NEW.status = 'Rejected' OR NEW.status = 'Denied' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'service', 'Request Denied',
+          'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
+          TRUE, NOW());
+      ELSIF NEW.status = 'Allocated' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'service', 'Request Allocated',
+          'Your request has been allocated and will be processed soon. Thank you for your patience.',
+          TRUE, NOW());
+      ELSIF NEW.status = 'Urgent' THEN
+        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+        VALUES (NEW.user_id, 'service', 'Request Marked Urgent',
+          'Your request has been marked as urgent and will be prioritized immediately.',
+          TRUE, NOW());
+      END IF;
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`DROP TRIGGER IF EXISTS trg_beneficiary_request_status_notify ON beneficiary_requests`)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_beneficiary_request_status_notify
+      AFTER UPDATE ON beneficiary_requests
+      FOR EACH ROW
+      EXECUTE FUNCTION notify_beneficiary_request_status()
+  `)
+).catch(err => console.error('[beneficiary request trigger]', err.message));
+
 // Ensure financial_donation_records.status allows 'paid'
 db.execute(`
   ALTER TABLE financial_donation_records

@@ -20,7 +20,7 @@ async function logActivity(userId, type, title, description, icon = 'financialic
 
 async function recalculateBadges(userId) {
   const [[foodRow]] = await db.execute(
-    "SELECT COUNT(*) AS cnt FROM food_donations WHERE user_id = ? AND status IN ('scheduled','completed')",
+    "SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ? AND status IN ('approved','received')",
     [userId]
   );
   const [[financialRow]] = await db.execute(
@@ -576,8 +576,8 @@ exports.submitFood = async (req, res) => {
   const files = req.files || [];
 
   const [donationResult] = await db.execute(
-    `INSERT INTO food_donations (user_id, mode, preferred_date, time_slot_start, time_slot_end, pickup_address, pickup_lat, pickup_lng, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', NOW(), NOW())`,
+    `INSERT INTO food_donation_records (user_id, mode, preferred_date, time_slot_start, time_slot_end, pickup_address, pickup_lat, pickup_lng, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
     [req.user.id, schedule_type, preferred_date, start, end, pickup_address || null, pickup_latitude || null, pickup_longitude || null]
   );
   const donationId = donationResult.insertId;
@@ -593,12 +593,12 @@ exports.submitFood = async (req, res) => {
       ? dayjs(item.expiryDate).format('YYYY-MM-DD')
       : item.expiry_date
         ? dayjs(item.expiry_date).format('YYYY-MM-DD')
-        : null;
+        : dayjs().add(30, 'day').format('YYYY-MM-DD');
 
     const photoPath = files[i] ? files[i].path : null;
 
     await db.execute(
-      `INSERT INTO food_donation_items (food_donation_id, food_name, quantity, unit, category, expiration_date, special_notes, photo_path, created_at, updated_at)
+      `INSERT INTO food_donation_record_items (food_donation_record_id, food_name, quantity, unit, category, expiration_date, special_notes, photo_path, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [donationId, item.foodName || item.name || item.type || 'Unknown Item', numQty, unit, item.category || 'General', expiryDate, item.notes || item.special_notes || null, photoPath]
     );
@@ -620,7 +620,7 @@ exports.submitSchedule = async (req, res) => {
   }
 
   const [rows] = await db.execute(
-    'SELECT * FROM food_donations WHERE id = ? AND user_id = ?',
+    'SELECT * FROM food_donation_records WHERE id = ? AND user_id = ?',
     [donation_id, req.user.id]
   );
   if (!rows.length) {
@@ -630,11 +630,11 @@ exports.submitSchedule = async (req, res) => {
   const { start, end } = parseTimeSlot(time_slot);
 
   await db.execute(
-    `UPDATE food_donations SET mode = ?, preferred_date = ?, time_slot_start = ?, time_slot_end = ?, pickup_address = ?, pickup_lat = ?, pickup_lng = ?, status = 'scheduled', updated_at = NOW() WHERE id = ?`,
+    `UPDATE food_donation_records SET mode = ?, preferred_date = ?, time_slot_start = ?, time_slot_end = ?, pickup_address = ?, pickup_lat = ?, pickup_lng = ?, status = 'scheduled', updated_at = NOW() WHERE id = ?`,
     [schedule_type, preferred_date, start, end, pickup_address || null, pickup_lat || null, pickup_lng || null, donation_id]
   );
 
-  const [updated] = await db.execute('SELECT * FROM food_donations WHERE id = ?', [donation_id]);
+  const [updated] = await db.execute('SELECT * FROM food_donation_records WHERE id = ?', [donation_id]);
 
   await logActivity(req.user.id, 'food', `${schedule_type.charAt(0).toUpperCase() + schedule_type.slice(1)} Scheduled`, `Scheduled for ${preferred_date} at ${time_slot}`, 'truckicon');
   await recalculateBadges(req.user.id);
@@ -680,7 +680,7 @@ exports.getDonationStats = async (req, res) => {
     [uid]
   );
   const [[totalFoodRow]] = await db.execute(
-    'SELECT COUNT(*) AS cnt FROM food_donations WHERE user_id = ?',
+    'SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ?',
     [uid]
   );
   const [[totalServiceRow]] = await db.execute(
@@ -718,7 +718,7 @@ exports.getUpcomingPickups = async (req, res) => {
   const uid = req.user.id;
 
   const [pickups] = await db.execute(
-    "SELECT * FROM food_donations WHERE user_id = ? AND status IN ('pending','scheduled') ORDER BY created_at DESC LIMIT 5",
+    "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','approved') ORDER BY created_at DESC LIMIT 5",
     [uid]
   );
 
@@ -740,7 +740,7 @@ exports.updatePickup = async (req, res) => {
   const { preferred_date, time_slot, pickup_address, schedule_type } = req.body;
 
   const [rows] = await db.execute(
-    "SELECT * FROM food_donations WHERE id = ? AND user_id = ? AND status IN ('pending','scheduled')",
+    "SELECT * FROM food_donation_records WHERE id = ? AND user_id = ? AND status = 'pending'",
     [id, req.user.id]
   );
   if (!rows.length) {
@@ -750,11 +750,11 @@ exports.updatePickup = async (req, res) => {
   const { start, end } = parseTimeSlot(time_slot || '07:00');
 
   await db.execute(
-    `UPDATE food_donations SET mode = ?, preferred_date = ?, time_slot_start = ?, time_slot_end = ?, pickup_address = ?, updated_at = NOW() WHERE id = ?`,
+    `UPDATE food_donation_records SET mode = ?, preferred_date = ?, time_slot_start = ?, time_slot_end = ?, pickup_address = ?, updated_at = NOW() WHERE id = ?`,
     [schedule_type || rows[0].mode, preferred_date || rows[0].preferred_date, start, end, pickup_address || rows[0].pickup_address, id]
   );
 
-  const [updated] = await db.execute('SELECT * FROM food_donations WHERE id = ?', [id]);
+  const [updated] = await db.execute('SELECT * FROM food_donation_records WHERE id = ?', [id]);
   return res.json({ success: true, message: 'Pickup updated.', pickup: updated[0] });
 };
 
@@ -762,7 +762,7 @@ exports.deletePickup = async (req, res) => {
   const { id } = req.params;
 
   const [rows] = await db.execute(
-    "SELECT * FROM food_donations WHERE id = ? AND user_id = ? AND status IN ('pending','scheduled')",
+    "SELECT * FROM food_donation_records WHERE id = ? AND user_id = ? AND status = 'pending'",
     [id, req.user.id]
   );
   if (!rows.length) {
@@ -770,8 +770,8 @@ exports.deletePickup = async (req, res) => {
   }
 
   // Also delete related food items
-  await db.execute('DELETE FROM food_donation_items WHERE food_donation_id = ?', [id]);
-  await db.execute('DELETE FROM food_donations WHERE id = ?', [id]);
+  await db.execute('DELETE FROM food_donation_record_items WHERE food_donation_record_id = ?', [id]);
+  await db.execute('DELETE FROM food_donation_records WHERE id = ?', [id]);
 
   return res.json({ success: true, message: 'Pickup deleted successfully.' });
 };
