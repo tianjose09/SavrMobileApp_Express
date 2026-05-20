@@ -46,13 +46,27 @@ export default function MealPreparationSummary({ navigation }: any) {
                     deductions: meal.deductions,
                     meal_name: meal.mealName
                   });
-                  Alert.alert('Success', 'Ingredients deducted from inventory!');
                 }
+
+                // Add cooked meal to food_inventory as a Prepared Meal (expires in 1 day)
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const expiryDate = tomorrow.toISOString().split('T')[0];
+                await ApiService.addInventory({
+                  food_name: meal.mealName,
+                  category: 'Prepared Meals',
+                  quantity: meal.pax || 1,
+                  unit: 'meal',
+                  meal_type: 'Prepared Meals',
+                  expiration_date: expiryDate,
+                });
+
                 await MealPrepService.updateStatus(meal.id, 'Done');
+                Alert.alert('Success', 'Meal marked as done and added to prepared meals inventory!');
                 loadMeals();
               } catch (e: any) {
                 console.error(e);
-                Alert.alert('Error', 'Failed to deduct inventory.');
+                Alert.alert('Error', 'Failed to complete meal. Please try again.');
               }
             }
           }
