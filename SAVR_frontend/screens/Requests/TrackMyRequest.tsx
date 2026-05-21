@@ -21,7 +21,7 @@ export default function TrackMyRequest({ navigation }: any) {
     'FINANCIAL': false,
   });
 
-  const filters = ['All', 'Pending', 'Accepted', 'Rejected'];
+  const filters = ['All', 'Pending', 'Approved', 'Completed', 'Rejected'];
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -96,11 +96,17 @@ export default function TrackMyRequest({ navigation }: any) {
   const getMappedFilterStatus = (status: string) => {
     const s = (status || 'PENDING').toUpperCase().trim();
     if (s === 'PENDING') return 'Pending';
-    if (['ACCEPTED', 'ALLOCATED', 'URGENT', 'APPROVED'].includes(s)) return 'Accepted';
+    if (['ACCEPTED', 'ALLOCATED', 'URGENT', 'APPROVED'].includes(s)) return 'Approved';
+    if (s === 'COMPLETED') return 'Completed';
     if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s)) return 'Rejected';
-    // Any unknown negative-sounding status → Rejected; anything else → Pending
     if (s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN') || s.includes('REFUS')) return 'Rejected';
     return 'Pending';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const s = (status || 'PENDING').toUpperCase().trim();
+    if (['ACCEPTED', 'ALLOCATED', 'APPROVED'].includes(s)) return 'APPROVED';
+    return s;
   };
 
   const filteredRequests = selectedFilter === 'All'
@@ -189,7 +195,7 @@ export default function TrackMyRequest({ navigation }: any) {
                           <View style={styles.titleStatusRow}>
                             <Text style={styles.reportMainTitle} numberOfLines={2}>{req.request_name || 'Untitled Request'}</Text>
                             <Text style={[styles.reportHeaderStatus, { color: getStatusColor(req.status || 'Pending') }]}>
-                              {req.status?.toUpperCase() || 'PENDING'}
+                              {getStatusLabel(req.status || 'PENDING')}
                             </Text>
                           </View>
 
@@ -201,7 +207,7 @@ export default function TrackMyRequest({ navigation }: any) {
                               </Text>
                             </View>
 
-                            {renderSummaryRow('Food Type', req.food_type)}
+                            {renderSummaryRow('Food Categories', req.food_type)}
                             {Array.isArray(req.food_items) && req.food_items.length > 0 && (
                               <View style={styles.reportTableRow}>
                                 <Text style={styles.reportTableCellLabel}>Food Items</Text>
@@ -263,7 +269,7 @@ export default function TrackMyRequest({ navigation }: any) {
                           <View style={styles.titleStatusRow}>
                             <Text style={styles.reportMainTitle} numberOfLines={2}>{req.request_name || 'Untitled Request'}</Text>
                             <Text style={[styles.reportHeaderStatus, { color: getStatusColor(req.status || 'Pending') }]}>
-                              {req.status?.toUpperCase() || 'PENDING'}
+                              {getStatusLabel(req.status || 'PENDING')}
                             </Text>
                           </View>
 
