@@ -39,7 +39,7 @@ export default function Login({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
   const [countdown, setCountdown] = useState(0);
@@ -201,18 +201,6 @@ export default function Login({ navigation }: any) {
             </View>
 
             <View style={styles.utilsRow}>
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => setRememberMe(!rememberMe)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={rememberMe ? 'checkbox' : 'square-outline'}
-                  size={18}
-                  color={rememberMe ? COLORS.yellow : 'rgba(255,255,255,0.78)'}
-                />
-                <Text style={[styles.utilText, { marginLeft: 6 }]}>Remember for 30 days</Text>
-              </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
                 <Text style={styles.utilText}>Forgot Password?</Text>
               </TouchableOpacity>
@@ -371,7 +359,7 @@ const styles = StyleSheet.create({
 
   utilsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 26,
     marginTop: 2,
