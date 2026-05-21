@@ -69,6 +69,19 @@ export default function PrepareMeal({ route, navigation }: any) {
         await MealPrepService.updateStatus(prepMealId, 'Done');
       }
 
+      // Add cooked meal to food_inventory as a Prepared Meal (expires in 1 day)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const expiryDate = tomorrow.toISOString().split('T')[0];
+      await ApiService.addInventory({
+        food_name: meal.name,
+        category: 'Prepared Meals',
+        quantity: mealPax || 1,
+        unit: 'meal',
+        meal_type: 'Prepared Meals',
+        expiration_date: expiryDate,
+      });
+
       navigation.navigate('MealPreparationSummary');
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message || 'Failed to update inventory. Please try again.');
