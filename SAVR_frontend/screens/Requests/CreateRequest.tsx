@@ -7,8 +7,6 @@ import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-ico
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
-import NotificationBell from '../../components/NotificationBell';
-import ToastBanner from '../../components/ToastBanner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
@@ -29,7 +27,6 @@ const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
   Bakery: { lib: 'mci', name: 'bread-slice' },
   Beverages: { lib: 'mci', name: 'cup-water' },
   'Rice/Grains': { lib: 'mci', name: 'rice' },
-  'Prepared Meals': { lib: 'mci', name: 'silverware-fork-knife' },
   Mixed: { lib: 'mci', name: 'food-variant' },
 };
 const DEFAULT_CAT_ICON: IconEntry = { lib: 'mci', name: 'package-variant' };
@@ -68,18 +65,6 @@ export default function CreateRequest({ navigation }: any) {
     age_start: '', age_end: '', street: '', barangay: '',
     city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
   });
-  const [toast, setToast] = useState({ visible: false, title: '', message: '' });
-
-  const resetForm = () => {
-    setForm({ title: '', financial_amount: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '' });
-    setRequestedFoods([]);
-    setSelectedCategory(null);
-    setSelectedItem(null);
-    setItemQty('');
-    setItemUnit('kg');
-    setRequestType('food');
-    setDateObj(new Date());
-  };
 
   const updateForm = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
@@ -167,14 +152,12 @@ export default function CreateRequest({ navigation }: any) {
       const payload = {
         ...form,
         type: requestType,
-        food_items: requestedFoods.map(f => ({ id: f.id, food_name: f.name, food_type: f.category, qty: f.qty, unit: f.unit })),
+        food_items: requestedFoods.map(f => ({ id: f.id, name: f.name, category: f.category, qty: f.qty, unit: f.unit })),
       };
       const res = await ApiService.submitBeneficiaryRequest(payload);
       if (res.data.success) {
-        resetForm();
-        isSubmitting.current = false;
-        setToast({ visible: true, title: 'Request Submitted!', message: 'Your assistance request has been received and is now being reviewed. We will notify you once it is processed.' });
-        setTimeout(() => navigation.navigate('HomeTabs', { screen: 'Track' }), 4500);
+        Alert.alert('Success', 'Your request has been submitted successfully.');
+        navigation.navigate('HomeTabs', { screen: 'Track' });
       } else {
         Alert.alert('Error', res.data.message || 'Failed to submit request.');
         isSubmitting.current = false;
@@ -189,18 +172,15 @@ export default function CreateRequest({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ToastBanner
-        visible={toast.visible}
-        title={toast.title}
-        message={toast.message}
-        onHide={() => setToast(t => ({ ...t, visible: false }))}
-      />
       {/* Header */}
       <View style={styles.topHeader}>
         <View style={styles.headerRow}>
           <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
           <View style={styles.headerIcons}>
-            <NotificationBell navigation={navigation} color="#4A4A4A" size={26} />
+            <TouchableOpacity style={{ marginRight: 15, position: 'relative' }} onPress={() => navigation.navigate('Notifications')}>
+              <Ionicons name="notifications-outline" size={26} color="#4A4A4A" />
+              <View style={styles.badgeDot}><Text style={styles.badgeText}>!</Text></View>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.openDrawer()}>
               <Ionicons name="menu-outline" size={34} color="#4A4A4A" />
             </TouchableOpacity>
@@ -246,11 +226,10 @@ export default function CreateRequest({ navigation }: any) {
             {requestType === 'financial' && (
               <View>
                 <Text style={styles.inputLabel}>Amount of Money Needed</Text>
+
                 <TextInput
                   style={styles.inputBox}
                   keyboardType="numeric"
-                  placeholder="₱ 0.00"
-                  placeholderTextColor="#A5D1B8"
                   value={form.financial_amount}
                   onChangeText={(val) => updateForm('financial_amount', val)}
                 />
@@ -543,6 +522,8 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerDivider: { height: 1, backgroundColor: '#E0E0E0', marginHorizontal: -20 },
+  badgeDot: { position: 'absolute', top: -3, right: -4, backgroundColor: '#E74C3C', borderRadius: 9, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
+  badgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
   scrollContent: { paddingHorizontal: 22, paddingTop: 30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   titleIcon: { marginRight: 12 },
