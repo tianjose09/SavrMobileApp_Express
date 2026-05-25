@@ -12,6 +12,7 @@ export const api = axios.create({
   headers: {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 
