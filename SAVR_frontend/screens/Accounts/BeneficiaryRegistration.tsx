@@ -810,9 +810,9 @@ const styles = StyleSheet.create({
   },
 
   labelContainer: {
-    height: 32,
+    height: 16,
     justifyContent: 'flex-end',
-    marginBottom: 4,
+    marginBottom: 2,
   },
 
   label: {

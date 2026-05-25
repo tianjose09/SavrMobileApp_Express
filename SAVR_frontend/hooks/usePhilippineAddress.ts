@@ -56,18 +56,44 @@ export function usePhilippineAddress() {
     setSelectedProvinceCode(prov.code);
     setIsLoadingCities(true);
     try {
-      const endpoint = prov.type === 'region' 
-        ? `https://psgc.gitlab.io/api/regions/${prov.code}/cities-municipalities/`
-        : `https://psgc.gitlab.io/api/provinces/${prov.code}/cities-municipalities/`;
+      if (prov.code === '130000000') {
+        // Fetch both NCR cities and NCR sub-municipalities (districts like Sampaloc, Tondo, etc.)
+        const [citiesRes, subMunicipalitiesRes] = await Promise.all([
+          axios.get('https://psgc.gitlab.io/api/regions/130000000/cities-municipalities/'),
+          axios.get('https://psgc.gitlab.io/api/regions/130000000/sub-municipalities/')
+        ]);
         
-      const response = await axios.get(endpoint);
-      const cits = response.data.map((c: any) => ({
-        label: c.name,
-        value: c.name,
-        code: c.code
-      })).sort((a: any, b: any) => a.label.localeCompare(b.label));
-      
-      setCities(cits);
+        const cits = citiesRes.data.map((c: any) => ({
+          label: c.name,
+          value: c.name,
+          code: c.code,
+          type: 'city'
+        }));
+        
+        const subMuns = subMunicipalitiesRes.data.map((sm: any) => ({
+          label: sm.name,
+          value: sm.name,
+          code: sm.code,
+          type: 'sub-municipality'
+        }));
+        
+        const merged = [...cits, ...subMuns].sort((a: any, b: any) => a.label.localeCompare(b.label));
+        setCities(merged);
+      } else {
+        const endpoint = prov.type === 'region' 
+          ? `https://psgc.gitlab.io/api/regions/${prov.code}/cities-municipalities/`
+          : `https://psgc.gitlab.io/api/provinces/${prov.code}/cities-municipalities/`;
+          
+        const response = await axios.get(endpoint);
+        const cits = response.data.map((c: any) => ({
+          label: c.name,
+          value: c.name,
+          code: c.code,
+          type: 'city'
+        })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+        
+        setCities(cits);
+      }
       setBarangays([]); // Reset barangays
     } catch (error) {
       console.error('Error fetching cities:', error);
@@ -86,7 +112,11 @@ export function usePhilippineAddress() {
     setSelectedCityCode(city.code);
     setIsLoadingBarangays(true);
     try {
-      const response = await axios.get(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
+      const endpoint = city.type === 'sub-municipality'
+        ? `https://psgc.gitlab.io/api/sub-municipalities/${city.code}/barangays/`
+        : `https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`;
+        
+      const response = await axios.get(endpoint);
       const brgys = response.data.map((b: any) => ({
         label: b.name,
         value: b.name,
