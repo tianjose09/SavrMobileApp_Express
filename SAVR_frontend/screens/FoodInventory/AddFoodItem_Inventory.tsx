@@ -128,7 +128,12 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
             <Text style={styles.label}>Category</Text>
             <CustomDropdown
               selectedValue={category}
-              onValueChange={setCategory}
+              onValueChange={(val) => {
+                setCategory(val);
+                if (val === 'Canned Goods') {
+                  setUnit('pcs');
+                }
+              }}
               placeholder="Select Category"
               items={[
                 { label: "Canned Goods", value: "Canned Goods" },
@@ -166,13 +171,14 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 selectedValue={unit}
                 onValueChange={setUnit}
                 placeholder="kg"
-                items={[
-                  { label: "kg", value: "kg" },
-                  { label: "g", value: "g" },
-                  { label: "L", value: "L" },
-                  { label: "pcs", value: "pcs" },
-                  { label: "Boxes", value: "Boxes" }
-                ]}
+                items={
+                  category === 'Canned Goods'
+                    ? [{ label: "pcs", value: "pcs" }]
+                    : [
+                        { label: "kg", value: "kg" },
+                        { label: "pcs", value: "pcs" }
+                      ]
+                }
                 style={styles.input}
               />
             </View>

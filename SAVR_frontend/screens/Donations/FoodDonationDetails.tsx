@@ -91,7 +91,16 @@ export default function FoodDonationDetails({ navigation }: any) {
   };
 
   const updateItem = (id: string, field: keyof FoodItem, value: any) => {
-    setItems(items.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
+    setItems(items.map((item) => {
+      if (item.id === id) {
+        const updated = { ...item, [field]: value };
+        if (field === 'category' && value === 'Canned Goods') {
+          updated.unit = 'pcs';
+        }
+        return updated;
+      }
+      return item;
+    }));
   };
 
   const pickImage = async (id: string) => {
@@ -211,15 +220,14 @@ export default function FoodDonationDetails({ navigation }: any) {
                     selectedValue={item.unit}
                     onValueChange={(val) => updateItem(item.id, 'unit', val)}
                     placeholder="kg"
-                    items={[
-                      { label: "Kilograms (kg)", value: "kg" },
-                      { label: "Grams (g)", value: "g" },
-                      { label: "Liters (L)", value: "L" },
-                      { label: "Milliliters (ml)", value: "ml" },
-                      { label: "Pieces (pcs)", value: "pcs" },
-                      { label: "Boxes", value: "Boxes" },
-                      { label: "Packs", value: "Packs" }
-                    ]}
+                    items={
+                      item.category === 'Canned Goods'
+                        ? [{ label: "Pieces (pcs)", value: "pcs" }]
+                        : [
+                            { label: "Kilograms (kg)", value: "kg" },
+                            { label: "Pieces (pcs)", value: "pcs" }
+                          ]
+                    }
                     style={styles.input}
                   />
                 </View>

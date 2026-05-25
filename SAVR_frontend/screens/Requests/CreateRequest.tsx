@@ -39,7 +39,7 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
 }
 
 // ─── Common units ─────────────────────────────────────────────────────────────
-const UNIT_OPTIONS = ['kg', 'g', 'lbs', 'oz', 'L', 'mL', 'pcs', 'packs', 'cans', 'boxes', 'bags', 'bottles', 'trays', 'dozens'];
+const UNIT_OPTIONS = ['kg', 'pcs'];
 
 export default function CreateRequest({ navigation }: any) {
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
@@ -398,7 +398,11 @@ export default function CreateRequest({ navigation }: any) {
                         <TouchableOpacity
                           key={item.id}
                           style={[styles.fdItemRow, isSel && styles.fdItemRowActive, idx < itemsInCategory.length - 1 && styles.fdItemRowBorder]}
-                          onPress={() => { setSelectedItem(isSel ? null : item); setItemQty(''); setItemUnit(item.unit || 'kg'); }}
+                          onPress={() => {
+                            setSelectedItem(isSel ? null : item);
+                            setItemQty('');
+                            setItemUnit(item.category === 'Canned Goods' ? 'pcs' : (item.unit || 'kg'));
+                          }}
                           activeOpacity={0.8}
                         >
                           <View style={[styles.fdItemIcon, isSel && styles.fdItemIconActive]}>
@@ -459,7 +463,7 @@ export default function CreateRequest({ navigation }: any) {
                       <View style={{ width: 60 }} />
                     </View>
                     <ScrollView style={{ maxHeight: 320 }}>
-                      {UNIT_OPTIONS.map(u => (
+                      {(selectedItem?.category === 'Canned Goods' ? ['pcs'] : ['kg', 'pcs']).map(u => (
                         <TouchableOpacity
                           key={u}
                           style={[styles.unitPickerRow, itemUnit === u && styles.unitPickerRowActive]}
