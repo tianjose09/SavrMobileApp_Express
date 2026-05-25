@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
@@ -10,26 +14,120 @@ if (Platform.OS === 'android') {
   }
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Computes the "effective" display status for a request.
+ *
+ * Rules:
+ *  - DB status = 'Approved' / 'Accepted' / 'Allocated'  AND  delivery_date_time exists
+ *    AND  the scheduled delivery time has already passed  →  'In Transit'
+ *  - DB status = 'Approved' / 'Accepted' / 'Allocated'  with NO delivery_date_time
+ *    OR  the scheduled time has NOT yet passed  →  'Approved'
+ *  - DB status = 'Cancelled' / 'Canceled'  →  'Cancelled'
+ *  - DB status = 'Completed'  →  'Completed'
+ *  - DB status = 'Pending'  →  'Pending'
+ *  - Everything else (Rejected, Denied …)  →  'Rejected'
+ */
+function getEffectiveStatus(req: any): string {
+  const raw = (req.status || 'PENDING').toUpperCase().trim();
+
+  if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Cancelled';
+  if (raw === 'COMPLETED') return 'Completed';
+  if (raw === 'PENDING') return 'Pending';
+
+  if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT'].includes(raw)) {
+    if (req.delivery_date_time) {
+      const deliveryTime = new Date(req.delivery_date_time).getTime();
+      const now = Date.now();
+      if (now >= deliveryTime) {
+        return 'In Transit';
+      }
+    }
+    return 'Approved';
+  }
+
+  // Rejected / Denied / etc.
+  if (
+    ['REJECTED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(raw) ||
+    raw.includes('REJECT') ||
+    raw.includes('DEN') ||
+    raw.includes('DECLIN')
+  ) {
+    return 'Rejected';
+  }
+
+  return 'Pending';
+}
+
+function getStatusColor(effectiveStatus: string): string {
+  switch (effectiveStatus) {
+    case 'Pending':    return '#A87919';
+    case 'Approved':   return '#00592d';
+    case 'In Transit': return '#1565C0';
+    case 'Completed':  return '#00592d';
+    case 'Cancelled':  return '#C0392B';
+    case 'Rejected':   return '#C0392B';
+    default:           return '#555555';
+  }
+}
+
+function getStatusBadgeColor(effectiveStatus: string): string {
+  switch (effectiveStatus) {
+    case 'Pending':    return '#FFF8E7';
+    case 'Approved':   return '#E8F5E9';
+    case 'In Transit': return '#E3F2FD';
+    case 'Completed':  return '#E8F5E9';
+    case 'Cancelled':  return '#FFEBEE';
+    case 'Rejected':   return '#FFEBEE';
+    default:           return '#F5F5F5';
+  }
+}
+
+function getUrgencyColor(level: string): string {
+  const l = (level || '').toUpperCase();
+  if (l === 'HIGH') return '#F05858';
+  if (l === 'MEDIUM') return '#E67E22';
+  if (l === 'LOW') return '#3498DB';
+  return '#888888';
+}
+
+function formatDeliveryDateTime(iso: string | null): string {
+  if (!iso) return 'Not yet scheduled';
+  const d = new Date(iso);
+  return d.toLocaleString('en-PH', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Cancelled'] as const;
+type FilterType = typeof FILTERS[number];
+
 export default function TrackMyRequest({ navigation }: any) {
-  const [selectedFilter, setSelectedFilter] = useState('All');
+  const insets = useSafeAreaInsets();
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('All');
   const [requestsData, setRequestsData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Group-based expansion
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
-    'FOOD': true,
-    'FINANCIAL': false,
+    FOOD: true,
+    FINANCIAL: false,
   });
 
-  const filters = ['All', 'Pending', 'Approved', 'Completed', 'Rejected'];
+  // Timer that re-computes effective statuses every 30 s (catches In Transit transitions live)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    const unsubscribeFocus = navigation.addListener('focus', () => {
-      fetchRequests();
-    });
+    timerRef.current = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
 
+  useEffect(() => {
+    const unsubscribeFocus = navigation.addListener('focus', fetchRequests);
     fetchRequests();
-
     return () => unsubscribeFocus();
   }, [navigation]);
 
@@ -64,73 +162,175 @@ export default function TrackMyRequest({ navigation }: any) {
           } catch (error: any) {
             Alert.alert('Error', error.response?.data?.message || 'Connection error.');
           }
-        }
-      }
+        },
+      },
     ]);
+  };
+
+  const handleReceivedRequest = (id: number) => {
+    Alert.alert(
+      'Confirm Receipt',
+      'Are you sure you have received this request? This action cannot be undone.',
+      [
+        { text: 'Not yet', style: 'cancel' },
+        {
+          text: 'Yes, I Received It',
+          onPress: async () => {
+            try {
+              const res = await ApiService.completeBeneficiaryRequest(id);
+              if (res.data.success) {
+                Alert.alert('Thank you!', 'Your request has been marked as received.');
+                fetchRequests();
+              } else {
+                Alert.alert('Error', res.data.message || 'Failed to complete request.');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Connection error.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const toggleGroup = (group: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedGroups(prev => ({
-      ...prev,
-      [group]: !prev[group]
-    }));
+    setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const getUrgencyColor = (level: string) => {
-    const l = level?.toUpperCase();
-    if (l === 'HIGH') return '#F05858';
-    if (l === 'MEDIUM') return '#E67E22';
-    if (l === 'LOW') return '#3498DB';
-    return '#888888';
-  };
-
-  const getStatusColor = (status: string) => {
-    const s = status?.toUpperCase();
-    if (s === 'PENDING') return '#A87919';
-    if (s === 'COMPLETED' || s === 'APPROVED' || s === 'ACCEPTED') return '#00592d';
-    if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s) || s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN')) return '#C0392B';
-    return '#555555';
-  };
-
-  const getMappedFilterStatus = (status: string) => {
-    const s = (status || 'PENDING').toUpperCase().trim();
-    if (s === 'PENDING') return 'Pending';
-    if (['ACCEPTED', 'ALLOCATED', 'URGENT', 'APPROVED'].includes(s)) return 'Approved';
-    if (s === 'COMPLETED') return 'Completed';
-    if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s)) return 'Rejected';
-    if (s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN') || s.includes('REFUS')) return 'Rejected';
-    return 'Pending';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const s = (status || 'PENDING').toUpperCase().trim();
-    if (['ACCEPTED', 'ALLOCATED', 'APPROVED'].includes(s)) return 'APPROVED';
-    return s;
-  };
-
-  const filteredRequests = selectedFilter === 'All'
-    ? requestsData
-    : requestsData.filter(req => getMappedFilterStatus(req.status) === selectedFilter);
+  // Filter requests based on selected tab — re-evaluated on every tick (for In Transit)
+  const filteredRequests = requestsData.filter(req => {
+    if (selectedFilter === 'All') return true;
+    return getEffectiveStatus(req) === selectedFilter;
+  });
 
   const financialRequests = filteredRequests.filter(req => req.type?.toLowerCase() === 'financial');
   const foodRequests = filteredRequests.filter(req => req.type?.toLowerCase() !== 'financial');
 
-  const renderSummaryRow = (label: string, value: string | number) => (
-    <View style={styles.summaryRow}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value || 'N/A'}</Text>
+  const renderSummaryRow = (label: string, value: string | number | null | undefined) => (
+    <View style={styles.reportTableRow}>
+      <Text style={styles.reportTableCellLabel}>{label}</Text>
+      <Text style={styles.reportTableCellValue}>{value || 'N/A'}</Text>
     </View>
   );
 
-  return (
-    <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={styles.container}>
+  const renderRequestCard = (req: any, idx: number, isFirst: boolean) => {
+    const effectiveStatus = getEffectiveStatus(req);
+    const statusColor = getStatusColor(effectiveStatus);
+    const statusBg = getStatusBadgeColor(effectiveStatus);
+    const isFood = req.type?.toLowerCase() !== 'financial';
 
-        {/* Top Heavy Green Header */}
+    return (
+      <View key={req.id}>
+        {!isFirst && <View style={styles.groupItemDivider} />}
+
+        {/* Title + Status Badge */}
+        <View style={styles.titleStatusRow}>
+          <Text style={styles.reportMainTitle} numberOfLines={2}>
+            {req.request_name || 'Untitled Request'}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+            <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+              {effectiveStatus.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+
+        {/* Details Table */}
+        <View style={styles.reportTable}>
+          <View style={styles.reportTableRow}>
+            <Text style={styles.reportTableCellLabel}>Urgency</Text>
+            <Text style={[styles.reportTableCellValue, { color: getUrgencyColor(req.urgency || 'UNKNOWN'), fontWeight: 'bold' }]}>
+              {req.urgency?.toUpperCase() || 'N/A'}
+            </Text>
+          </View>
+
+          {isFood && renderSummaryRow('Food Categories', req.food_type)}
+
+          {isFood && Array.isArray(req.food_items) && req.food_items.length > 0 && (
+            <View style={styles.reportTableRow}>
+              <Text style={styles.reportTableCellLabel}>Food Items</Text>
+              <View style={{ flex: 1.8 }}>
+                {req.food_items.map((item: any, i: number) => (
+                  <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }]}>
+                    {item.food_name || item.name || 'Unknown'} — {item.qty ?? item.quantity ?? 0} {item.unit || ''}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {isFood && renderSummaryRow(
+            'Quantity',
+            req.quantity ? `${req.quantity} ${req.unit && req.unit !== 'null' ? req.unit : ''}`.trim() : null
+          )}
+
+          {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : null)}
+
+          {renderSummaryRow('Target Population', req.population)}
+          {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years` : 'All Ages')}
+          {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString('en-PH') : null)}
+          {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString('en-PH') : null)}
+
+          {/* Scheduled Delivery — shown once approved */}
+          {['Approved', 'In Transit', 'Completed'].includes(effectiveStatus) && (
+            <View style={styles.reportTableRow}>
+              <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
+              <Text style={[
+                styles.reportTableCellValue,
+                effectiveStatus === 'In Transit' ? { color: '#1565C0', fontWeight: '700' } : {},
+              ]}>
+                {formatDeliveryDateTime(req.delivery_date_time)}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.reportTableRow}>
+            <Text style={styles.reportTableCellLabel}>Address</Text>
+            <Text style={styles.reportTableCellValue}>
+              {[req.street, req.barangay, req.city, req.zip_code].filter(Boolean).join(', ') || 'N/A'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Action Row */}
+        <View style={styles.actionRowContainer}>
+          {/* Cancel — only when Pending */}
+          {effectiveStatus === 'Pending' && (
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              activeOpacity={0.8}
+              onPress={() => handleCancelRequest(req.id)}
+            >
+              <Text style={styles.cancelBtnText}>Cancel This Request</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Received — only when In Transit */}
+          {effectiveStatus === 'In Transit' && (
+            <TouchableOpacity
+              style={styles.receivedBtn}
+              activeOpacity={0.8}
+              onPress={() => handleReceivedRequest(req.id)}
+            >
+              <Ionicons name="checkmark-circle" size={16} color="#FFF" style={{ marginRight: 6 }} />
+              <Text style={styles.receivedBtnText}>I Received This</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      {/* Green status-bar fill */}
+      <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
+
+      <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.container}>
+
+        {/* Header */}
         <View style={styles.topHeader}>
-          {/* Logo and Nav */}
           <View style={styles.headerRow}>
             <Image source={require('../../assets/images/logo/logowhite.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
             <View style={styles.headerIcons}>
@@ -141,19 +341,18 @@ export default function TrackMyRequest({ navigation }: any) {
             </View>
           </View>
           <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -20, marginTop: 5, marginBottom: 15 }} />
-
           <View style={styles.headerTitles}>
             <Text style={styles.mainTitle}>My Request</Text>
             <Text style={styles.subTitle}>View and track the status of your submitted requests.</Text>
           </View>
         </View>
 
-        {/* Filters Row */}
+        {/* Filters */}
         <View style={styles.filterWrapper}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {filters.map((filter, index) => (
+            {FILTERS.map((filter) => (
               <TouchableOpacity
-                key={index}
+                key={filter}
                 style={[styles.filterPill, selectedFilter === filter ? styles.filterPillActive : styles.filterPillInactive]}
                 onPress={() => setSelectedFilter(filter)}
                 activeOpacity={0.8}
@@ -172,11 +371,9 @@ export default function TrackMyRequest({ navigation }: any) {
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-            {/* Report List */}
             <View style={styles.reportContainer}>
 
-              {/* GROUP: FOOD REQUESTS - ALWAYS VISIBLE */}
+              {/* FOOD REQUESTS */}
               <View style={styles.reportSection}>
                 <View style={styles.reportHeader}>
                   <Text style={styles.reportHeaderType}>FOOD REQUEST</Text>
@@ -188,69 +385,15 @@ export default function TrackMyRequest({ navigation }: any) {
                 {expandedGroups['FOOD'] && (
                   <View>
                     {foodRequests.length > 0 ? (
-                      foodRequests.map((req, idx) => (
-                        <View key={req.id}>
-                          {idx > 0 && <View style={styles.groupItemDivider} />}
-
-                          <View style={styles.titleStatusRow}>
-                            <Text style={styles.reportMainTitle} numberOfLines={2}>{req.request_name || 'Untitled Request'}</Text>
-                            <Text style={[styles.reportHeaderStatus, { color: getStatusColor(req.status || 'Pending') }]}>
-                              {getStatusLabel(req.status || 'PENDING')}
-                            </Text>
-                          </View>
-
-                          <View style={styles.reportTable}>
-                            <View style={styles.reportTableRow}>
-                              <Text style={styles.reportTableCellLabel}>Urgency</Text>
-                              <Text style={[styles.reportTableCellValue, { color: getUrgencyColor(req.urgency || 'UNKNOWN'), fontWeight: 'bold' }]}>
-                                {req.urgency?.toUpperCase() || 'N/A'}
-                              </Text>
-                            </View>
-
-                            {renderSummaryRow('Food Categories', req.food_type)}
-                            {Array.isArray(req.food_items) && req.food_items.length > 0 && (
-                              <View style={styles.reportTableRow}>
-                                <Text style={styles.reportTableCellLabel}>Food Items</Text>
-                                <View style={{ flex: 1.8 }}>
-                                  {req.food_items.map((item: any, i: number) => (
-                                    <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }]}>
-                                      {item.food_name || item.name || 'Unknown'} — {item.qty ?? item.quantity ?? 0} {item.unit || ''}
-                                    </Text>
-                                  ))}
-                                </View>
-                              </View>
-                            )}
-                            {renderSummaryRow('Quantity', req.quantity ? `${req.quantity} ${req.unit && req.unit !== 'null' ? req.unit : ''}`.trim() : 'N/A')}
-                            {renderSummaryRow('Target Population', req.population)}
-                            {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}-${req.age_max} Years` : 'All Ages')}
-                            {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString() : 'N/A')}
-                            {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString() : 'N/A')}
-
-                            <View style={styles.reportTableRow}>
-                              <Text style={styles.reportTableCellLabel}>Address</Text>
-                              <Text style={styles.reportTableCellValue}>
-                                {[req.street, req.barangay, req.city, req.zip_code].filter(Boolean).join(', ') || 'N/A'}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View style={styles.actionRowContainer}>
-                            {req.status?.toUpperCase() === 'PENDING' && (
-                              <TouchableOpacity style={styles.reportTableAction} activeOpacity={0.8} onPress={() => handleCancelRequest(req.id)}>
-                                <Text style={styles.reportTableActionText}>Cancel This Request</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-                      ))
+                      foodRequests.map((req, idx) => renderRequestCard(req, idx, idx === 0))
                     ) : (
-                      <Text style={[styles.emptyText, { paddingVertical: 20 }]}>No food requests found.</Text>
+                      <Text style={styles.emptyText}>No food requests found.</Text>
                     )}
                   </View>
                 )}
               </View>
 
-              {/* GROUP: FINANCIAL REQUESTS - ALWAYS VISIBLE */}
+              {/* FINANCIAL REQUESTS */}
               <View style={styles.reportSection}>
                 <View style={styles.reportHeader}>
                   <Text style={styles.reportHeaderType}>FINANCIAL REQUEST</Text>
@@ -262,69 +405,29 @@ export default function TrackMyRequest({ navigation }: any) {
                 {expandedGroups['FINANCIAL'] && (
                   <View>
                     {financialRequests.length > 0 ? (
-                      financialRequests.map((req, idx) => (
-                        <View key={req.id}>
-                          {idx > 0 && <View style={styles.groupItemDivider} />}
-
-                          <View style={styles.titleStatusRow}>
-                            <Text style={styles.reportMainTitle} numberOfLines={2}>{req.request_name || 'Untitled Request'}</Text>
-                            <Text style={[styles.reportHeaderStatus, { color: getStatusColor(req.status || 'Pending') }]}>
-                              {getStatusLabel(req.status || 'PENDING')}
-                            </Text>
-                          </View>
-
-                          <View style={styles.reportTable}>
-                            <View style={styles.reportTableRow}>
-                              <Text style={styles.reportTableCellLabel}>Urgency</Text>
-                              <Text style={[styles.reportTableCellValue, { color: getUrgencyColor(req.urgency || 'UNKNOWN'), fontWeight: 'bold' }]}>
-                                {req.urgency?.toUpperCase() || 'N/A'}
-                              </Text>
-                            </View>
-
-                            {renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : 'N/A')}
-                            {renderSummaryRow('Target Population', req.population)}
-                            {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}-${req.age_max} Years` : 'All Ages')}
-                            {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString() : 'N/A')}
-                            {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString() : 'N/A')}
-
-                            <View style={styles.reportTableRow}>
-                              <Text style={styles.reportTableCellLabel}>Address</Text>
-                              <Text style={styles.reportTableCellValue}>
-                                {[req.street, req.barangay, req.city, req.zip_code].filter(Boolean).join(', ') || 'N/A'}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View style={styles.actionRowContainer}>
-                            {req.status?.toUpperCase() === 'PENDING' && (
-                              <TouchableOpacity style={styles.reportTableAction} activeOpacity={0.8} onPress={() => handleCancelRequest(req.id)}>
-                                <Text style={styles.reportTableActionText}>Cancel This Request</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-                      ))
+                      financialRequests.map((req, idx) => renderRequestCard(req, idx, idx === 0))
                     ) : (
-                      <Text style={[styles.emptyText, { paddingVertical: 20 }]}>No financial requests found.</Text>
+                      <Text style={styles.emptyText}>No financial requests found.</Text>
                     )}
                   </View>
                 )}
               </View>
 
             </View>
-
             <View style={{ height: 100 }} />
           </ScrollView>
         )}
       </SafeAreaView>
-    </>
+    </View>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF', // Pure white for report feel
+    backgroundColor: '#FFFFFF',
   },
   topHeader: {
     backgroundColor: '#00592d',
@@ -336,11 +439,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerTitles: {
-    alignItems: 'center', // Center aligned top header block!
+    alignItems: 'center',
     marginTop: 15,
   },
   mainTitle: {
@@ -357,6 +460,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+
+  // Filters
   filterWrapper: {
     marginTop: 25,
     marginBottom: 15,
@@ -366,8 +471,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterPill: {
-    paddingHorizontal: 22,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
     borderRadius: 20,
     marginRight: 10,
   },
@@ -387,31 +492,10 @@ const styles = StyleSheet.create({
   filterTextInactive: {
     color: '#444444',
   },
-  scrollContent: {
-    paddingTop: 10,
-  },
-  sectionHeaderRow: {
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#444444',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  dropdownBtn: {
-    width: 26,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
 
-  // FLAT REPORT FORMAT STYLES
+  scrollContent: { paddingTop: 10 },
+
+  // Report layout
   reportContainer: {
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
@@ -423,7 +507,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F5F5F5',
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 20, // Reduced bottom padding slightly
+    paddingBottom: 20,
   },
   reportHeader: {
     flexDirection: 'row',
@@ -458,17 +542,26 @@ const styles = StyleSheet.create({
   },
   reportMainTitle: {
     flex: 1,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#111111',
     letterSpacing: -0.3,
     marginRight: 10,
   },
-  reportHeaderStatus: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
+
+  // Status badge (pill)
+  statusBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+
+  // Table
   reportTable: {
     borderTopWidth: 1,
     borderTopColor: '#DDDDDD',
@@ -491,45 +584,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111111',
   },
-  summaryRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  summaryLabel: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666666',
-  },
-  summaryValue: {
-    flex: 1.8,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111111',
-  },
+
+  // Actions
   actionRowContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end', // ALIGN Right!
-    marginTop: 15,
+    justifyContent: 'flex-end',
+    marginTop: 14,
+    gap: 10,
   },
-  reportTableAction: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+  cancelBtn: {
+    paddingVertical: 7,
+    paddingHorizontal: 12,
   },
-  reportTableActionText: {
+  cancelBtnText: {
     color: '#C0392B',
     fontSize: 12,
     fontWeight: '800',
-    textDecorationLine: 'none', // NO UNDERLINE!
     textTransform: 'uppercase',
   },
+  receivedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1565C0',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+  },
+  receivedBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
   emptyText: {
     textAlign: 'center',
-    paddingVertical: 40,
+    paddingVertical: 30,
     color: '#888888',
     fontSize: 14,
     fontWeight: '500',
-  }
+  },
 });

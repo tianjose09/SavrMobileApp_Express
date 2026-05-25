@@ -61,6 +61,9 @@ db.execute(`ALTER TABLE beneficiary_requests DROP CONSTRAINT IF EXISTS beneficia
 // Track last notified status per request so we can auto-notify on fetch
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS notified_status VARCHAR(100) DEFAULT NULL`).catch(() => {});
 
+// Delivery date/time set by staff when approving a request
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS delivery_date_time TIMESTAMP DEFAULT NULL`).catch(() => {});
+
 // Trigger: intercept admin DELETE on beneficiary_requests → convert to Rejected + notify
 db.execute(`
   CREATE OR REPLACE FUNCTION prevent_beneficiary_request_delete()
