@@ -26,6 +26,15 @@ app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Route not found.' });
 });
 
+// Global error handler — catches any unhandled async throws so Express always returns JSON
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('[unhandled error]', err.message);
+  if (!res.headersSent) {
+    res.status(500).json({ success: false, message: 'An unexpected error occurred.' });
+  }
+});
+
 const PORT = process.env.APP_PORT || 8000;
 // '::' creates a dual-stack socket — accepts both IPv4 and IPv6.
 // Required on Windows because ngrok dials localhost as [::1] (IPv6).

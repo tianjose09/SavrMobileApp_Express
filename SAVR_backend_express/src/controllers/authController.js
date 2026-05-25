@@ -259,7 +259,13 @@ exports.sendVerificationEmail = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Invalid email address.' });
   }
 
-  const [existing] = await db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  let existing;
+  try {
+    [existing] = await db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  } catch (err) {
+    console.error('[sendVerificationEmail db error]', err.message);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Please try again in a moment.' });
+  }
   if (existing.length) {
     return res.status(409).json({ success: false, message: 'This email is already registered.' });
   }
@@ -291,27 +297,32 @@ exports.verifyCode = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Validation failed.' });
   }
 
-  const [rows] = await db.execute(
-    "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
-    [email]
-  );
-  const verification = rows[0];
+  try {
+    const [rows] = await db.execute(
+      "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
+      [email]
+    );
+    const verification = rows[0];
 
-  if (!verification) {
-    return res.status(404).json({ success: false, message: 'No verification code found. Please request a new one.' });
-  }
-  if (verification.token === 'VERIFIED') {
+    if (!verification) {
+      return res.status(404).json({ success: false, message: 'No verification code found. Please request a new one.' });
+    }
+    if (verification.token === 'VERIFIED') {
+      return res.json({ success: true, message: 'Email verified successfully.' });
+    }
+    if (verification.is_expired) {
+      return res.status(410).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
+    }
+    if (verification.token !== code) {
+      return res.status(422).json({ success: false, message: 'Invalid verification code. Please try again.' });
+    }
+
+    await db.execute("UPDATE password_reset_tokens SET token = 'VERIFIED' WHERE LOWER(email) = LOWER(?)", [email]);
     return res.json({ success: true, message: 'Email verified successfully.' });
+  } catch (err) {
+    console.error('[verifyCode db error]', err.message);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Please try again in a moment.' });
   }
-  if (verification.is_expired) {
-    return res.status(410).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
-  }
-  if (verification.token !== code) {
-    return res.status(422).json({ success: false, message: 'Invalid verification code. Please try again.' });
-  }
-
-  await db.execute("UPDATE password_reset_tokens SET token = 'VERIFIED' WHERE LOWER(email) = LOWER(?)", [email]);
-  return res.json({ success: true, message: 'Email verified successfully.' });
 };
 
 exports.resendCode = async (req, res) => {
@@ -341,7 +352,13 @@ exports.forgotPassword = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Invalid email address.' });
   }
 
-  const [rows] = await db.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  let rows;
+  try {
+    [rows] = await db.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  } catch (err) {
+    console.error('[forgotPassword db error]', err.message);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Please try again in a moment.' });
+  }
   const user = rows[0];
 
   if (!user) {
@@ -367,27 +384,32 @@ exports.verifyResetCode = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Validation failed.' });
   }
 
-  const [rows] = await db.execute(
-    "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
-    [email]
-  );
-  const verification = rows[0];
+  try {
+    const [rows] = await db.execute(
+      "SELECT *, (created_at < NOW() - INTERVAL '10 minutes') AS is_expired FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)",
+      [email]
+    );
+    const verification = rows[0];
 
-  if (!verification) {
-    return res.status(404).json({ success: false, message: 'No reset code found. Please request a new one.' });
-  }
-  if (verification.token === 'VERIFIED') {
+    if (!verification) {
+      return res.status(404).json({ success: false, message: 'No reset code found. Please request a new one.' });
+    }
+    if (verification.token === 'VERIFIED') {
+      return res.json({ success: true, message: 'Code verified. You may now reset your password.' });
+    }
+    if (verification.is_expired) {
+      return res.status(410).json({ success: false, message: 'Reset code has expired. Please request a new one.' });
+    }
+    if (verification.token !== code) {
+      return res.status(422).json({ success: false, message: 'Invalid reset code. Please try again.' });
+    }
+
+    await db.execute("UPDATE password_reset_tokens SET token = 'VERIFIED' WHERE LOWER(email) = LOWER(?)", [email]);
     return res.json({ success: true, message: 'Code verified. You may now reset your password.' });
+  } catch (err) {
+    console.error('[verifyResetCode db error]', err.message);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Please try again in a moment.' });
   }
-  if (verification.is_expired) {
-    return res.status(410).json({ success: false, message: 'Reset code has expired. Please request a new one.' });
-  }
-  if (verification.token !== code) {
-    return res.status(422).json({ success: false, message: 'Invalid reset code. Please try again.' });
-  }
-
-  await db.execute("UPDATE password_reset_tokens SET token = 'VERIFIED' WHERE LOWER(email) = LOWER(?)", [email]);
-  return res.json({ success: true, message: 'Code verified. You may now reset your password.' });
 };
 
 exports.resetPassword = async (req, res) => {
@@ -407,12 +429,17 @@ exports.resetPassword = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Password must contain uppercase, lowercase, a number, and a special character.' });
   }
 
-  const [userRows] = await db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email]);
-  if (!userRows.length) {
-    return res.status(422).json({ success: false, message: 'No account found with this email.' });
+  let userRows, tokenRows;
+  try {
+    [userRows] = await db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+    if (!userRows.length) {
+      return res.status(422).json({ success: false, message: 'No account found with this email.' });
+    }
+    [tokenRows] = await db.execute("SELECT * FROM password_reset_tokens WHERE LOWER(email) = LOWER(?) AND token = 'VERIFIED'", [email]);
+  } catch (err) {
+    console.error('[resetPassword db error]', err.message);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Please try again in a moment.' });
   }
-
-  const [tokenRows] = await db.execute("SELECT * FROM password_reset_tokens WHERE LOWER(email) = LOWER(?) AND token = 'VERIFIED'", [email]);
   if (!tokenRows.length) {
     return res.status(403).json({ success: false, message: 'Please verify your reset code first.' });
   }
@@ -748,28 +775,33 @@ exports.login = async (req, res) => {
     return res.status(429).json({ success: false, locked: true, message: 'Too many failed login attempts.', retry_after: retryAfter });
   }
 
-  const [rows] = await db.execute(
-    'SELECT * FROM users WHERE (LOWER(email) = LOWER(?) OR LOWER(name) = LOWER(?)) AND is_active IS NOT FALSE',
-    [loginInput, loginInput]
-  );
-  const user = rows[0];
+  try {
+    const [rows] = await db.execute(
+      'SELECT * FROM users WHERE (LOWER(email) = LOWER(?) OR LOWER(name) = LOWER(?)) AND is_active IS NOT FALSE',
+      [loginInput, loginInput]
+    );
+    const user = rows[0];
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    const attempts = hitLoginRateLimit(rateLimitKey);
-    return res.status(401).json({ success: false, message: 'Invalid email or password.', attempts_remaining: Math.max(0, 5 - attempts) });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      const attempts = hitLoginRateLimit(rateLimitKey);
+      return res.status(401).json({ success: false, message: 'Invalid email or password.', attempts_remaining: Math.max(0, 5 - attempts) });
+    }
+
+    clearLoginRateLimit(rateLimitKey);
+
+    const displayName = await getDisplayName(user);
+    const token = issueToken(user.id);
+
+    return res.json({
+      success: true,
+      message: 'Login successful.',
+      token,
+      user: { id: user.id, email: user.email, role: user.role, email_verified: !!user.email_verified, display_name: displayName },
+    });
+  } catch (err) {
+    console.error('[login error]', err.message);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Please try again in a moment.' });
   }
-
-  clearLoginRateLimit(rateLimitKey);
-
-  const displayName = await getDisplayName(user);
-  const token = issueToken(user.id);
-
-  return res.json({
-    success: true,
-    message: 'Login successful.',
-    token,
-    user: { id: user.id, email: user.email, role: user.role, email_verified: !!user.email_verified, display_name: displayName },
-  });
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

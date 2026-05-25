@@ -343,7 +343,7 @@ export default function DonorRegistration({ navigation }: any) {
                                   <Text style={styles.modalDone}>Done</Text>
                                 </TouchableOpacity>
                               </View>
-                              <DateTimePicker value={dob} mode="date" display="spinner" maximumDate={new Date()} onChange={(e, d) => { if (d) setDob(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                              <DateTimePicker value={dob} mode="date" display="spinner" maximumDate={new Date()} onChange={(e, d) => { if (d) setDob(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
                             </View>
                           </View>
                         </Modal>
@@ -860,9 +860,9 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', textAlign: 'center' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 });

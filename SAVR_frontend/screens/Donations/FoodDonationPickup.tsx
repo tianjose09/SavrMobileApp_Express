@@ -335,7 +335,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <Text style={styles.modalTitle}>Select Date</Text>
                 <TouchableOpacity onPress={() => { setPickupDate(tempPickupDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
-              <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+              <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </Modal>
@@ -349,7 +349,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <Text style={styles.modalTitle}>Select Time</Text>
                 <TouchableOpacity onPress={() => { setPickupTime(tempPickupTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
-              <DateTimePicker value={tempPickupTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempPickupTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+              <DateTimePicker value={tempPickupTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempPickupTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </Modal>
@@ -574,8 +574,8 @@ const styles = StyleSheet.create({
   invisiblePicker: { display: 'none' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
   modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },

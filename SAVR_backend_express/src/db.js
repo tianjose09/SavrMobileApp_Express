@@ -11,7 +11,7 @@ const pool = new Pool({
   // Resilience settings for Railway / cloud-hosted DBs
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  connectionTimeoutMillis: 3000,
   keepAlive: true,
 });
 
