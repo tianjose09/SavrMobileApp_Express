@@ -346,7 +346,7 @@ export default function CreateRequest({ navigation }: any) {
               </View>
 
               {/* Category selector */}
-              <Text style={styles.fdLabel}>Select Food Type</Text>
+              <Text style={styles.fdLabel}>Select Food Categories</Text>
               {inventoryLoading ? (
                 <View style={styles.loadingWrap}>
                   <ActivityIndicator color="#00592d" size="small" />
