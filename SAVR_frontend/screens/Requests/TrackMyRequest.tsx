@@ -21,7 +21,7 @@ export default function TrackMyRequest({ navigation }: any) {
     'FINANCIAL': false,
   });
 
-  const filters = ['All', 'Pending', 'Accepted', 'Rejected'];
+  const filters = ['All', 'Pending', 'Approved', 'Completed', 'Rejected'];
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -88,7 +88,8 @@ export default function TrackMyRequest({ navigation }: any) {
   const getStatusColor = (status: string) => {
     const s = status?.toUpperCase();
     if (s === 'PENDING') return '#A87919';
-    if (s === 'COMPLETED' || s === 'APPROVED' || s === 'ACCEPTED') return '#00592d';
+    if (s === 'COMPLETED') return '#1565C0';
+    if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT'].includes(s)) return '#00592d';
     if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s) || s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN')) return '#C0392B';
     return '#555555';
   };
@@ -96,9 +97,9 @@ export default function TrackMyRequest({ navigation }: any) {
   const getMappedFilterStatus = (status: string) => {
     const s = (status || 'PENDING').toUpperCase().trim();
     if (s === 'PENDING') return 'Pending';
-    if (['ACCEPTED', 'ALLOCATED', 'URGENT', 'APPROVED'].includes(s)) return 'Accepted';
+    if (s === 'COMPLETED') return 'Completed';
+    if (['ACCEPTED', 'ALLOCATED', 'URGENT', 'APPROVED'].includes(s)) return 'Approved';
     if (['REJECTED', 'CANCELLED', 'CANCELED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(s)) return 'Rejected';
-    // Any unknown negative-sounding status → Rejected; anything else → Pending
     if (s.includes('REJECT') || s.includes('DEN') || s.includes('DECLIN') || s.includes('REFUS')) return 'Rejected';
     return 'Pending';
   };
@@ -201,7 +202,11 @@ export default function TrackMyRequest({ navigation }: any) {
                               </Text>
                             </View>
 
-                            {renderSummaryRow('Food Type', req.food_type)}
+                            {renderSummaryRow('Food Type',
+                              Array.isArray(req.food_items) && req.food_items.length > 0
+                                ? [...new Set(req.food_items.map((item: any) => item.food_type || item.category).filter(Boolean))].join(', ')
+                                : req.food_type || 'N/A'
+                            )}
                             {Array.isArray(req.food_items) && req.food_items.length > 0 && (
                               <View style={styles.reportTableRow}>
                                 <Text style={styles.reportTableCellLabel}>Food Items</Text>

@@ -715,24 +715,29 @@ exports.getDonationStats = async (req, res) => {
 };
 
 exports.getUpcomingPickups = async (req, res) => {
-  const uid = req.user.id;
+  try {
+    const uid = req.user.id;
 
-  const [pickups] = await db.execute(
-    "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','approved') ORDER BY created_at DESC LIMIT 5",
-    [uid]
-  );
+    const [pickups] = await db.execute(
+      "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','approved') ORDER BY created_at DESC LIMIT 5",
+      [uid]
+    );
 
-  return res.json({
-    success: true,
-    pickups: pickups.map(p => ({
-      id: p.id,
-      status: p.status,
-      preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
-      time_slot: p.time_slot_start + (p.time_slot_end ? ` - ${p.time_slot_end}` : ''),
-      pickup_address: p.pickup_address,
-      created_at: dayjs(p.created_at).format('MM/DD/YYYY'),
-    })),
-  });
+    return res.json({
+      success: true,
+      pickups: pickups.map(p => ({
+        id: p.id,
+        status: p.status,
+        preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
+        time_slot: p.time_slot_start + (p.time_slot_end ? ` - ${p.time_slot_end}` : ''),
+        pickup_address: p.pickup_address,
+        created_at: dayjs(p.created_at).format('MM/DD/YYYY'),
+      })),
+    });
+  } catch (err) {
+    console.error('[getUpcomingPickups]', err.message);
+    return res.json({ success: true, pickups: [] });
+  }
 };
 
 exports.updatePickup = async (req, res) => {
@@ -902,7 +907,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
     [req.user.id]
   );
 
-  const notableStatuses = ['rejected', 'denied', 'approved', 'accepted', 'allocated', 'urgent'];
+  const notableStatuses = ['rejected', 'denied', 'approved', 'accepted', 'allocated', 'urgent', 'completed'];
   const statusMessages = {
     rejected:  'We regret to inform you that your request has been rejected. Please contact our team if you have any questions.',
     denied:    'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
@@ -910,6 +915,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
     accepted:  'Great news! Your request has been accepted and is now being prepared for fulfillment.',
     allocated: 'Your request has been allocated and will be processed soon. Thank you for your patience.',
     urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
+    completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
   };
   const statusTitles = {
     rejected:  'Request Rejected',
@@ -918,6 +924,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
     accepted:  'Request Accepted',
     allocated: 'Request Allocated',
     urgent:    'Request Marked Urgent',
+    completed: 'Request Completed',
   };
 
   for (const r of requests) {
@@ -981,7 +988,7 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(403).json({ success: false, message: 'Unauthorized.' });
   }
 
-  const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied'];
+  const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed'];
   const { status } = req.body;
 
   if (!allowed.includes(status)) {
@@ -1006,8 +1013,9 @@ exports.updateRequestStatus = async (req, res) => {
     Accepted:  'Your request has been accepted and is now being prepared for fulfillment.',
     Rejected:  'We regret to inform you that your request has been rejected. Please contact us for more details.',
     Denied:    'Your request has been denied. Please contact our team if you have any questions.',
+    Completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
   };
-  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied'];
+  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed'];
   await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
 
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
