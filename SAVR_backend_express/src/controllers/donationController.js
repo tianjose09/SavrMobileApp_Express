@@ -928,16 +928,20 @@ exports.getBeneficiaryRequests = async (req, res) => {
   };
 
   for (const r of requests) {
-    const s = (r.status || '').toLowerCase().trim();
-    if (notableStatuses.includes(s) && r.notified_status !== r.status) {
-      const name = r.request_name || 'Unnamed';
-      const msg = (statusMessages[s] || `Your request status has been updated to "${r.status}".`)
-        .replace('your request', `your request "${name}"`);
-      await createNotification(r.user_id, 'service', statusTitles[s] || `Request ${r.status}`, msg, true);
-      await db.execute(
-        'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
-        [r.status, r.id]
-      );
+    try {
+      const s = (r.status || '').toLowerCase().trim();
+      if (notableStatuses.includes(s) && r.notified_status !== r.status) {
+        const name = r.request_name || 'Unnamed';
+        const msg = (statusMessages[s] || `Your request status has been updated to "${r.status}".`)
+          .replace('your request', `your request "${name}"`);
+        await createNotification(r.user_id, 'service', statusTitles[s] || `Request ${r.status}`, msg, true);
+        await db.execute(
+          'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
+          [r.status, r.id]
+        );
+      }
+    } catch (notifyErr) {
+      console.error('[auto-notify] failed for request', r.id, notifyErr.message);
     }
   }
 
@@ -989,7 +993,10 @@ exports.updateRequestStatus = async (req, res) => {
   }
 
   const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed'];
-  const { status, delivery_date_time } = req.body;
+  const { delivery_date_time } = req.body;
+  // Normalize to Title Case so 'approved', 'APPROVED', 'Approved' all work
+  const rawStatus = req.body.status || '';
+  const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
 
   if (!allowed.includes(status)) {
     return res.status(422).json({ success: false, message: `Invalid status. Allowed: ${allowed.join(', ')}` });
@@ -1025,7 +1032,11 @@ exports.updateRequestStatus = async (req, res) => {
     Completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
   };
   const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed'];
-  await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
+  try {
+    await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
+  } catch (notifyErr) {
+    console.error('[updateRequestStatus notify]', notifyErr.message);
+  }
 
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };

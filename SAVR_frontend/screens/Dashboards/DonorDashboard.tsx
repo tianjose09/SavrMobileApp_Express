@@ -341,11 +341,7 @@ export default function DonorDashboard({ navigation }: any) {
                 }}
               >
                 <View style={styles.statsRow}>
-                  <TouchableOpacity
-                    style={styles.imageCardContainer}
-                    onPress={() => navigation.navigate?.('FinancialDonation')}
-                    activeOpacity={0.9}
-                  >
+                  <View style={styles.imageCardContainer}>
                     <ImageBackground
                       source={require('../../assets/images/cards/financialcard_dashboard.png')}
                       style={styles.imageCardBg}
@@ -360,13 +356,9 @@ export default function DonorDashboard({ navigation }: any) {
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
                     </ImageBackground>
-                  </TouchableOpacity>
+                  </View>
 
-                  <TouchableOpacity
-                    style={styles.imageCardContainer}
-                    onPress={() => navigation.navigate?.('FoodDonationDetails')}
-                    activeOpacity={0.9}
-                  >
+                  <View style={styles.imageCardContainer}>
                     <ImageBackground
                       source={require('../../assets/images/cards/foodcard_dashboard.png')}
                       style={styles.imageCardBg}
@@ -379,7 +371,7 @@ export default function DonorDashboard({ navigation }: any) {
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
                     </ImageBackground>
-                  </TouchableOpacity>
+                  </View>
                 </View>
               </Animated.View>
 
