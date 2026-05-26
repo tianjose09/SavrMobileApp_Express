@@ -942,7 +942,6 @@ exports.getBeneficiaryRequests = async (req, res) => {
   }
 
   const mapped = requests
-    .filter(r => (r.status || '').toLowerCase() !== 'cancelled')
     .map(r => {
       let foodItems = [];
       try {
@@ -954,6 +953,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
         food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
         quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
         unit: r.unit || (foodItems[0]?.unit ?? null),
+        delivery_date_time: r.delivery_date_time ? new Date(r.delivery_date_time).toISOString() : null,
       };
     });
   return res.json({ success: true, requests: mapped });
@@ -989,7 +989,7 @@ exports.updateRequestStatus = async (req, res) => {
   }
 
   const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed'];
-  const { status } = req.body;
+  const { status, delivery_date_time } = req.body;
 
   if (!allowed.includes(status)) {
     return res.status(422).json({ success: false, message: `Invalid status. Allowed: ${allowed.join(', ')}` });
@@ -1000,7 +1000,16 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Request not found.' });
   }
 
-  await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
+  // If approving, optionally save delivery_date_time
+  if (status === 'Approved' && delivery_date_time) {
+    await db.execute(
+      'UPDATE beneficiary_requests SET status = ?, delivery_date_time = ?, updated_at = NOW() WHERE id = ?',
+      [status, new Date(delivery_date_time), req.params.id]
+    );
+  } else {
+    await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
+  }
+
   const [updated] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
 
   // Notify the beneficiary (not the admin) about their request status change
@@ -1019,6 +1028,41 @@ exports.updateRequestStatus = async (req, res) => {
   await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
 
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
+};
+
+exports.completeBeneficiaryRequest = async (req, res) => {
+  const { id } = req.params;
+
+  const [rows] = await db.execute(
+    'SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?',
+    [id, req.user.id]
+  );
+  const request = rows[0];
+
+  if (!request) {
+    return res.status(404).json({ success: false, message: 'Request not found.' });
+  }
+
+  // Only allow completing when it is currently Approved with a past delivery_date_time
+  const s = (request.status || '').toLowerCase();
+  if (s !== 'approved' && s !== 'accepted' && s !== 'allocated') {
+    return res.status(400).json({ success: false, message: 'Only approved (in-transit) requests can be marked as received.' });
+  }
+
+  await db.execute(
+    "UPDATE beneficiary_requests SET status = 'Completed', updated_at = NOW() WHERE id = ?",
+    [id]
+  );
+
+  await createNotification(
+    req.user.id,
+    'service',
+    'Request Completed',
+    `Your request "${request.request_name || 'Unnamed'}" has been marked as received. Thank you!`,
+    true
+  );
+
+  return res.json({ success: true, message: 'Request marked as completed.' });
 };
 
 // ─── Profile Update ───────────────────────────────────────────────────────────

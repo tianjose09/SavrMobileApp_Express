@@ -78,8 +78,9 @@ export default function FinancialDonation({ navigation }: any) {
     };
   }, [pendingDonationId]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    return () => { stopQrTimer(); };
+    return () => { stopPolling(); };
   }, []);
 
   const handleManualCheck = async () => {
@@ -89,9 +90,7 @@ export default function FinancialDonation({ navigation }: any) {
     if (!paid) {
       Alert.alert(
         'Not Yet Confirmed',
-        selectedMethod === 'qrph'
-          ? 'QR payment not detected yet. Make sure you scanned and authorized in your GCash or banking app, then try again.'
-          : 'Payment not confirmed yet. Please complete it in the browser and try again.'
+        'Payment not confirmed yet. Please complete it in the browser and try again.'
       );
     }
     setIsCheckingPayment(false);

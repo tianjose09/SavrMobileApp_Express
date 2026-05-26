@@ -128,7 +128,12 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
             <Text style={styles.label}>Category</Text>
             <CustomDropdown
               selectedValue={category}
-              onValueChange={setCategory}
+              onValueChange={(val) => {
+                setCategory(val);
+                if (val === 'Canned Goods') {
+                  setUnit('pcs');
+                }
+              }}
               placeholder="Select Category"
               items={[
                 { label: "Canned Goods", value: "Canned Goods" },
@@ -166,13 +171,14 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 selectedValue={unit}
                 onValueChange={setUnit}
                 placeholder="kg"
-                items={[
-                  { label: "kg", value: "kg" },
-                  { label: "g", value: "g" },
-                  { label: "L", value: "L" },
-                  { label: "pcs", value: "pcs" },
-                  { label: "Boxes", value: "Boxes" }
-                ]}
+                items={
+                  category === 'Canned Goods'
+                    ? [{ label: "pcs", value: "pcs" }]
+                    : [
+                        { label: "kg", value: "kg" },
+                        { label: "pcs", value: "pcs" }
+                      ]
+                }
                 style={styles.input}
               />
             </View>
@@ -334,8 +340,8 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
   modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#0E6A31' },

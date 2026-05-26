@@ -207,10 +207,12 @@ export default function BeneficiaryRegistration({ navigation }: any) {
     }
   ) => (
     <View style={styles.inputBlock}>
-      <Text style={styles.label}>
-        {label}
-        {opts?.isRequired && <Text style={{ color: '#E4B63F' }}> *</Text>}
-      </Text>
+      <View style={styles.labelContainer}>
+        <Text style={styles.label}>
+          {label}
+          {opts?.isRequired && <Text style={{ color: '#E4B63F' }}> *</Text>}
+        </Text>
+      </View>
       <View style={styles.lineInputWrap}>
         {opts?.prefix ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'rgba(255,255,255,0.95)', height: 28 }}>
@@ -347,7 +349,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                   <View style={styles.twoColRow}>
                     <View style={styles.col}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>Date of Birth<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>Date of Birth<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={styles.lineInputWrap}>
                           <TextInput
                             style={[styles.lineInput, { paddingRight: 35 }]}
@@ -379,7 +383,7 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                                   <Text style={styles.modalDone}>Done</Text>
                                 </TouchableOpacity>
                               </View>
-                              <DateTimePicker value={dob} mode="date" display="spinner" maximumDate={new Date()} onChange={(e, d) => { if (d) setDob(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+                              <DateTimePicker value={dob} mode="date" display="spinner" maximumDate={new Date()} onChange={(e, d) => { if (d) setDob(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
                             </View>
                           </View>
                         </Modal>
@@ -387,7 +391,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                     </View>
                     <View style={styles.col}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>Gender<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>Gender<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={[styles.lineInputWrap, styles.pickerContainer]}>
                           <CustomDropdown
                             selectedValue={form.gender}
@@ -408,7 +414,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                   <View style={styles.addressRow}>
                     <View style={[styles.addressCol, { flex: 1.5 }]}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>Province / Region<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>Province / Region<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={[styles.lineInputWrap, styles.pickerContainer]}>
                           <CustomDropdown
                             selectedValue={form.province_region}
@@ -426,7 +434,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
 
                     <View style={[styles.addressCol, { flex: 1.5 }]}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>City/Municipality<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>City/Municipality<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={[styles.lineInputWrap, styles.pickerContainer]}>
                           <CustomDropdown
                             selectedValue={form.city_municipality}
@@ -444,7 +454,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
 
                     <View style={[styles.addressCol, { flex: 1.1 }]}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>Brgy.<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>Brgy.<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={[styles.lineInputWrap, styles.pickerContainer]}>
                           <CustomDropdown
                             selectedValue={form.barangay}
@@ -489,7 +501,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                   <View style={styles.twoColRow}>
                     <View style={styles.col}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>Industry / Sector<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>Industry / Sector<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={[styles.lineInputWrap, styles.pickerContainer]}>
                           <CustomDropdown
                             selectedValue={form.industry_sector}
@@ -510,7 +524,9 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                     </View>
                     <View style={styles.col}>
                       <View style={styles.inputBlock}>
-                        <Text style={styles.label}>Organization Type<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        <View style={styles.labelContainer}>
+                          <Text style={styles.label}>Organization Type<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                        </View>
                         <View style={[styles.lineInputWrap, styles.pickerContainer]}>
                           <CustomDropdown
                             selectedValue={form.organization_type}
@@ -793,11 +809,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
+  labelContainer: {
+    height: 16,
+    justifyContent: 'flex-end',
+    marginBottom: 2,
+  },
+
   label: {
     color: '#FFF',
     fontSize: 10.5,
     fontWeight: '700',
-    marginBottom: 1,
   },
 
   lineInputWrap: {
@@ -879,9 +900,9 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', textAlign: 'center' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
 });

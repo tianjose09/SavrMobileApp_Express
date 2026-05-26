@@ -301,7 +301,7 @@ export default function ChooseDonation({ navigation }: any) {
                 <Text style={styles.modalTitle}>Select Date</Text>
                 <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
               </View>
-              <DateTimePicker value={editDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setEditDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+              <DateTimePicker value={editDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setEditDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </Modal>
@@ -315,7 +315,7 @@ export default function ChooseDonation({ navigation }: any) {
                 <Text style={styles.modalTitle}>Select Time</Text>
                 <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
               </View>
-              <DateTimePicker value={editTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setEditTime(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+              <DateTimePicker value={editTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setEditTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </Modal>
@@ -402,8 +402,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 22,
     paddingBottom: 36,
+    alignItems: 'center',
   },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 16 },
   modalTitle: { fontSize: 20, fontWeight: '800', color: '#1A2E23' },
   modalLabel: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 6, marginTop: 12 },
   modalInput: {

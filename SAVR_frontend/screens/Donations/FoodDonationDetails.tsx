@@ -91,7 +91,16 @@ export default function FoodDonationDetails({ navigation }: any) {
   };
 
   const updateItem = (id: string, field: keyof FoodItem, value: any) => {
-    setItems(items.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
+    setItems(items.map((item) => {
+      if (item.id === id) {
+        const updated = { ...item, [field]: value };
+        if (field === 'category' && value === 'Canned Goods') {
+          updated.unit = 'pcs';
+        }
+        return updated;
+      }
+      return item;
+    }));
   };
 
   const pickImage = async (id: string) => {
@@ -211,15 +220,14 @@ export default function FoodDonationDetails({ navigation }: any) {
                     selectedValue={item.unit}
                     onValueChange={(val) => updateItem(item.id, 'unit', val)}
                     placeholder="kg"
-                    items={[
-                      { label: "Kilograms (kg)", value: "kg" },
-                      { label: "Grams (g)", value: "g" },
-                      { label: "Liters (L)", value: "L" },
-                      { label: "Milliliters (ml)", value: "ml" },
-                      { label: "Pieces (pcs)", value: "pcs" },
-                      { label: "Boxes", value: "Boxes" },
-                      { label: "Packs", value: "Packs" }
-                    ]}
+                    items={
+                      item.category === 'Canned Goods'
+                        ? [{ label: "Pieces (pcs)", value: "pcs" }]
+                        : [
+                            { label: "Kilograms (kg)", value: "kg" },
+                            { label: "Pieces (pcs)", value: "pcs" }
+                          ]
+                    }
                     style={styles.input}
                   />
                 </View>
@@ -370,7 +378,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                 <Text style={styles.modalDone}>Done</Text>
               </TouchableOpacity>
             </View>
-            <DateTimePicker value={iosTempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setIosTempDate(d); }} style={{ width: '100%' }} textColor="#1a1a1a" />
+            <DateTimePicker value={iosTempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setIosTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
           </View>
         </View>
       </Modal>
@@ -684,8 +692,8 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
   modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },

@@ -5,13 +5,14 @@ import { StorageUtils, StorageKeys } from '../utils/storage';
 // The default React Native Android emulator alias for localhost is 10.0.2.2
 // IMPORTANT: If you are testing on your PHYSICAL PHONE via Expo Go, you MUST change this
 // to your computer's local Wi-Fi IP address (e.g., 'http://192.168.1.100:8000/').
-const BASE_URL = 'https://deftly-washhouse-prideful.ngrok-free.dev/';
+const BASE_URL = 'https://blurb-perm-stalling.ngrok-free.dev/';
 
 export const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 
@@ -80,6 +81,7 @@ export const ApiService = {
   submitBeneficiaryRequest: (data: any) => api.post('api/donation/request', data),
   getMyRequests: () => api.get('api/donation/my-requests'),
   cancelBeneficiaryRequest: (id: number) => api.post(`api/donation/my-requests/${id}/cancel`),
+  completeBeneficiaryRequest: (id: number) => api.post(`api/donation/my-requests/${id}/complete`),
   // Staff-only: change status to 'Pending' | 'Allocated' | 'Urgent'
   updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied') =>
     api.put(`api/donation/requests/${id}/status`, { status }),
