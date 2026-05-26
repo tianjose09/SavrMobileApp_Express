@@ -34,7 +34,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [tempPickupTime, setTempPickupTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const mapRef = useRef<MapView>(null);
+  const isProgrammaticMove = useRef(false);
 
   const { foodItems } = route.params || { foodItems: [] };
 
@@ -46,6 +48,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       if (results.length > 0) {
         const { latitude, longitude } = results[0];
         const newRegion = { latitude, longitude, latitudeDelta: 0.0422, longitudeDelta: 0.0221 };
+        isProgrammaticMove.current = true;
         setLocation(newRegion);
         mapRef.current?.animateToRegion(newRegion, 800);
       } else {
@@ -55,6 +58,21 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       Alert.alert('Error', 'Failed to locate the address. Check your connection and try again.');
     } finally {
       setIsGeocoding(false);
+    }
+  };
+
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    setIsReverseGeocoding(true);
+    try {
+      const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (place) {
+        const parts = [place.streetNumber, place.street, place.district, place.city, place.region, place.country]
+          .filter(Boolean);
+        setPickupAddress(parts.join(', '));
+      }
+    } catch {}
+    finally {
+      setIsReverseGeocoding(false);
     }
   };
 
@@ -242,9 +260,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               <TouchableOpacity
                 style={styles.geocodeBtn}
                 onPress={() => geocodeAddress(pickupAddress)}
-                disabled={isGeocoding}
+                disabled={isGeocoding || isReverseGeocoding}
               >
-                {isGeocoding
+                {isGeocoding || isReverseGeocoding
                   ? <ActivityIndicator size="small" color="#FFF" />
                   : <Ionicons name="search" size={20} color="#FFF" />}
               </TouchableOpacity>
@@ -272,6 +290,11 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             onRegionChangeComplete={(reg) => {
               if (scheduleType === 'pickup') {
                 setLocation(reg);
+                if (isProgrammaticMove.current) {
+                  isProgrammaticMove.current = false;
+                } else {
+                  reverseGeocode(reg.latitude, reg.longitude);
+                }
               }
             }}
           />

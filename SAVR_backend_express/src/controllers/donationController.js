@@ -605,7 +605,7 @@ exports.submitFood = async (req, res) => {
   }
 
   const modeLabel = schedule_type === 'delivery' ? 'drop-off' : 'pickup';
-  await logActivity(req.user.id, 'food', 'Food Donation Incoming', `${foodItems.length} items scheduled for ${schedule_type}`, 'truckicon');
+  await logActivity(req.user.id, 'food', 'Food Donation Submitted', `${foodItems.length} item(s) submitted and pending admin confirmation`, 'truckicon');
   await createNotification(req.user.id, 'food', 'Food Donation Submitted', `Your food donation of ${foodItems.length} item(s) has been submitted and scheduled for ${modeLabel}. Thank you!`);
   await recalculateBadges(req.user.id);
 
