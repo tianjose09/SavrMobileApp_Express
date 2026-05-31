@@ -913,9 +913,14 @@ exports.getBeneficiaryRequests = async (req, res) => {
       try {
         foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []);
       } catch { foodItems = []; }
+      let receivedItems = [];
+      try {
+        receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []);
+      } catch { receivedItems = []; }
       return {
         ...r,
         food_items: foodItems,
+        received_items: receivedItems,
         food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
         quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
         unit: r.unit || (foodItems[0]?.unit ?? null),
@@ -1010,6 +1015,7 @@ exports.updateRequestStatus = async (req, res) => {
 
 exports.completeBeneficiaryRequest = async (req, res) => {
   const { id } = req.params;
+  const { received_items, received_qty } = req.body;
 
   const [rows] = await db.execute(
     'SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?',
@@ -1021,26 +1027,116 @@ exports.completeBeneficiaryRequest = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Request not found.' });
   }
 
-  // Only allow completing when it is currently Approved with a past delivery_date_time
   const s = (request.status || '').toLowerCase();
-  if (s !== 'approved' && s !== 'accepted' && s !== 'allocated') {
-    return res.status(400).json({ success: false, message: 'Only approved (in-transit) requests can be marked as received.' });
+  if (!['approved', 'accepted', 'allocated', 'urgent'].includes(s)) {
+    return res.status(400).json({ success: false, message: 'Only in-transit requests can be marked as received.' });
   }
 
-  await db.execute(
-    "UPDATE beneficiary_requests SET status = 'Completed', updated_at = NOW() WHERE id = ?",
-    [id]
-  );
+  // Per-item path: food_items exists and received_items sent
+  let foodItems = [];
+  try {
+    foodItems = typeof request.food_items === 'string' ? JSON.parse(request.food_items) : (request.food_items || []);
+  } catch { foodItems = []; }
 
-  await createNotification(
-    req.user.id,
-    'service',
-    'Request Completed',
-    `Your request "${request.request_name || 'Unnamed'}" has been marked as received. Thank you!`,
-    true
-  );
+  if (Array.isArray(received_items) && received_items.length > 0 && foodItems.length > 0) {
+    // Load current received_items
+    let existingReceived = [];
+    try {
+      existingReceived = typeof request.received_items === 'string' ? JSON.parse(request.received_items) : (request.received_items || []);
+    } catch { existingReceived = []; }
 
-  return res.json({ success: true, message: 'Request marked as completed.' });
+    // Merge new quantities into existing map
+    const receivedMap = {};
+    for (const item of existingReceived) {
+      receivedMap[item.food_name] = parseFloat(item.received_qty || '0');
+    }
+    for (const item of received_items) {
+      const prev = receivedMap[item.food_name] || 0;
+      receivedMap[item.food_name] = prev + parseFloat(item.received_qty || '0');
+    }
+
+    const updatedReceived = Object.entries(receivedMap).map(([food_name, received_qty]) => ({ food_name, received_qty }));
+
+    // Complete when every food_item's received qty meets the requested qty
+    let isCompleted = true;
+    for (const foodItem of foodItems) {
+      const name = foodItem.food_name || foodItem.name || 'Unknown';
+      const requested = parseFloat(foodItem.qty || foodItem.quantity || '0');
+      const received = receivedMap[name] || 0;
+      if (received < requested) { isCompleted = false; break; }
+    }
+
+    if (isCompleted) {
+      await db.execute(
+        "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, updated_at = NOW() WHERE id = ?",
+        [JSON.stringify(updatedReceived), id]
+      );
+      await createNotification(req.user.id, 'service', 'Request Completed', `Your request "${request.request_name || 'Unnamed'}" has been fully fulfilled. Thank you!`, true);
+    } else {
+      await db.execute(
+        'UPDATE beneficiary_requests SET received_items = ?, updated_at = NOW() WHERE id = ?',
+        [JSON.stringify(updatedReceived), id]
+      );
+    }
+
+    const remainingItems = foodItems
+      .map(item => {
+        const name = item.food_name || item.name || 'Unknown';
+        const requested = parseFloat(item.qty || item.quantity || '0');
+        const received = receivedMap[name] || 0;
+        return { food_name: name, remaining: Math.max(0, requested - received), unit: item.unit || '' };
+      })
+      .filter(i => i.remaining > 0);
+
+    return res.json({
+      success: true,
+      is_completed: isCompleted,
+      received_items: updatedReceived,
+      remaining_items: remainingItems,
+      message: isCompleted ? 'Request fully fulfilled!' : `Receipt recorded. ${remainingItems.length} item(s) still remaining.`,
+    });
+  }
+
+  // Legacy single-qty fallback
+  const totalQty   = request.quantity ? parseFloat(request.quantity) : null;
+  const alreadyGot = parseFloat(request.received_quantity) || 0;
+  const addingQty  = received_qty != null ? parseFloat(received_qty) : null;
+
+  let newReceived = alreadyGot;
+  let isCompleted = false;
+
+  if (totalQty) {
+    const toAdd = addingQty != null ? addingQty : (totalQty - alreadyGot);
+    newReceived  = Math.min(alreadyGot + toAdd, totalQty);
+    isCompleted  = newReceived >= totalQty;
+  } else {
+    isCompleted = true;
+  }
+
+  if (isCompleted) {
+    await db.execute(
+      "UPDATE beneficiary_requests SET status = 'Completed', received_quantity = ?, updated_at = NOW() WHERE id = ?",
+      [newReceived || null, id]
+    );
+    await createNotification(req.user.id, 'service', 'Request Completed', `Your request "${request.request_name || 'Unnamed'}" has been fully fulfilled. Thank you!`, true);
+  } else {
+    await db.execute(
+      'UPDATE beneficiary_requests SET received_quantity = ?, updated_at = NOW() WHERE id = ?',
+      [newReceived, id]
+    );
+  }
+
+  const remaining = totalQty ? Math.max(0, totalQty - newReceived) : 0;
+  return res.json({
+    success: true,
+    is_completed: isCompleted,
+    received_quantity: newReceived,
+    remaining_quantity: remaining,
+    unit: request.unit || '',
+    message: isCompleted
+      ? 'Request fully fulfilled!'
+      : `Receipt recorded. ${remaining} ${request.unit || ''} remaining.`,
+  });
 };
 
 // ─── Profile Update ───────────────────────────────────────────────────────────

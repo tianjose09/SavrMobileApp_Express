@@ -81,7 +81,15 @@ export const ApiService = {
   submitBeneficiaryRequest: (data: any) => api.post('api/donation/request', data),
   getMyRequests: () => api.get('api/donation/my-requests'),
   cancelBeneficiaryRequest: (id: number) => api.post(`api/donation/my-requests/${id}/cancel`),
-  completeBeneficiaryRequest: (id: number) => api.post(`api/donation/my-requests/${id}/complete`),
+  completeBeneficiaryRequest: (
+    id: number,
+    receivedQty?: number,
+    receivedItems?: { food_name: string; received_qty: number; unit: string }[]
+  ) =>
+    api.post(`api/donation/my-requests/${id}/complete`,
+      receivedItems ? { received_items: receivedItems } :
+      receivedQty != null ? { received_qty: receivedQty } : {}
+    ),
   // Staff-only: change status to 'Pending' | 'Allocated' | 'Urgent'
   updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied') =>
     api.put(`api/donation/requests/${id}/status`, { status }),

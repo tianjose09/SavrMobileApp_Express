@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform,
+  Modal, TextInput, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,15 +37,8 @@ function getEffectiveStatus(req: any): string {
   if (raw === 'COMPLETED') return 'Completed';
   if (raw === 'PENDING') return 'Pending';
 
-  if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT'].includes(raw)) {
-    if (req.delivery_date_time) {
-      const deliveryTime = new Date(req.delivery_date_time).getTime();
-      const now = Date.now();
-      if (now >= deliveryTime) {
-        return 'In Transit';
-      }
-    }
-    return 'Approved';
+  if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
+    return 'In Transit';
   }
 
   // Rejected / Denied / etc.
@@ -113,6 +107,18 @@ export default function TrackMyRequest({ navigation }: any) {
     FOOD: true,
     FINANCIAL: false,
   });
+  const [receiptModal, setReceiptModal] = useState<{
+    visible: boolean;
+    requestId: number | null;
+    foodItems: any[];
+    receivedItemsMap: Record<string, number>;
+    // legacy fallback
+    totalQty: number | null;
+    receivedQty: number;
+    unit: string;
+  }>({ visible: false, requestId: null, foodItems: [], receivedItemsMap: {}, totalQty: null, receivedQty: 0, unit: '' });
+  const [itemInputs, setItemInputs] = useState<Record<string, string>>({});
+  const [qtyInput, setQtyInput] = useState('');
 
   // Timer that re-computes effective statuses every 30 s (catches In Transit transitions live)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -165,30 +171,110 @@ export default function TrackMyRequest({ navigation }: any) {
     ]);
   };
 
-  const handleReceivedRequest = (id: number) => {
-    Alert.alert(
-      'Confirm Receipt',
-      'Are you sure you have received this request? This action cannot be undone.',
-      [
-        { text: 'Not yet', style: 'cancel' },
-        {
-          text: 'Yes, I Received It',
-          onPress: async () => {
-            try {
-              const res = await ApiService.completeBeneficiaryRequest(id);
-              if (res.data.success) {
-                Alert.alert('Thank you!', 'Your request has been marked as received.');
-                fetchRequests();
-              } else {
-                Alert.alert('Error', res.data.message || 'Failed to complete request.');
-              }
-            } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Connection error.');
-            }
-          },
-        },
-      ]
-    );
+  const handleReceivedRequest = (req: any) => {
+    const foodItems = Array.isArray(req.food_items) && req.food_items.length > 0 ? req.food_items : [];
+
+    const receivedItemsMap: Record<string, number> = {};
+    if (req.received_items) {
+      try {
+        const existing = Array.isArray(req.received_items)
+          ? req.received_items
+          : JSON.parse(req.received_items || '[]');
+        for (const item of existing) {
+          receivedItemsMap[item.food_name] = parseFloat(item.received_qty || '0');
+        }
+      } catch {}
+    }
+
+    setItemInputs({});
+    setQtyInput('');
+    setReceiptModal({
+      visible: true,
+      requestId: req.id,
+      foodItems,
+      receivedItemsMap,
+      totalQty: req.quantity ? parseFloat(req.quantity) : null,
+      receivedQty: parseFloat(req.received_quantity || '0'),
+      unit: req.unit && req.unit !== 'null' ? req.unit : '',
+    });
+  };
+
+  const handleSubmitReceipt = async () => {
+    if (!receiptModal.requestId) return;
+
+    // Per-item mode
+    if (receiptModal.foodItems.length > 0) {
+      const receivedItems: { food_name: string; received_qty: number; unit: string }[] = [];
+      for (const item of receiptModal.foodItems) {
+        const name = item.food_name || item.name || 'Unknown';
+        const val = parseFloat(itemInputs[name] || '0');
+        if (isNaN(val) || val < 0) {
+          Alert.alert('Invalid', `Please enter a valid quantity for ${name}.`);
+          return;
+        }
+        const requested = parseFloat(item.qty || item.quantity || '0');
+        const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
+        const remaining = Math.max(0, requested - alreadyReceived);
+        if (val > 0) {
+          receivedItems.push({ food_name: name, received_qty: Math.min(val, remaining), unit: item.unit || '' });
+        }
+      }
+      if (receivedItems.length === 0) {
+        Alert.alert('Invalid', 'Please enter at least one received quantity.');
+        return;
+      }
+
+      setReceiptModal(m => ({ ...m, visible: false }));
+      try {
+        const res = await ApiService.completeBeneficiaryRequest(receiptModal.requestId, undefined, receivedItems);
+        if (res.data.success) {
+          if (res.data.is_completed) {
+            Alert.alert('Completed!', 'Your full request has been fulfilled. Thank you!');
+          } else {
+            const rem = (res.data.remaining_items || [])
+              .map((i: any) => `${i.food_name}: ${i.remaining} ${i.unit}`)
+              .join('\n');
+            Alert.alert('Received!', `Receipt recorded.\n\nStill remaining:\n${rem}`);
+          }
+          fetchRequests();
+        } else {
+          Alert.alert('Error', res.data.message || 'Failed to record receipt.');
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.response?.data?.message || 'Connection error.');
+      }
+      return;
+    }
+
+    // Legacy single-qty mode
+    let receivedQty: number | undefined;
+    if (receiptModal.totalQty) {
+      const parsed = parseFloat(qtyInput);
+      if (isNaN(parsed) || parsed <= 0) {
+        Alert.alert('Invalid', 'Please enter a valid quantity.');
+        return;
+      }
+      const remaining = receiptModal.totalQty - receiptModal.receivedQty;
+      receivedQty = Math.min(parsed, remaining);
+    }
+
+    setReceiptModal(m => ({ ...m, visible: false }));
+
+    try {
+      const res = await ApiService.completeBeneficiaryRequest(receiptModal.requestId, receivedQty);
+      if (res.data.success) {
+        if (res.data.is_completed) {
+          Alert.alert('Completed!', 'Your full request has been fulfilled. Thank you!');
+        } else {
+          Alert.alert('Received!', `Receipt recorded.\nRemaining: ${res.data.remaining_quantity} ${res.data.unit}`);
+        }
+        fetchRequests();
+      } else {
+        Alert.alert('Error', res.data.message || 'Failed to record receipt.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Connection error.');
+    }
   };
 
   const toggleGroup = (group: string) => {
@@ -199,6 +285,11 @@ export default function TrackMyRequest({ navigation }: any) {
   // Filter requests based on selected tab — re-evaluated on every tick (for In Transit)
   const filteredRequests = requestsData.filter(req => {
     if (selectedFilter === 'All') return true;
+    // Approved tab matches by raw DB status so the same request shows in both Approved and In Transit
+    if (selectedFilter === 'Approved') {
+      const raw = (req.status || '').toUpperCase().trim();
+      return ['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw);
+    }
     return getEffectiveStatus(req) === selectedFilter;
   });
 
@@ -270,15 +361,47 @@ export default function TrackMyRequest({ navigation }: any) {
           {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString('en-PH') : null)}
           {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString('en-PH') : null)}
 
-          {/* Scheduled Delivery — shown once approved */}
-          {['Approved', 'In Transit', 'Completed'].includes(effectiveStatus) && (
+          {/* Scheduled Delivery — shown once in transit */}
+          {['In Transit', 'Completed'].includes(effectiveStatus) && (
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
-              <Text style={[
-                styles.reportTableCellValue,
-                effectiveStatus === 'In Transit' ? { color: '#1565C0', fontWeight: '700' } : {},
-              ]}>
+              <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#1565C0', fontWeight: '700' } : {}]}>
                 {formatDeliveryDateTime(req.delivery_date_time)}
+              </Text>
+            </View>
+          )}
+
+          {/* Received progress — per item when food_items present, otherwise single qty */}
+          {effectiveStatus === 'In Transit' && Array.isArray(req.food_items) && req.food_items.length > 0 && (() => {
+            const rMap: Record<string, number> = {};
+            try {
+              const ri = Array.isArray(req.received_items) ? req.received_items : JSON.parse(req.received_items || '[]');
+              for (const item of ri) rMap[item.food_name] = parseFloat(item.received_qty || '0');
+            } catch {}
+            return (
+              <View style={styles.reportTableRow}>
+                <Text style={styles.reportTableCellLabel}>Received</Text>
+                <View style={{ flex: 1.8 }}>
+                  {req.food_items.map((item: any, i: number) => {
+                    const name = item.food_name || item.name || 'Unknown';
+                    const requested = parseFloat(item.qty || item.quantity || '0');
+                    const received = rMap[name] || 0;
+                    const done = received >= requested;
+                    return (
+                      <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }, { color: done ? '#00592d' : '#1565C0', fontWeight: '700' }]}>
+                        {name}: {received} / {requested} {item.unit || ''}
+                      </Text>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })()}
+          {effectiveStatus === 'In Transit' && req.quantity && !(Array.isArray(req.food_items) && req.food_items.length > 0) && (
+            <View style={styles.reportTableRow}>
+              <Text style={styles.reportTableCellLabel}>Received</Text>
+              <Text style={[styles.reportTableCellValue, { color: '#1565C0', fontWeight: '700' }]}>
+                {parseFloat(req.received_quantity || '0')} / {req.quantity} {req.unit && req.unit !== 'null' ? req.unit : ''}
               </Text>
             </View>
           )}
@@ -309,7 +432,7 @@ export default function TrackMyRequest({ navigation }: any) {
             <TouchableOpacity
               style={styles.receivedBtn}
               activeOpacity={0.8}
-              onPress={() => handleReceivedRequest(req.id)}
+              onPress={() => handleReceivedRequest(req)}
             >
               <Ionicons name="checkmark-circle" size={16} color="#FFF" style={{ marginRight: 6 }} />
               <Text style={styles.receivedBtnText}>I Received This</Text>
@@ -416,6 +539,82 @@ export default function TrackMyRequest({ navigation }: any) {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* Receipt Modal */}
+      <Modal visible={receiptModal.visible} transparent animationType="fade" onRequestClose={() => setReceiptModal(m => ({ ...m, visible: false }))}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 }} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Confirm Receipt</Text>
+
+              {receiptModal.foodItems.length > 0 ? (
+                <>
+                  <Text style={styles.modalDesc}>Enter the quantity you received for each item:</Text>
+                  {receiptModal.foodItems.map((item: any) => {
+                    const name = item.food_name || item.name || 'Unknown';
+                    const requested = parseFloat(item.qty || item.quantity || '0');
+                    const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
+                    const remaining = Math.max(0, requested - alreadyReceived);
+                    return (
+                      <View key={name} style={styles.itemInputRow}>
+                        <View style={{ flex: 1.5 }}>
+                          <Text style={styles.itemInputName}>{name}</Text>
+                          <Text style={styles.itemInputSub}>{alreadyReceived}/{requested} {item.unit || ''} received</Text>
+                        </View>
+                        <TextInput
+                          style={[styles.modalInput, { flex: 1, marginBottom: 0 }]}
+                          keyboardType="numeric"
+                          value={itemInputs[name] || ''}
+                          onChangeText={v => setItemInputs(prev => ({ ...prev, [name]: v }))}
+                          placeholder={`Max ${remaining}`}
+                          placeholderTextColor="#AAAAAA"
+                        />
+                      </View>
+                    );
+                  })}
+                </>
+              ) : receiptModal.totalQty ? (
+                <>
+                  <View style={styles.modalInfoRow}>
+                    <Text style={styles.modalInfoLabel}>Total Requested</Text>
+                    <Text style={styles.modalInfoValue}>{receiptModal.totalQty} {receiptModal.unit}</Text>
+                  </View>
+                  <View style={styles.modalInfoRow}>
+                    <Text style={styles.modalInfoLabel}>Already Received</Text>
+                    <Text style={styles.modalInfoValue}>{receiptModal.receivedQty} {receiptModal.unit}</Text>
+                  </View>
+                  <View style={styles.modalInfoRow}>
+                    <Text style={styles.modalInfoLabel}>Remaining</Text>
+                    <Text style={[styles.modalInfoValue, { color: '#1565C0', fontWeight: '800' }]}>
+                      {receiptModal.totalQty - receiptModal.receivedQty} {receiptModal.unit}
+                    </Text>
+                  </View>
+                  <Text style={styles.modalInputLabel}>How much did you receive?</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    keyboardType="numeric"
+                    value={qtyInput}
+                    onChangeText={setQtyInput}
+                    placeholder={`Enter quantity (${receiptModal.unit})`}
+                    placeholderTextColor="#AAAAAA"
+                  />
+                </>
+              ) : (
+                <Text style={styles.modalDesc}>Confirm that you have received this delivery. This will mark the request as completed.</Text>
+              )}
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setReceiptModal(m => ({ ...m, visible: false }))}>
+                  <Text style={styles.modalCancelText}>Not Yet</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalConfirmBtn} onPress={handleSubmitReceipt}>
+                  <Text style={styles.modalConfirmText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -621,4 +820,78 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+
+  // Receipt Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111',
+    marginBottom: 16,
+  },
+  modalInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  modalInfoLabel: { fontSize: 13, color: '#666', fontWeight: '600' },
+  modalInfoValue: { fontSize: 13, color: '#111', fontWeight: '700' },
+  modalDesc: { fontSize: 14, color: '#555', lineHeight: 21, marginBottom: 20 },
+  modalInputLabel: { fontSize: 13, fontWeight: '700', color: '#333', marginTop: 16, marginBottom: 8 },
+  modalInput: {
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#111',
+    marginBottom: 4,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 20,
+  },
+  modalCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+  },
+  modalCancelText: { fontSize: 14, fontWeight: '700', color: '#555' },
+  modalConfirmBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    backgroundColor: '#1565C0',
+  },
+  modalConfirmText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
+
+  itemInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+    gap: 10,
+  },
+  itemInputName: { fontSize: 13, fontWeight: '700', color: '#111' },
+  itemInputSub: { fontSize: 11, color: '#888', marginTop: 2 },
 });
