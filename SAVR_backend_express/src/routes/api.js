@@ -85,6 +85,7 @@ router.delete('/notifications',      notificationController.deleteAllNotificatio
 
 // Inventory
 router.get('/inventory',            inventoryController.index);
+router.get('/inventory/prepared',   inventoryController.preparedMeals);
 router.get('/inventory/categories', inventoryController.categories);
 router.post('/inventory/store',     inventoryController.store);
 router.post('/inventory/deduct',    inventoryController.deduct);

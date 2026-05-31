@@ -24,7 +24,7 @@ if (Platform.OS === 'android') {
  *    AND  the scheduled delivery time has already passed  →  'In Transit'
  *  - DB status = 'Approved' / 'Accepted' / 'Allocated'  with NO delivery_date_time
  *    OR  the scheduled time has NOT yet passed  →  'Approved'
- *  - DB status = 'Cancelled' / 'Canceled'  →  'Cancelled'
+ *  - DB status = 'Cancelled' / 'Canceled'  →  'Rejected'
  *  - DB status = 'Completed'  →  'Completed'
  *  - DB status = 'Pending'  →  'Pending'
  *  - Everything else (Rejected, Denied …)  →  'Rejected'
@@ -32,7 +32,7 @@ if (Platform.OS === 'android') {
 function getEffectiveStatus(req: any): string {
   const raw = (req.status || 'PENDING').toUpperCase().trim();
 
-  if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Cancelled';
+  if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Rejected';
   if (raw === 'COMPLETED') return 'Completed';
   if (raw === 'PENDING') return 'Pending';
 
@@ -66,7 +66,6 @@ function getStatusColor(effectiveStatus: string): string {
     case 'Approved':   return '#00592d';
     case 'In Transit': return '#1565C0';
     case 'Completed':  return '#00592d';
-    case 'Cancelled':  return '#C0392B';
     case 'Rejected':   return '#C0392B';
     default:           return '#555555';
   }
@@ -78,7 +77,6 @@ function getStatusBadgeColor(effectiveStatus: string): string {
     case 'Approved':   return '#E8F5E9';
     case 'In Transit': return '#E3F2FD';
     case 'Completed':  return '#E8F5E9';
-    case 'Cancelled':  return '#FFEBEE';
     case 'Rejected':   return '#FFEBEE';
     default:           return '#F5F5F5';
   }
@@ -103,7 +101,7 @@ function formatDeliveryDateTime(iso: string | null): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Cancelled'] as const;
+const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Rejected'] as const;
 type FilterType = typeof FILTERS[number];
 
 export default function TrackMyRequest({ navigation }: any) {

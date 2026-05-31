@@ -39,6 +39,10 @@ async function execute(sql, params = []) {
   if (isInsert) {
     return [{ insertId: result.rows[0]?.id ?? null, affectedRows: result.rowCount }, []];
   }
+  const isModify = /^\s*(UPDATE|DELETE)\s+/i.test(sql);
+  if (isModify) {
+    return [{ affectedRows: result.rowCount, rows: result.rows }, []];
+  }
   return [result.rows, []];
 }
 
@@ -54,6 +58,10 @@ function wrapClient(client) {
       const result = await client.query(finalSql, params);
       if (isInsert) {
         return [{ insertId: result.rows[0]?.id ?? null, affectedRows: result.rowCount }, []];
+      }
+      const isModify = /^\s*(UPDATE|DELETE)\s+/i.test(sql);
+      if (isModify) {
+        return [{ affectedRows: result.rowCount, rows: result.rows }, []];
       }
       return [result.rows, []];
     },

@@ -64,6 +64,25 @@ exports.store = async (req, res) => {
   });
 };
 
+exports.preparedMeals = async (req, res) => {
+  const [items] = await db.execute(
+    "SELECT * FROM food_inventory WHERE meal_type = 'Prepared Meals' ORDER BY created_at DESC"
+  );
+
+  return res.json({
+    success: true,
+    items: items.map(item => ({
+      id: item.id,
+      name: item.food_name,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      qty: `${item.quantity} ${item.unit}`,
+      expiry: item.expiration_date ? dayjs(item.expiration_date).format('YYYY-MM-DD') : 'N/A',
+    })),
+  });
+};
+
 exports.categories = async (req, res) => {
   const [rows] = await db.execute(
     'SELECT DISTINCT category FROM food_inventory WHERE category IS NOT NULL ORDER BY category'

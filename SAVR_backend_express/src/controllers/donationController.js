@@ -907,44 +907,6 @@ exports.getBeneficiaryRequests = async (req, res) => {
     [req.user.id]
   );
 
-  const notableStatuses = ['rejected', 'denied', 'approved', 'accepted', 'allocated', 'urgent', 'completed'];
-  const statusMessages = {
-    rejected:  'We regret to inform you that your request has been rejected. Please contact our team if you have any questions.',
-    denied:    'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
-    approved:  'Great news! Your request has been approved and is now being prepared for fulfillment.',
-    accepted:  'Great news! Your request has been accepted and is now being prepared for fulfillment.',
-    allocated: 'Your request has been allocated and will be processed soon. Thank you for your patience.',
-    urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
-    completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
-  };
-  const statusTitles = {
-    rejected:  'Request Rejected',
-    denied:    'Request Denied',
-    approved:  'Request Approved',
-    accepted:  'Request Accepted',
-    allocated: 'Request Allocated',
-    urgent:    'Request Marked Urgent',
-    completed: 'Request Completed',
-  };
-
-  for (const r of requests) {
-    try {
-      const s = (r.status || '').toLowerCase().trim();
-      if (notableStatuses.includes(s) && r.notified_status !== r.status) {
-        const name = r.request_name || 'Unnamed';
-        const msg = (statusMessages[s] || `Your request status has been updated to "${r.status}".`)
-          .replace('your request', `your request "${name}"`);
-        await createNotification(r.user_id, 'service', statusTitles[s] || `Request ${r.status}`, msg, true);
-        await db.execute(
-          'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
-          [r.status, r.id]
-        );
-      }
-    } catch (notifyErr) {
-      console.error('[auto-notify] failed for request', r.id, notifyErr.message);
-    }
-  }
-
   const mapped = requests
     .map(r => {
       let foodItems = [];
@@ -1034,6 +996,11 @@ exports.updateRequestStatus = async (req, res) => {
   const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed'];
   try {
     await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
+    // Stamp notified_status so the auto-notify check won't create a duplicate
+    await db.execute(
+      'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
+      [status, req.params.id]
+    );
   } catch (notifyErr) {
     console.error('[updateRequestStatus notify]', notifyErr.message);
   }
