@@ -974,8 +974,10 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Request not found.' });
   }
 
-  // If approving, optionally save delivery_date_time
-  if (status === 'Approved' && delivery_date_time) {
+  // If approving / accepting / allocating, optionally save delivery_date_time
+  // These are all "approval-type" statuses that can transition to In Transit on the frontend
+  const approvalStatuses = ['Approved', 'Accepted', 'Allocated'];
+  if (approvalStatuses.includes(status) && delivery_date_time) {
     await db.execute(
       'UPDATE beneficiary_requests SET status = ?, delivery_date_time = ?, updated_at = NOW() WHERE id = ?',
       [status, new Date(delivery_date_time), req.params.id]

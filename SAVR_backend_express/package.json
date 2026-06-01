@@ -8,7 +8,7 @@
     "dev": "nodemon src/app.js",
     "pm2:start": "npx pm2 start ecosystem.config.js",
     "pm2:stop": "npx pm2 stop savr-api",
-    "pm2:restart": "npx pm2 restart savr-api",
+    "pm2:restart": "npx pm2 startOrRestart ecosystem.config.js",
     "pm2:logs": "npx pm2 logs savr-api",
     "pm2:status": "npx pm2 status"
   },
