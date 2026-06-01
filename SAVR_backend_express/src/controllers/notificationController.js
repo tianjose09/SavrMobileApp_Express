@@ -22,6 +22,12 @@ db.execute(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_critical BOOLE
 db.execute(`ALTER TABLE food_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS received_quantity NUMERIC DEFAULT 0`)
+  .catch(() => {});
+
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS received_items JSONB`)
+  .catch(() => {});
+
 db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 

@@ -25,7 +25,7 @@ function getConfig(type: ToastType) {
     case 'food':
       return { bg: '#D35400', icon: 'restaurant', accent: '#F39C12' };
     case 'service':
-      return { bg: '#154882', icon: 'people', accent: '#5DADE2' };
+      return { bg: '#00592d', icon: 'people', accent: '#A9DFBF' };
     case 'info':
       return { bg: '#2C3E50', icon: 'information-circle', accent: '#85929E' };
     default: // success / financial

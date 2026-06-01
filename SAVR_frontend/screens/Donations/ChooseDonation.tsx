@@ -2,29 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
   ActivityIndicator, StatusBar, Image, Animated, Easing,
-  Alert, Modal, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 
 export default function ChooseDonation({ navigation }: any) {
   const [pickups, setPickups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Edit modal
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingPickup, setEditingPickup] = useState<any>(null);
-  const [editDate, setEditDate] = useState<Date>(new Date());
-  const [editTime, setEditTime] = useState<Date>(() => {
-    const d = new Date(); d.setHours(7, 0, 0, 0); return d;
-  });
-  const [editAddress, setEditAddress] = useState('');
-  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
-  const [showIOSDate, setShowIOSDate] = useState(false);
-  const [showIOSTime, setShowIOSTime] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -59,65 +44,6 @@ export default function ChooseDonation({ navigation }: any) {
     fetchPickups();
     return unsubscribe;
   }, [navigation]);
-
-  const openEditModal = (pickup: any) => {
-    setEditingPickup(pickup);
-    if (pickup.preferred_date) {
-      const [y, m, d] = pickup.preferred_date.split('-').map(Number);
-      setEditDate(new Date(y, m - 1, d));
-    } else {
-      setEditDate(new Date());
-    }
-    const timeStr = (pickup.time_slot || '07:00').split(' ')[0].substring(0, 5);
-    const [hh, mm] = timeStr.split(':').map(Number);
-    const t = new Date(); t.setHours(hh || 7, mm || 0, 0, 0);
-    setEditTime(t);
-    setEditAddress(pickup.pickup_address || '');
-    setEditModalVisible(true);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingPickup) return;
-    setIsSaving(true);
-    try {
-      const preferredDate = editDate.toISOString().split('T')[0];
-      const timeSlot = editTime.toTimeString().split(' ')[0].substring(0, 5);
-      await ApiService.updatePickup(editingPickup.id, {
-        preferred_date: preferredDate,
-        time_slot: timeSlot,
-        pickup_address: editAddress,
-        schedule_type: editingPickup.status,
-      });
-      setEditModalVisible(false);
-      fetchPickups();
-    } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || 'Failed to update pickup.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeletePickup = (pickup: any) => {
-    Alert.alert(
-      'Delete Pickup',
-      'Are you sure you want to delete this pickup? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ApiService.deletePickup(pickup.id);
-              setPickups(prev => prev.filter(p => p.id !== pickup.id));
-            } catch (e: any) {
-              Alert.alert('Error', e?.response?.data?.message || 'Failed to delete pickup.');
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const displayedPickups = pickups.slice(0, 3);
   const hasMore = pickups.length > 3;
@@ -191,135 +117,18 @@ export default function ChooseDonation({ navigation }: any) {
         ) : (
           displayedPickups.map(item => (
             <View key={item.id} style={styles.pickupRow}>
-              <View style={styles.pickupLeft}>
-                <Text style={styles.pickupDateTime}>
-                  {item.preferred_date || 'TBD'} | {item.time_slot || 'Anytime'}
-                </Text>
-                <Text style={styles.pickupAddress} numberOfLines={1}>
-                  Address: {item.pickup_address || 'TBD'}
-                </Text>
-              </View>
-              <View style={styles.pickupRight}>
-                <TouchableOpacity onPress={() => openEditModal(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.editText}>edit</Text>
-                </TouchableOpacity>
-                <Text style={styles.pickupSep}>/</Text>
-                <TouchableOpacity onPress={() => handleDeletePickup(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.deleteText}>delete</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.pickupDateTime}>
+                {item.preferred_date || 'TBD'} | {item.time_slot || 'Anytime'}
+              </Text>
+              <Text style={styles.pickupAddress} numberOfLines={1}>
+                Address: {item.pickup_address || 'TBD'}
+              </Text>
             </View>
           ))
         )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* Edit Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Pickup</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#444" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalLabel}>Preferred Date</Text>
-            <TouchableOpacity
-              style={styles.modalInput}
-              onPress={() => Platform.OS === 'ios' ? setShowIOSDate(true) : setDatePickerMode('date')}
-            >
-              <Text style={styles.modalInputText}>{editDate.toLocaleDateString()}</Text>
-              <Ionicons name="calendar-outline" size={18} color="#00592d" />
-            </TouchableOpacity>
-
-            <Text style={styles.modalLabel}>Time Slot</Text>
-            <TouchableOpacity
-              style={styles.modalInput}
-              onPress={() => Platform.OS === 'ios' ? setShowIOSTime(true) : setDatePickerMode('time')}
-            >
-              <Text style={styles.modalInputText}>
-                {editTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-              <Ionicons name="time-outline" size={18} color="#00592d" />
-            </TouchableOpacity>
-
-            <Text style={styles.modalLabel}>Pickup Address</Text>
-            <TextInput
-              style={styles.modalTextInput}
-              value={editAddress}
-              onChangeText={setEditAddress}
-              placeholder="Enter pickup address"
-              placeholderTextColor="#B0B0B0"
-              multiline
-            />
-
-            <TouchableOpacity
-              style={[styles.saveBtn, isSaving && { opacity: 0.7 }]}
-              onPress={handleSaveEdit}
-              disabled={isSaving}
-            >
-              {isSaving
-                ? <ActivityIndicator color="#FFF" />
-                : <Text style={styles.saveBtnText}>Save Changes</Text>
-              }
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Android pickers */}
-        {Platform.OS === 'android' && datePickerMode && (
-          <DateTimePicker
-            value={datePickerMode === 'date' ? editDate : editTime}
-            mode={datePickerMode}
-            minimumDate={datePickerMode === 'date' ? new Date() : undefined}
-            display="default"
-            onChange={(event, selectedDate) => {
-              const mode = datePickerMode;
-              setDatePickerMode(null);
-              if (event.type === 'set' && selectedDate) {
-                if (mode === 'date') setEditDate(selectedDate);
-                else setEditTime(selectedDate);
-              }
-            }}
-          />
-        )}
-
-        {/* iOS Date nested modal */}
-        <Modal visible={showIOSDate} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalSheet}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={{ color: '#888', fontSize: 15 }}>Cancel</Text></TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Date</Text>
-                <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
-              </View>
-              <DateTimePicker value={editDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setEditDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
-            </View>
-          </View>
-        </Modal>
-
-        {/* iOS Time nested modal */}
-        <Modal visible={showIOSTime} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalSheet}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={{ color: '#888', fontSize: 15 }}>Cancel</Text></TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Time</Text>
-                <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={{ color: '#00592d', fontSize: 15, fontWeight: '700' }}>Done</Text></TouchableOpacity>
-              </View>
-              <DateTimePicker value={editTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setEditTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
-            </View>
-          </View>
-        </Modal>
-      </Modal>
     </Animated.View>
   );
 }
@@ -374,9 +183,6 @@ const styles = StyleSheet.create({
   noPickupsText: { color: '#888', fontStyle: 'italic', fontSize: 13 },
 
   pickupRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderWidth: 1,
@@ -385,52 +191,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: '#FFF',
   },
-  pickupLeft: { flex: 1, paddingRight: 10 },
   pickupDateTime: { fontSize: 12, fontWeight: '800', color: '#222', marginBottom: 4 },
   pickupAddress: { fontSize: 10, color: '#666' },
-  pickupRight: { flexDirection: 'row', alignItems: 'center' },
-  editText: { fontSize: 11, color: '#00592d', fontWeight: '700' },
-  pickupSep: { fontSize: 11, color: '#CCC', marginHorizontal: 4 },
-  deleteText: { fontSize: 11, color: '#D17C31', fontWeight: '700' },
-
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 36,
-    alignItems: 'center',
-  },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: '#1A2E23' },
-  modalLabel: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 6, marginTop: 12 },
-  modalInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    height: 48,
-    backgroundColor: '#FAFAFA',
-  },
-  modalInputText: { fontSize: 14, color: '#333', flex: 1 },
-  modalTextInput: {
-    borderWidth: 1.5,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#333',
-    minHeight: 72,
-    textAlignVertical: 'top',
-    backgroundColor: '#FAFAFA',
-  },
-  saveBtn: { backgroundColor: '#00592d', borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 18 },
-  saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
 });
