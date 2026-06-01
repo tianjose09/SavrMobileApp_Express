@@ -234,7 +234,7 @@ export default function PkDashboard({ navigation }: any) {
 
                 {/* Card 3 */}
                 <LinearGradient
-                  colors={['#3B8A5A', '#226038']}
+                  colors={['#00592d', '#003d1f']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.card}
@@ -254,7 +254,7 @@ export default function PkDashboard({ navigation }: any) {
 
                 {/* Card 4 */}
                 <LinearGradient
-                  colors={['#3B8A5A', '#226038']}
+                  colors={['#00592d', '#003d1f']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.card}

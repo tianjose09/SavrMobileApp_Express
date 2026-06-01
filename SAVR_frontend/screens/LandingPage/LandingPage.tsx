@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
 
   getInvolvedBadge: {
     borderWidth: 1,
-    borderColor: '',
+    borderColor: '#00592d',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 20,
