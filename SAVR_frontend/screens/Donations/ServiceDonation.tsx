@@ -29,10 +29,10 @@ const TRANSPORT_CATEGORIES = [
   'No Refrigerated Foods',
   'No Hot/Warm Foods',
   'No Bulk Produce',
-  'No Raw Meat/Poultry',
-  'No Raw Seafood/Fish',
+  'No Raw Meat / Poultry',
+  'No Raw Seafood / Fish',
   'No Bottled Beverages',
-  'No Snacks/Sweets',
+  'No Snacks / Sweets',
   'No Powdered Ingredients',
 ];
 
@@ -44,10 +44,10 @@ const VOLUNTEER_SKILLS = [
   'Driving',
   'Inventory Management',
   'Allergen Awareness',
-  'Bilingual/Multilingual',
+  'Bilingual / Multilingual',
   'Physical Stamina',
-  'Photography/Videography',
-  'Grant Writing/Reporting',
+  'Photography / Videography',
+  'Grant Writing / Reporting',
 ];
 
 export default function ServiceDonation({ navigation }: any) {
@@ -366,10 +366,21 @@ export default function ServiceDonation({ navigation }: any) {
                     onValueChange={setVehicleType}
                     placeholder="Select Vehicle"
                     items={[
-                      { label: "Truck", value: "Truck" },
-                      { label: "L300", value: "L300" },
-                      { label: "Van", value: "Van" },
-                      { label: "Tricycle", value: "Tricycle" },
+                      { label: "Sedan", value: "Sedan" },
+                      { label: "Hatchback", value: "Hatchback" },
+                      { label: "SUV (Sport Utility Vehicle)", value: "SUV (Sport Utility Vehicle)" },
+                      { label: "Crossover", value: "Crossover" },
+                      { label: "Pickup truck", value: "Pickup truck" },
+                      { label: "Van / Minivan", value: "Van / Minivan" },
+                      { label: "Cargo van", value: "Cargo van" },
+                      { label: "Box truck", value: "Box truck" },
+                      { label: "Wagon", value: "Wagon" },
+                      { label: "Coupe", value: "Coupe" },
+                      { label: "Convertible", value: "Convertible" },
+                      { label: "Hybrid", value: "Hybrid" },
+                      { label: "Electric vehicle (EV)", value: "Electric vehicle (EV)" },
+                      { label: "Diesel vehicle", value: "Diesel vehicle" },
+                      { label: "Refrigerated truck", value: "Refrigerated truck" },
                       { label: "Motorcycle", value: "Motorcycle" }
                     ]}
                     style={styles.inputBox}
@@ -410,12 +421,13 @@ export default function ServiceDonation({ navigation }: any) {
                   onValueChange={setPreferredWork}
                   placeholder="Select Work Type"
                   items={[
-                    { label: "Food Preparation", value: "Food Preparation" },
-                    { label: "Distribution / Logistics", value: "Distribution / Logistics" },
-                    { label: "Administrative / Clerical", value: "Administrative / Clerical" },
-                    { label: "Event Staff", value: "Event Staff" },
-                    { label: "Medical / First Aid", value: "Medical / First Aid" },
-                    { label: "Other", value: "Other" }
+                    { label: "Cook / Food Prep", value: "Cook / Food Prep" },
+                    { label: "Packing / Sorting", value: "Packing / Sorting" },
+                    { label: "Delivery / Distribution", value: "Delivery / Distribution" },
+                    { label: "Logistics / Warehouse", value: "Logistics / Warehouse" },
+                    { label: "Event / Community Assistance", value: "Event / Community Assistance" },
+                    { label: "Admin / Documentation", value: "Admin / Documentation" },
+                    { label: "Medical Assistance", value: "Medical Assistance" }
                   ]}
                   style={styles.inputBox}
                 />

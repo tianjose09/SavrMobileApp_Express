@@ -21,7 +21,7 @@ export default function IngrMealPlanning({ navigation }: any) {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [openUnitPickerId, setOpenUnitPickerId] = useState<number | null>(null);
 
-  const UNIT_OPTIONS = ['kg', 'pcs'];
+  const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -507,7 +507,7 @@ export default function IngrMealPlanning({ navigation }: any) {
                               style={{ marginBottom: 8 }}
                               contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}
                             >
-                              {(item.category === 'Canned Goods' ? ['pcs'] : ['kg', 'pcs']).map((u) => (
+                              {UNIT_OPTIONS.map((u) => (
                                 <TouchableOpacity
                                   key={u}
                                   onPress={() => updateInputUnit(item.id, u)}

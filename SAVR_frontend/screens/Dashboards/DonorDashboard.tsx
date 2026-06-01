@@ -344,7 +344,7 @@ export default function DonorDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue}>₱ {donationAmount.toLocaleString('en-US')}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>₱ {donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
@@ -366,7 +366,7 @@ export default function DonorDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue}>{totalFoodDonations}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>{totalFoodDonations}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FOOD</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
 
   orangeValue: {
     color: '#DFB43F',
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     marginBottom: 4,
     textShadowColor: 'rgba(0,0,0,0.1)',

@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
 
   glassValue: {
     color: '#DFB43F',
-    fontSize: 45,
+    fontSize: 36,
     fontWeight: '900',
     marginBottom: 4,
     textShadowColor: 'rgba(0,0,0,0.1)',

@@ -171,14 +171,12 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 selectedValue={unit}
                 onValueChange={setUnit}
                 placeholder="kg"
-                items={
-                  category === 'Canned Goods'
-                    ? [{ label: "pcs", value: "pcs" }]
-                    : [
-                        { label: "kg", value: "kg" },
-                        { label: "pcs", value: "pcs" }
-                      ]
-                }
+                items={[
+                  { label: "kg", value: "kg" },
+                  { label: "pcs", value: "pcs" },
+                  { label: "meal", value: "meal" },
+                  { label: "L", value: "L" }
+                ]}
                 style={styles.input}
               />
             </View>

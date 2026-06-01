@@ -52,8 +52,17 @@ export default function FoodDonationDetails({ navigation }: any) {
 
   useEffect(() => {
     const BASE_CATEGORIES = [
-      'Meat', 'Vegetables', 'Fruits', 'Grains', 'Canned Goods',
-      'Dairy', 'Prepared Meals', 'Beverages', 'Snacks', 'Others',
+      'Canned Goods',
+      'Dairy',
+      'Dry Goods',
+      'Fats & Oils',
+      'Fruits',
+      'Grains & Cereals',
+      'Meat',
+      'Protein Alternatives',
+      'Sugars & Sweets',
+      'Vegetables',
+      'Prepared Meals',
     ];
     ApiService.getInventoryCategories()
       .then(res => {
@@ -215,14 +224,12 @@ export default function FoodDonationDetails({ navigation }: any) {
                     selectedValue={item.unit}
                     onValueChange={(val) => updateItem(item.id, 'unit', val)}
                     placeholder="kg"
-                    items={
-                      item.category === 'Canned Goods'
-                        ? [{ label: "Pieces (pcs)", value: "pcs" }]
-                        : [
-                          { label: "Kilograms (kg)", value: "kg" },
-                          { label: "Pieces (pcs)", value: "pcs" }
-                        ]
-                    }
+                    items={[
+                      { label: "Kilograms (kg)", value: "kg" },
+                      { label: "Pieces (pcs)", value: "pcs" },
+                      { label: "Meals (meal)", value: "meal" },
+                      { label: "Liters (L)", value: "L" }
+                    ]}
                     style={styles.input}
                   />
                 </View>

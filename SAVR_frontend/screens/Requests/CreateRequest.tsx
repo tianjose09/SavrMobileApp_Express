@@ -21,14 +21,14 @@ const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
   Meat: { lib: 'mci', name: 'food-steak' },
   Vegetables: { lib: 'mci', name: 'leaf' },
   Fruits: { lib: 'mci', name: 'fruit-cherries' },
-  Grains: { lib: 'mci', name: 'barley' },
+  'Grains & Cereals': { lib: 'mci', name: 'barley' },
   'Canned Goods': { lib: 'mci', name: 'package-variant-closed' },
   Dairy: { lib: 'mci', name: 'cheese' },
-  Seafood: { lib: 'ion', name: 'fish-outline' },
-  Bakery: { lib: 'mci', name: 'bread-slice' },
-  Beverages: { lib: 'mci', name: 'cup-water' },
-  'Rice/Grains': { lib: 'mci', name: 'rice' },
-  Mixed: { lib: 'mci', name: 'food-variant' },
+  'Dry Goods': { lib: 'mci', name: 'package-variant' },
+  'Fats & Oils': { lib: 'mci', name: 'oil' },
+  'Protein Alternatives': { lib: 'mci', name: 'egg-plant' },
+  'Sugars & Sweets': { lib: 'mci', name: 'cookie' },
+  'Prepared Meals': { lib: 'mci', name: 'food-variant' },
 };
 const DEFAULT_CAT_ICON: IconEntry = { lib: 'mci', name: 'package-variant' };
 
@@ -40,7 +40,7 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
 }
 
 // ─── Common units ─────────────────────────────────────────────────────────────
-const UNIT_OPTIONS = ['kg', 'pcs'];
+const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
 export default function CreateRequest({ navigation }: any) {
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
@@ -482,7 +482,7 @@ export default function CreateRequest({ navigation }: any) {
                         <View style={{ width: 60 }} />
                       </View>
                       <ScrollView style={{ maxHeight: 320 }}>
-                        {(selectedItem?.category === 'Canned Goods' ? ['pcs'] : ['kg', 'pcs']).map(u => (
+                        {UNIT_OPTIONS.map(u => (
                           <TouchableOpacity
                             key={u}
                             style={[styles.unitPickerRow, itemUnit === u && styles.unitPickerRowActive]}

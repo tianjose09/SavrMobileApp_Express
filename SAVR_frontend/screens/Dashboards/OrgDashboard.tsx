@@ -265,7 +265,7 @@ export default function OrgDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue}>₱ {donationAmount.toLocaleString('en-US')}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>₱ {donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
@@ -287,7 +287,7 @@ export default function OrgDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue}>{totalFoodDonations}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>{totalFoodDonations}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FOOD</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
