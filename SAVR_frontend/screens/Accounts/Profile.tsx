@@ -9,6 +9,7 @@ export default function Profile({ navigation }: any) {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>('');
 
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -44,6 +45,9 @@ export default function Profile({ navigation }: any) {
       const picKey = await getProfilePicKey();
       const localPic = await StorageUtils.getItem(picKey);
       if (localPic) setProfileImage(localPic);
+
+      const storedName = await StorageUtils.getItem(StorageKeys.DISPLAY_NAME);
+      if (storedName) setDisplayName(storedName);
 
       const response = await ApiService.getProfile();
       if (response.data && response.data.success) {
@@ -163,8 +167,8 @@ export default function Profile({ navigation }: any) {
   const roleDisplay = isPartnerKitchen ? 'PARTNER KITCHEN DETAILS' : isOrganization ? 'ORGANIZATION DETAILS' : 'DONOR DETAILS';
 
   const heroName = isPartnerKitchen
-    ? (profile?.kitchen_name || profile?.contact_person || 'Kitchen')
-    : (profile?.name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'User');
+    ? (profile?.kitchen_name || profile?.display_name || profile?.username || profile?.contact_person || displayName || 'Kitchen')
+    : (profile?.name || profile?.display_name || profile?.username || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || displayName || 'User');
 
   const fName = profile?.first_name || profile?.name?.split(' ')[0] || 'User';
   const lName = profile?.last_name || profile?.name?.split(' ').slice(1).join(' ') || '';
@@ -200,7 +204,7 @@ export default function Profile({ navigation }: any) {
               {profileImage ? (
                 <Image source={{ uri: profileImage }} style={{ width: 66, height: 66, borderRadius: 33 }} />
               ) : (
-                <Text style={styles.avatarText}>{fName.charAt(0).toUpperCase()}</Text>
+                <Text style={styles.avatarText}>{(displayName || heroName).charAt(0).toUpperCase()}</Text>
               )}
               <View style={styles.cameraIconBadge}>
                 <Ionicons name="camera" size={14} color="#00592d" />

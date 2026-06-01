@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     width: '48.5%',
     height: 110,
     borderRadius: 18,
-    backgroundColor: '#d16a24', // Correct orange shade!
+    backgroundColor: '#D87A38',
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.45)',
     overflow: 'hidden',
@@ -464,8 +464,8 @@ const styles = StyleSheet.create({
   },
 
   glassValue: {
-    color: '#DFB43F', // Exact gold/amber color from image!
-    fontSize: 24,
+    color: '#DFB43F',
+    fontSize: 45,
     fontWeight: '900',
     marginBottom: 4,
     textShadowColor: 'rgba(0,0,0,0.1)',

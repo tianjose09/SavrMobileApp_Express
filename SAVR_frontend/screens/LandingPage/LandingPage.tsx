@@ -98,15 +98,15 @@ export default function LandingPage({ navigation }: any) {
 
           <View style={styles.statsRow}>
             <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>2.3M+</Text>
-              <Text style={styles.statLabel}>meals served</Text>
+              <Text style={styles.statNumber}>3.2M+</Text>
+              <Text style={styles.statLabel}>food distributed</Text>
             </View>
             <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>850+</Text>
+              <Text style={styles.statNumber}>70+</Text>
               <Text style={styles.statLabel}>partners</Text>
             </View>
             <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>48</Text>
+              <Text style={styles.statNumber}>12</Text>
               <Text style={styles.statLabel}>provinces</Text>
             </View>
           </View>

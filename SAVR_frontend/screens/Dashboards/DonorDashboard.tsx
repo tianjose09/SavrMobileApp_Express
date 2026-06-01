@@ -329,36 +329,48 @@ export default function DonorDashboard({ navigation }: any) {
                 }}
               >
                 <View style={styles.statsRow}>
-                  <View style={styles.imageCardContainer}>
-                    <ImageBackground
-                      source={require('../../assets/images/cards/financialcard_dashboard.png')}
-                      style={styles.imageCardBg}
-                      imageStyle={{ borderRadius: 14 }}
-                      resizeMode="stretch"
-                    >
-                      <View style={styles.imageCardContent}>
-                        <Text style={styles.orangeValue}>
-                          ₱ {donationAmount.toLocaleString('en-US')}
-                        </Text>
+                  {/* Financial Card */}
+                  <View style={styles.glassCard}>
+                    <View style={styles.glassCardBg}>
+                      <LinearGradient
+                        colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                        style={styles.glassCardGloss}
+                      />
+                      <View style={styles.glassIconCol}>
+                        <Image
+                          source={require('../../assets/images/icons/financialicon.png')}
+                          style={styles.glassIconImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <View style={styles.glassTextCol}>
+                        <Text style={styles.orangeValue}>₱ {donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
-                    </ImageBackground>
+                    </View>
                   </View>
 
-                  <View style={styles.imageCardContainer}>
-                    <ImageBackground
-                      source={require('../../assets/images/cards/foodcard_dashboard.png')}
-                      style={styles.imageCardBg}
-                      imageStyle={{ borderRadius: 14 }}
-                      resizeMode="stretch"
-                    >
-                      <View style={styles.imageCardContent}>
+                  {/* Food Card */}
+                  <View style={styles.glassCard}>
+                    <View style={styles.glassCardBg}>
+                      <LinearGradient
+                        colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                        style={styles.glassCardGloss}
+                      />
+                      <View style={styles.glassIconCol}>
+                        <Image
+                          source={require('../../assets/images/icons/foodicon.png')}
+                          style={styles.glassIconImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <View style={styles.glassTextCol}>
                         <Text style={styles.orangeValue}>{totalFoodDonations}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FOOD</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
-                    </ImageBackground>
+                    </View>
                   </View>
                 </View>
               </Animated.View>
@@ -669,46 +681,72 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  imageCardContainer: {
+  glassCard: {
     width: '48.5%',
-    height: 102,
-    borderRadius: 14,
+    height: 110,
+    borderRadius: 18,
+    backgroundColor: '#D87A38',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
 
-  imageCardBg: {
+  glassCardBg: {
     width: '100%',
     height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingRight: 8,
+    paddingHorizontal: 10,
+    position: 'relative',
   },
 
-  imageCardContent: {
-    width: '55%',
+  glassCardGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+
+  glassIconCol: {
+    width: '38%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
+  },
+
+  glassIconImage: {
+    width: 54,
+    height: 54,
+  },
+
+  glassTextCol: {
+    width: '62%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   orangeValue: {
     color: '#DFB43F',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    marginBottom: 0,
+    marginBottom: 4,
     textShadowColor: 'rgba(0,0,0,0.1)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
+    textAlign: 'center',
   },
 
   orangeLabel: {
     color: '#FFFFFF',
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '800',
-    lineHeight: 11,
+    lineHeight: 12,
     textAlign: 'center',
-    flexWrap: 'wrap',
   },
 
   badgesSection: {
