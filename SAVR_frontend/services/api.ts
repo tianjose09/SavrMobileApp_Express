@@ -5,7 +5,8 @@ import { StorageUtils, StorageKeys } from '../utils/storage';
 // The default React Native Android emulator alias for localhost is 10.0.2.2
 // IMPORTANT: If you are testing on your PHYSICAL PHONE via Expo Go, you MUST change this
 // to your computer's local Wi-Fi IP address (e.g., 'http://192.168.1.100:8000/').
-const BASE_URL = 'http://192.168.1.3:8000/';
+const BASE_URL = 'https://deftly-washhouse-prideful.ngrok-free.dev/';
+// Local fallback (use when not using ngrok): 'http://192.168.1.3:8000/'
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -92,6 +93,7 @@ export const ApiService = {
 
   // Inventory Integration
   getInventory: () => api.get('api/inventory'),
+  getPreparedMeals: () => api.get('api/inventory/prepared'),
   getInventoryCategories: () => api.get('api/inventory/categories'),
   addInventory: (data: any) => api.post('api/inventory/store', data),
   deductInventory: (data: any) => api.post('api/inventory/deduct', data),

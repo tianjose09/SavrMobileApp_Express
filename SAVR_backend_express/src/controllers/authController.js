@@ -499,7 +499,7 @@ exports.registerDonor = async (req, res) => {
     await conn.beginTransaction();
     const hashed = await bcrypt.hash(password, 12);
     const [userResult] = await conn.execute(
-      'INSERT INTO users (name, role, email, password, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, true, NOW(), NOW())',
+      'INSERT INTO users (name, role, email, password, email_verified, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, true, NOW(), NOW(), NOW())',
       [`${first_name.trim()} ${last_name.trim()}`, 'donor', email, hashed]
     );
     const userId = userResult.insertId;
@@ -563,7 +563,7 @@ exports.registerOrganization = async (req, res) => {
     await conn.beginTransaction();
     const hashed = await bcrypt.hash(password, 12);
     const [userResult] = await conn.execute(
-      'INSERT INTO users (name, role, email, password, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, true, NOW(), NOW())',
+      'INSERT INTO users (name, role, email, password, email_verified, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, true, NOW(), NOW(), NOW())',
       [organization_name.trim(), 'organization', email, hashed]
     );
     const userId = userResult.insertId;
@@ -689,6 +689,9 @@ exports.registerBeneficiary = async (req, res) => {
   const [emailCheck] = await db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email]);
   if (emailCheck.length) return res.status(422).json({ success: false, message: 'Validation failed.', errors: { email: ['This email is already registered.'] } });
 
+  const [verifiedCheck] = await db.execute("SELECT * FROM password_reset_tokens WHERE LOWER(email) = LOWER(?) AND token = 'VERIFIED'", [email]);
+  if (!verifiedCheck.length) return res.status(403).json({ success: false, message: 'Email not verified. Please verify your email first.' });
+
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -698,7 +701,7 @@ exports.registerBeneficiary = async (req, res) => {
       : `${first_name.trim()} ${last_name.trim()}`;
 
     const [userResult] = await conn.execute(
-      'INSERT INTO users (name, role, email, password, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, false, NOW(), NOW())',
+      'INSERT INTO users (name, role, email, password, email_verified, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, true, NOW(), NOW(), NOW())',
       [displayName, 'beneficiary', email, hashed]
     );
     const userId = userResult.insertId;
@@ -722,7 +725,7 @@ exports.registerBeneficiary = async (req, res) => {
     return res.status(201).json({
       success: true, message: 'Beneficiary registered successfully.',
       token: issueToken(userId),
-      user: { id: userId, email, role: 'beneficiary', email_verified: false, display_name: displayName },
+      user: { id: userId, email, role: 'beneficiary', email_verified: true, display_name: displayName },
     });
   } catch (err) {
     await conn.rollback();
@@ -789,6 +792,11 @@ exports.login = async (req, res) => {
 
     clearLoginRateLimit(rateLimitKey);
 
+    // Backfill email_verified_at for accounts verified via mobile (email_verified=true but timestamp missing)
+    if (user.email_verified && !user.email_verified_at) {
+      await db.execute('UPDATE users SET email_verified_at = NOW() WHERE id = ?', [user.id]).catch(() => {});
+    }
+
     const displayName = await getDisplayName(user);
     const token = issueToken(user.id);
 
@@ -815,7 +823,7 @@ exports.dashboard = async (req, res) => {
     [user.id]
   );
   const [[{ totalfood }]] = await db.execute(
-    'SELECT COUNT(*) AS totalfood FROM food_donations WHERE user_id = ?',
+    'SELECT COUNT(*) AS totalfood FROM food_donation_records WHERE user_id = ?',
     [user.id]
   );
   const [activities] = await db.execute(

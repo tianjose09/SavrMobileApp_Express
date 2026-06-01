@@ -7,6 +7,7 @@ import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-ico
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
+import NotificationBell from '../../components/NotificationBell';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
@@ -177,10 +178,7 @@ export default function CreateRequest({ navigation }: any) {
         <View style={styles.headerRow}>
           <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={{ marginRight: 15, position: 'relative' }} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={26} color="#4A4A4A" />
-              <View style={styles.badgeDot}><Text style={styles.badgeText}>!</Text></View>
-            </TouchableOpacity>
+            <NotificationBell navigation={navigation} />
             <TouchableOpacity onPress={() => navigation.openDrawer()}>
               <Ionicons name="menu-outline" size={34} color="#4A4A4A" />
             </TouchableOpacity>
@@ -526,8 +524,6 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerDivider: { height: 1, backgroundColor: '#E0E0E0', marginHorizontal: -20 },
-  badgeDot: { position: 'absolute', top: -3, right: -4, backgroundColor: '#E74C3C', borderRadius: 9, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
-  badgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
   scrollContent: { paddingHorizontal: 22, paddingTop: 30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   titleIcon: { marginRight: 12 },

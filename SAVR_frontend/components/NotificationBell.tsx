@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../services/api';
 
 interface Props {
@@ -13,11 +14,13 @@ interface Props {
 export default function NotificationBell({ navigation, color = '#4A4A4A', size = 26, style }: Props) {
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
-    ApiService.getCriticalNotifications()
-      .then(res => setCount(res?.data?.notifications?.length || 0))
-      .catch(() => {});
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      ApiService.getCriticalNotifications()
+        .then(res => setCount(res?.data?.notifications?.length || 0))
+        .catch(() => {});
+    }, [])
+  );
 
   return (
     <TouchableOpacity
