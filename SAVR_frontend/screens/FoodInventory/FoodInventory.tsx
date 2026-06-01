@@ -52,22 +52,19 @@ export default function FoodInventory({ route, navigation }: any) {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-            {/* HEADER NAV */}
-            <View style={styles.topHeaderWrap}>
-                <View style={styles.topNav}>
-                    <Image
-                        source={require('../../assets/images/logo/logobrown.png')}
-                        style={styles.logoImage}
-                        resizeMode="contain"
-                    />
-                    <View style={styles.topRightIcons}>
-                        <NotificationBell navigation={navigation} color="#544434" size={28} />
-                        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
-                            <Ionicons name="menu-outline" size={36} color="#544434" />
-                        </TouchableOpacity>
-                    </View>
+            {/* TOP BAR HEADER */}
+            <View style={styles.topHeader}>
+                <Image
+                    source={require('../../assets/images/logo/logobrown.png')}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
+                        <Ionicons name="menu-outline" size={32} color="#544434" />
+                    </TouchableOpacity>
                 </View>
-                <View style={styles.topDivider} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -211,31 +208,26 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    topHeaderWrap: {
+    topHeader: {
         backgroundColor: '#FFFFFF',
-    },
-    topNav: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 22,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+        paddingHorizontal: 18,
+        paddingTop: 12,
         paddingBottom: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        zIndex: 10,
+        elevation: 5,
     },
     logoImage: {
         width: 170,
         height: 58,
-    },
-    topRightIcons: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        marginBottom: 6,
     },
     iconBtn: {
-        marginLeft: 18,
-    },
-    topDivider: {
-        height: 1,
-        backgroundColor: '#544434',
-        opacity: 0.5,
+        marginLeft: 12,
     },
 
     scrollContent: {
@@ -250,8 +242,8 @@ const styles = StyleSheet.create({
         marginVertical: 25,
     },
     heroIcon: {
-        width: 65,
-        height: 65,
+        width: 42,
+        height: 42,
         marginRight: 10,
         tintColor: '#106037',
     },

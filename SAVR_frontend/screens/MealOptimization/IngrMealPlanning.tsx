@@ -220,20 +220,18 @@ export default function IngrMealPlanning({ navigation }: any) {
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} />
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-        {/* HEADER SECTION  */}
-        <View style={styles.topbar}>
-          <View style={styles.logoWrap}>
-            <Image
-              source={require('../../assets/images/logo/logobrown.png')}
-              style={{ width: 170, height: 58 }}
-              resizeMode="contain"
-            />
-          </View>
-          <View style={styles.topActions}>
-            <NotificationBell navigation={navigation} color="#544434" size={26} />
-            <TouchableOpacity style={[styles.iconBtn, { marginLeft: 10 }]} onPress={() => navigation?.openDrawer?.()}>
+        {/* TOP BAR HEADER */}
+        <View style={styles.topHeader}>
+          <Image
+            source={require('../../assets/images/logo/logobrown.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
               <Ionicons name="menu-outline" size={32} color="#544434" />
             </TouchableOpacity>
           </View>
@@ -574,25 +572,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  topbar: {
+  topHeader: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#363636',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 10,
+    elevation: 5,
   },
-  logoWrap: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-    marginLeft: -10,
-  },
-  topActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  logoImage: {
+    width: 170,
+    height: 58,
+    marginBottom: 6,
   },
   iconBtn: {
     justifyContent: 'center',

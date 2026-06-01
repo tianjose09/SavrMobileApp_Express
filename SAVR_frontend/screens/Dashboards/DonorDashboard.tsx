@@ -13,9 +13,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function DonorDashboard({ navigation }: any) {
   const [userName, setUserName] = useState('Juan Dela Cruz');
@@ -166,7 +168,7 @@ export default function DonorDashboard({ navigation }: any) {
             setTimeout(() => showNotification(successNotifs[0].title), 800);
           }
         }
-      } catch {}
+      } catch { }
     } catch (error) {
       console.error('Dashboard load failed', error);
     } finally {
@@ -219,71 +221,57 @@ export default function DonorDashboard({ navigation }: any) {
         </Animated.View>
 
         <View style={styles.container}>
-          <View style={styles.greenHeader}>
-            <View style={styles.topRow}>
-              <Image
-                source={require('../../assets/images/logo/logowhite.png')}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-
-              <View style={styles.iconRow}>
-                <TouchableOpacity
-                  style={[styles.iconBtn, { position: 'relative' }]}
-                  onPress={() => navigation.navigate('Notifications', { role: 'donor' })}
-                >
-                  <Ionicons
-                    name="notifications-outline"
-                    size={26}
-                    color="#FFFFFF"
-                  />
-                  {unreadCount > 0 && (
-                    <View style={styles.badgeDot}>
-                      <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => navigation.openDrawer?.()}
-                >
-                  <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -22, marginTop: 5, marginBottom: 15 }} />
-
-            <View style={styles.profileRow}>
+          {/* TOP BAR HEADER */}
+          <View style={styles.topHeader}>
+            <Image
+              source={require('../../assets/images/logo/logowhite.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationBell navigation={navigation} color="#FFFFFF" size={26} style={{ marginRight: 5 }} />
               <TouchableOpacity
-                style={styles.avatarCircle}
-                onPress={() => navigation.navigate?.('Profile')}
+                onPress={() => navigation.openDrawer?.()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                {profilePic ? (
-                  <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
-                ) : (
-                  <Text style={{ fontSize: 26, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
-                )}
+                <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
               </TouchableOpacity>
-
-              <Text style={styles.profileName} numberOfLines={1}>
-                {userName}
-              </Text>
             </View>
           </View>
 
-          <Animated.View
-            style={[
-              styles.whiteSheet,
-              {
-                opacity: sheetFadeAnim,
-                transform: [{ translateY: sheetTranslateAnim }],
-              },
-            ]}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
           >
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
+            {/* PROFILE HEADER SECTION */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profileRow}>
+                <TouchableOpacity
+                  style={styles.avatarCircle}
+                  onPress={() => navigation.navigate?.('Profile')}
+                >
+                  {profilePic ? (
+                    <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+                  ) : (
+                    <Text style={{ fontSize: 26, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
+                  )}
+                </TouchableOpacity>
+
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {userName}
+                </Text>
+              </View>
+            </View>
+
+            <Animated.View
+              style={[
+                styles.whiteSheet,
+                {
+                  opacity: sheetFadeAnim,
+                  transform: [{ translateY: sheetTranslateAnim }],
+                },
+              ]}
             >
               <Animated.View
                 style={{
@@ -463,9 +451,8 @@ export default function DonorDashboard({ navigation }: any) {
                 </Animated.View>
               )}
 
-              <View style={{ height: 110 }} />
-            </ScrollView>
-          </Animated.View>
+            </Animated.View>
+          </ScrollView>
         </View>
 
       </SafeAreaView>
@@ -518,54 +505,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  greenHeader: {
+  topHeader: {
     backgroundColor: '#00592d',
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 25,
-  },
-
-  topRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    zIndex: 10,
+    elevation: 5,
   },
-
   logoImage: {
     width: 170,
     height: 58,
+    marginBottom: 6,
   },
-
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 4,
+  profileHeader: {
+    backgroundColor: '#00592d',
+    paddingHorizontal: 22,
+    paddingTop: 5,
+    paddingBottom: 25,
   },
-
-  iconBtn: {
-    marginLeft: 12,
-  },
-
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
-
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -597,12 +560,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     overflow: 'hidden',
-  },
-
-  scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 40,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
   },
 
   dashboardTitle: {

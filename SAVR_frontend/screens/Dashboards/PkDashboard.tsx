@@ -4,6 +4,7 @@ import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage
 import { ApiService } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function PkDashboard({ navigation }: any) {
   const [userName, setUserName] = useState('Loaves and Fishes');
@@ -52,7 +53,7 @@ export default function PkDashboard({ navigation }: any) {
   const fetchDashboardData = async () => {
     const localName = await StorageUtils.getItem(StorageKeys.DISPLAY_NAME) || 'Loaves and Fishes';
     const picKey = await getProfilePicKey();
-      const localPic = await StorageUtils.getItem(picKey);
+    const localPic = await StorageUtils.getItem(picKey);
     if (localPic) setProfilePic(localPic);
 
     setUserName(localName);
@@ -75,7 +76,7 @@ export default function PkDashboard({ navigation }: any) {
       try {
         const critRes = await ApiService.getCriticalNotifications();
         setUnreadCount(critRes?.data?.notifications?.length || 0);
-      } catch {}
+      } catch { }
     } catch (e) {
       console.log('Backend dashboard API pending');
     }
@@ -135,7 +136,7 @@ export default function PkDashboard({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }}>
         {/* Slide-in notification banner */}
         <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.notificationContent}>
@@ -147,148 +148,164 @@ export default function PkDashboard({ navigation }: any) {
 
         <View style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor="#236B40" translucent={false} />
+
+          {/* TOP BAR HEADER */}
+          <View style={styles.topHeader}>
+            <Image
+              source={require('../../assets/images/logo/logowhite.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationBell navigation={navigation} color="#FFFFFF" size={26} style={{ marginRight: 5 }} />
+              <TouchableOpacity
+                onPress={() => navigation.openDrawer()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
 
-        {/* GREEN HEADER SECTION */}
-        <View style={styles.greenHeader}>
-          <View style={styles.topNav}>
-            <View style={styles.logoRow}>
-              <Image source={require('../../assets/images/logo/logowhite.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
+            {/* PROFILE HEADER SECTION */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profileRow}>
+                <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarCircle}>
+                  {profilePic ? (
+                    <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
+                  ) : (
+                    <Text style={styles.avatarText}>{initial || 'P'}</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.userName}>{userName}</Text>
+              </View>
             </View>
-            <View style={styles.headerIcons}>
-              <TouchableOpacity style={{ marginRight: 15, position: 'relative' }} onPress={handleNotifications} activeOpacity={0.8}>
-                <Ionicons name="notifications-outline" size={28} color="#FFF" />
-                {unreadCount > 0 && (
-                  <View style={styles.badgeDot}>
-                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+
+            {/* WHITE BODY SECTION */}
+            <View style={styles.whiteBody}>
+              <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
+              <Text style={styles.subTitle}>
+                Welcome back, <Text style={{ fontWeight: '800', color: '#111' }}>{userName}</Text>! Here's your activity{"\n"}overview
+              </Text>
+
+              {/* 4 CARDS GRID */}
+              <View style={styles.gridContainer}>
+                {/* Card 1 */}
+                <LinearGradient
+                  colors={['#F9D038', '#D39C16']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.card}
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                    style={styles.glassCardGloss}
+                  />
+                  <View style={styles.cardIconWrap}>
+                    <MaterialCommunityIcons name="package-variant-closed" size={48} color="#FFF" />
                   </View>
+                  <View style={styles.cardTextWrap}>
+                    <Text style={styles.cardValue}>{inventoryCount}</Text>
+                    <Text style={styles.cardLabel}>Inventory Items</Text>
+                  </View>
+                </LinearGradient>
+
+                {/* Card 2 */}
+                <LinearGradient
+                  colors={['#F9D038', '#D39C16']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.card}
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                    style={styles.glassCardGloss}
+                  />
+                  <View style={styles.cardIconWrap}>
+                    <Ionicons name="restaurant" size={46} color="#FFF" />
+                  </View>
+                  <View style={styles.cardTextWrap}>
+                    <Text style={styles.cardValue}>{mealsServed}</Text>
+                    <Text style={styles.cardLabel}>Meals Served</Text>
+                  </View>
+                </LinearGradient>
+
+                {/* Card 3 */}
+                <LinearGradient
+                  colors={['#3B8A5A', '#226038']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.card}
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                    style={styles.glassCardGloss}
+                  />
+                  <View style={styles.cardIconWrap}>
+                    <Ionicons name="warning-outline" size={54} color="#FFF" />
+                  </View>
+                  <View style={styles.cardTextWrap}>
+                    <Text style={styles.cardValue}>{lowStockCount}</Text>
+                    <Text style={styles.cardLabel}>Low Stock</Text>
+                  </View>
+                </LinearGradient>
+
+                {/* Card 4 */}
+                <LinearGradient
+                  colors={['#3B8A5A', '#226038']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.card}
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                    style={styles.glassCardGloss}
+                  />
+                  <View style={styles.cardIconWrap}>
+                    <Ionicons name="hourglass-outline" size={44} color="#FFF" />
+                  </View>
+                  <View style={styles.cardTextWrap}>
+                    <Text style={styles.cardValue}>{expiringCount}</Text>
+                    <Text style={styles.cardLabel}>Expiring Soon</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Activities</Text>
+                <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Activities List */}
+              <View style={styles.activitiesContainer}>
+                {isLoading && activities.length === 0 ? (
+                  <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
+                ) : activities.length === 0 ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                    <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
+                  </View>
+                ) : (
+                  activities.slice(0, 3).map((act, i) => (
+                    <View key={i} style={styles.activityRow}>
+                      <View style={styles.activityLeft}>
+                        <Text style={styles.actTitle}>{act.title}</Text>
+                        <Text style={styles.actDesc}>{act.description}</Text>
+                      </View>
+                      <Text style={styles.actTime}>{act.time_ago}</Text>
+                    </View>
+                  ))
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.openDrawer()}>
-                <Ionicons name="menu-outline" size={32} color="#FFF" />
-              </TouchableOpacity>
+              </View>
+
+              <View style={{ height: 120 }} />
             </View>
-          </View>
-
-          <View style={styles.userInfo}>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarCircle}>
-              {profilePic ? (
-                <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
-              ) : (
-                <Text style={styles.avatarText}>{initial || 'P'}</Text>
-              )}
-            </TouchableOpacity>
-            <Text style={styles.userName}>{userName}</Text>
-          </View>
-        </View>
-
-        {/* WHITE BODY SECTION */}
-        <View style={styles.whiteBody}>
-          <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
-          <Text style={styles.subTitle}>
-            Welcome back, <Text style={{ fontWeight: '800', color: '#111' }}>{userName}</Text>! Here's your activity{"\n"}overview
-          </Text>
-
-          {/* 4 CARDS GRID */}
-          <View style={styles.gridContainer}>
-            {/* Card 1 */}
-            <LinearGradient
-              colors={['#F9D038', '#D39C16']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <View style={styles.cardIconWrap}>
-                <MaterialCommunityIcons name="package-variant-closed" size={48} color="#FFF" />
-              </View>
-              <View style={styles.cardTextWrap}>
-                <Text style={styles.cardValue}>{inventoryCount}</Text>
-                <Text style={styles.cardLabel}>Inventory Items</Text>
-              </View>
-            </LinearGradient>
-
-            {/* Card 2 */}
-            <LinearGradient
-              colors={['#FCC036', '#DC9B15']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="restaurant" size={46} color="#FFF" />
-              </View>
-              <View style={styles.cardTextWrap}>
-                <Text style={styles.cardValue}>{mealsServed}</Text>
-                <Text style={styles.cardLabel}>Meals Served</Text>
-              </View>
-            </LinearGradient>
-
-            {/* Card 3 */}
-            <LinearGradient
-              colors={['#3B8A5A', '#226038']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="warning-outline" size={54} color="#FFF" />
-              </View>
-              <View style={styles.cardTextWrap}>
-                <Text style={styles.cardValue}>{lowStockCount}</Text>
-                <Text style={styles.cardLabel}>Low Stock</Text>
-              </View>
-            </LinearGradient>
-
-            {/* Card 4 */}
-            <LinearGradient
-              colors={['#318251', '#1D5330']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="hourglass-outline" size={44} color="#FFF" />
-              </View>
-              <View style={styles.cardTextWrap}>
-                <Text style={styles.cardValue}>{expiringCount}</Text>
-                <Text style={styles.cardLabel}>Expiring Soon</Text>
-              </View>
-            </LinearGradient>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activities</Text>
-            <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Activities List */}
-          <View style={styles.activitiesContainer}>
-            {isLoading && activities.length === 0 ? (
-              <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
-            ) : activities.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-                <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
-              </View>
-            ) : (
-              activities.slice(0, 3).map((act, i) => (
-                <View key={i} style={styles.activityRow}>
-                  <View style={styles.activityLeft}>
-                    <Text style={styles.actTitle}>{act.title}</Text>
-                    <Text style={styles.actDesc}>{act.description}</Text>
-                  </View>
-                  <Text style={styles.actTime}>{act.time_ago}</Text>
-                </View>
-              ))
-            )}
-          </View>
-
-          <View style={{ height: 120 }} />
-        </View>
-        </ScrollView>
+          </ScrollView>
         </View>
       </SafeAreaView>
     </>
@@ -338,49 +355,34 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  greenHeader: {
+  topHeader: {
     backgroundColor: '#00592d',
-    paddingTop: 30,
-    paddingBottom: 40,
-    paddingHorizontal: 25,
-  },
-  topNav: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.3)',
-    marginBottom: 15,
-    marginHorizontal: -25,
-    paddingHorizontal: 25,
+    zIndex: 10,
+    elevation: 5,
   },
-  logoRow: { alignItems: 'flex-start', marginLeft: -12 },
-  logoText: { color: '#FFF', fontSize: 16, fontFamily: 'sans-serif' },
-  logoSub: { color: '#FFF', fontSize: 10, opacity: 0.8, marginTop: -2 },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  badgeDot: {
-    position: 'absolute',
-    top: -2,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
+  logoImage: {
+    width: 170,
+    height: 58,
+    marginBottom: 6,
   },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: 'bold',
+  profileHeader: {
+    backgroundColor: '#00592d',
+    paddingHorizontal: 22,
+    paddingTop: 5,
+    paddingBottom: 25,
   },
-
-  userInfo: {
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 5,
   },
   avatarCircle: {
     width: 60,
@@ -392,7 +394,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    marginRight: 15,
   },
   avatarText: {
     color: '#236B40',
@@ -402,7 +403,10 @@ const styles = StyleSheet.create({
   userName: {
     color: '#FFF',
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
+    marginLeft: 14,
+    maxWidth: '75%',
+    letterSpacing: -0.5,
   },
 
   whiteBody: {
@@ -449,6 +453,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 5,
     elevation: 4,
+    overflow: 'hidden',
   },
   cardIconWrap: {
     width: '45%',
@@ -588,5 +593,12 @@ const styles = StyleSheet.create({
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  glassCardGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   }
 });

@@ -186,7 +186,7 @@ export default function TrackMyRequest({ navigation }: any) {
         for (const item of existing) {
           receivedItemsMap[item.food_name] = parseFloat(item.received_qty || '0');
         }
-      } catch {}
+      } catch { }
     }
 
     setItemInputs({});
@@ -379,7 +379,7 @@ export default function TrackMyRequest({ navigation }: any) {
             try {
               const ri = Array.isArray(req.received_items) ? req.received_items : JSON.parse(req.received_items || '[]');
               for (const item of ri) rMap[item.food_name] = parseFloat(item.received_qty || '0');
-            } catch {}
+            } catch { }
             return (
               <View style={styles.reportTableRow}>
                 <Text style={styles.reportTableCellLabel}>Received</Text>
@@ -462,22 +462,21 @@ export default function TrackMyRequest({ navigation }: any) {
 
       <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.container}>
 
-        {/* Header */}
+        {/* TOP BAR HEADER */}
         <View style={styles.topHeader}>
-          <View style={styles.headerRow}>
-            <Image source={require('../../assets/images/logo/logowhite.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
-            <View style={styles.headerIcons}>
-              <NotificationBell navigation={navigation} color="#FFF" size={26} />
-              <TouchableOpacity onPress={() => navigation.openDrawer()}>
-                <Ionicons name="menu" size={34} color="#FFF" />
-              </TouchableOpacity>
-            </View>
+          <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#FFF" size={26} style={{ marginRight: 5 }} />
+            <TouchableOpacity onPress={() => navigation.openDrawer()}>
+              <Ionicons name="menu-outline" size={32} color="#FFF" />
+            </TouchableOpacity>
           </View>
-          <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -20, marginTop: 5, marginBottom: 15 }} />
-          <View style={styles.headerTitles}>
-            <Text style={styles.mainTitle}>My Request</Text>
-            <Text style={styles.subTitle}>View and track the status of your submitted requests.</Text>
-          </View>
+        </View>
+
+        {/* HEADER TITLES SECTION */}
+        <View style={styles.headerTitlesSection}>
+          <Text style={styles.mainTitle}>My Request</Text>
+          <Text style={styles.subTitle}>View and track the status of your submitted requests.</Text>
         </View>
 
         {/* Filters */}
@@ -668,20 +667,28 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     backgroundColor: '#00592d',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 25,
-  },
-  headerRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    zIndex: 10,
+    elevation: 5,
   },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  headerTitles: {
+  logoImage: {
+    width: 170,
+    height: 58,
+    marginBottom: 6,
+  },
+  headerTitlesSection: {
+    backgroundColor: '#00592d',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 20,
     alignItems: 'center',
-    marginTop: 15,
   },
   mainTitle: {
     fontSize: 28,

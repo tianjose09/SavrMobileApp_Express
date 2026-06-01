@@ -13,8 +13,10 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function BeneficiaryDashboard({ navigation }: any) {
   const [userName, setUserName] = useState('');
@@ -69,7 +71,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
     const localName =
       (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'Beneficiary Name';
     const picKey = await getProfilePicKey();
-      const localPic = await StorageUtils.getItem(picKey);
+    const localPic = await StorageUtils.getItem(picKey);
     if (localPic) setProfilePic(localPic);
 
     setUserName(localName);
@@ -103,7 +105,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
               setTimeout(() => showNotification(successNotifs[0].title), 800);
             }
           }
-        } catch {}
+        } catch { }
       }
     } catch (e) {
       console.error('Failed to load dashboard', e);
@@ -123,7 +125,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }}>
         {/* Slide-in notification banner */}
         <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.notificationContent}>
@@ -134,59 +136,50 @@ export default function BeneficiaryDashboard({ navigation }: any) {
         </Animated.View>
 
         <View style={styles.container}>
-          {/* GREEN HEADER */}
-          <View style={styles.greenHeader}>
-            <View style={styles.topRow}>
-              <Image
-                source={require('../../assets/images/logo/logowhite.png')}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-              <View style={styles.iconRow}>
-                <TouchableOpacity
-                  style={[styles.iconBtn, { position: 'relative' }]}
-                  onPress={() => navigation.navigate('Notifications', { role: 'beneficiary' })}
-                >
-                  <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
-                  {unreadCount > 0 && (
-                    <View style={styles.badgeDot}>
-                      <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => navigation.openDrawer?.()}
-                >
-                  <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -16, marginTop: 5, marginBottom: 15 }} />
-
-            <View style={styles.profileRow}>
+          {/* TOP BAR HEADER */}
+          <View style={styles.topHeader}>
+            <Image
+              source={require('../../assets/images/logo/logowhite.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationBell navigation={navigation} color="#FFFFFF" size={26} style={{ marginRight: 5 }} />
               <TouchableOpacity
-                style={styles.avatarCircle}
-                onPress={() => navigation.navigate?.('Profile')}
+                onPress={() => navigation.openDrawer?.()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                {profilePic ? (
-                  <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
-                ) : (
-                  <Text style={{ fontSize: 28, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
-                )}
+                <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
               </TouchableOpacity>
-              <Text style={styles.profileName} numberOfLines={1}>
-                {userName}
-              </Text>
             </View>
           </View>
 
-          {/* WHITE SHEET */}
-          <View style={styles.whiteSheet}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
+          >
+            {/* PROFILE HEADER SECTION */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profileRow}>
+                <TouchableOpacity
+                  style={styles.avatarCircle}
+                  onPress={() => navigation.navigate?.('Profile')}
+                >
+                  {profilePic ? (
+                    <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+                  ) : (
+                    <Text style={{ fontSize: 28, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {userName}
+                </Text>
+              </View>
+            </View>
+
+            {/* WHITE SHEET */}
+            <View style={styles.whiteSheet}>
               <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
 
               <View style={styles.subtitleWrapper}>
@@ -197,33 +190,55 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
               <View style={styles.statsRow}>
                 {/* Active Request Card */}
-                <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
-                  <ImageBackground
-                    source={require('../../assets/images/cards/activerequest_card.png')}
-                    style={styles.imageCardBg}
-                    imageStyle={{ borderRadius: 14 }}
-                    resizeMode="contain"
-                  >
-                    <View style={styles.cardRightStack}>
-                      <Text style={styles.cardNumber}>{acceptedRequests}</Text>
-                      <Text style={styles.cardLabel}>ACCEPTED REQUEST</Text>
+                <TouchableOpacity
+                  style={styles.glassCard}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}
+                >
+                  <View style={styles.glassCardBg}>
+                    <LinearGradient
+                      colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                      style={styles.glassCardGloss}
+                    />
+                    <View style={styles.glassIconCol}>
+                      <Image
+                        source={require('../../assets/images/icons/activerequesticon.png')}
+                        style={styles.glassIconImage}
+                        resizeMode="contain"
+                      />
                     </View>
-                  </ImageBackground>
+                    <View style={styles.glassTextCol}>
+                      <Text style={styles.glassValue}>{acceptedRequests}</Text>
+                      <Text style={styles.glassLabel}>ACCEPTED</Text>
+                      <Text style={styles.glassLabel}>REQUEST</Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
 
                 {/* Pending Request Card */}
-                <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}>
-                  <ImageBackground
-                    source={require('../../assets/images/cards/pendingrequest_card.png')}
-                    style={styles.imageCardBg}
-                    imageStyle={{ borderRadius: 14 }}
-                    resizeMode="contain"
-                  >
-                    <View style={styles.cardRightStack}>
-                      <Text style={styles.cardNumber}>{pendingRequests}</Text>
-                      <Text style={styles.cardLabel}>PENDING REQUEST</Text>
+                <TouchableOpacity
+                  style={styles.glassCard}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}
+                >
+                  <View style={styles.glassCardBg}>
+                    <LinearGradient
+                      colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                      style={styles.glassCardGloss}
+                    />
+                    <View style={styles.glassIconCol}>
+                      <Image
+                        source={require('../../assets/images/icons/pendingrequesticon.png')}
+                        style={styles.glassIconImage}
+                        resizeMode="contain"
+                      />
                     </View>
-                  </ImageBackground>
+                    <View style={styles.glassTextCol}>
+                      <Text style={styles.glassValue}>{pendingRequests}</Text>
+                      <Text style={styles.glassLabel}>PENDING</Text>
+                      <Text style={styles.glassLabel}>REQUEST</Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               </View>
 
@@ -248,8 +263,8 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                   <Text style={styles.yellowBtnText}>Now</Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </View>
+            </View>
+          </ScrollView>
         </View>
       </SafeAreaView>
     </>
@@ -306,45 +321,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#00592d',
   },
-  greenHeader: {
+  topHeader: {
     backgroundColor: '#00592d',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 25,
-  },
-  topRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
   },
   logoImage: {
     width: 170,
     height: 58,
+    marginBottom: 6,
   },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconBtn: {
-    marginLeft: 15,
-  },
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
+  profileHeader: {
+    backgroundColor: '#00592d',
+    paddingHorizontal: 22,
+    paddingTop: 5,
+    paddingBottom: 25,
   },
   profileRow: {
     flexDirection: 'row',
@@ -381,11 +380,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 10,
-  },
-  scrollContent: {
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 40,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   dashboardTitle: {
     fontSize: 28,
@@ -411,42 +411,74 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 40,
+    marginBottom: 30,
     paddingHorizontal: 2,
   },
-  imageCardContainer: {
-    width: '48%',
-    height: 100,
-    shadowColor: '#CE7841',
-    shadowOpacity: 0.35,
+  glassCard: {
+    width: '48.5%',
+    height: 110,
+    borderRadius: 18,
+    backgroundColor: '#d16a24', // Correct orange shade!
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    overflow: 'hidden',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  imageCardBg: {
+
+  glassCardBg: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    position: 'relative',
   },
-  cardRightStack: {
+
+  glassCardGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+
+  glassIconCol: {
+    width: '38%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: '36%',
-    marginTop: '-8%',
   },
-  cardNumber: {
-    color: '#EBC455',
-    fontSize: 40,
-    fontWeight: '800',
-    textShadowColor: 'rgba(152, 70, 20, 0.4)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+
+  glassIconImage: {
+    width: 54,
+    height: 54,
   },
-  cardLabel: {
-    color: '#FFF',
-    fontSize: 9,
+
+  glassTextCol: {
+    width: '62%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  glassValue: {
+    color: '#DFB43F', // Exact gold/amber color from image!
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+    textAlign: 'center',
+  },
+
+  glassLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '800',
+    lineHeight: 15,
     textAlign: 'center',
     letterSpacing: 0.2,
   },

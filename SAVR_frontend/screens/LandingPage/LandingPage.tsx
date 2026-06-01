@@ -120,11 +120,10 @@ export default function LandingPage({ navigation }: any) {
             activeOpacity={0.85}
             onPress={() => navigation.navigate('Login')}
           >
-            <MaterialCommunityIcons
-              name="hand-heart"
-              size={24}
-              color="#FFF"
-              style={{ marginRight: 10 }}
+            <Image
+              source={require('../../assets/images/icons/donatenowicon.png')}
+              style={{ width: 28, height: 28, marginRight: 10, tintColor: '#FFF' }}
+              resizeMode="contain"
             />
             <Text style={styles.donateNowText}>DONATE NOW</Text>
           </TouchableOpacity>
@@ -385,7 +384,7 @@ export default function LandingPage({ navigation }: any) {
     <>
       <SafeAreaView style={styles.topSafeArea} />
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#00592d" />
+        <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
         <View style={styles.fixedHeader}>
           <Image
@@ -480,7 +479,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: OFF_WHITE,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
 
   container: {
@@ -522,6 +520,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 170,
     height: 58,
+    marginBottom: 6,
   },
 
   authButtons: {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image, AppState } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image, AppState, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import ToastBanner from '../../components/ToastBanner';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function FinancialDonation({ navigation }: any) {
   const [amount, setAmount] = useState('');
@@ -43,7 +44,7 @@ export default function FinancialDonation({ navigation }: any) {
         handlePaymentConfirmed(res.data.amount);
         return true;
       }
-    } catch {}
+    } catch { }
     return false;
   };
 
@@ -155,6 +156,7 @@ export default function FinancialDonation({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
       <ToastBanner
         visible={toast.visible}
         title={toast.title}
@@ -164,20 +166,15 @@ export default function FinancialDonation({ navigation }: any) {
       />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
 
-        {/* Header */}
+        {/* TOP BAR HEADER */}
         <View style={styles.topHeader}>
-          <View style={styles.headerRow}>
-            <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
-            <View style={styles.headerIcons}>
-              <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 15 }} onPress={() => navigation.navigate('Notifications')}>
-                <Ionicons name="notifications-outline" size={26} color="#4A4A4A" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="menu-outline" size={34} color="#4A4A4A" />
-              </TouchableOpacity>
-            </View>
+          <Image source={require('../../assets/images/logo/logobrown.png')} style={styles.logoImage} resizeMode="contain" />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+            <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="menu-outline" size={32} color="#544434" />
+            </TouchableOpacity>
           </View>
-          <View style={styles.headerDivider} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -276,10 +273,24 @@ export default function FinancialDonation({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
 
-  topHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FFFFFF' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  headerDivider: { height: 1, backgroundColor: '#E0E0E0', marginHorizontal: -20, marginBottom: 5 },
+  topHeader: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
+  },
+  logoImage: {
+    width: 170,
+    height: 58,
+    marginBottom: 6,
+  },
 
   scrollContent: { paddingHorizontal: 22, paddingTop: 15 },
 

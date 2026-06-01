@@ -16,10 +16,11 @@ import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function OrgDashboard({ navigation }: any) {
   const [userName, setUserName] = useState('');
-  const [splitName, setSplitName] = useState('Org');
+  const [splitName, setSplitName] = useState('NGO');
   const [initial, setInitial] = useState('J');
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [donationAmount, setDonationAmount] = useState(0);
@@ -91,9 +92,9 @@ export default function OrgDashboard({ navigation }: any) {
 
   const fetchDashboardData = async () => {
     const localName =
-      (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'Juana Dela Cruz';
+      (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'NGO Partner';
     const picKey = await getProfilePicKey();
-      const localPic = await StorageUtils.getItem(picKey);
+    const localPic = await StorageUtils.getItem(picKey);
     if (localPic) setProfilePic(localPic);
 
     setUserName(localName);
@@ -130,9 +131,9 @@ export default function OrgDashboard({ navigation }: any) {
       try {
         const critRes = await ApiService.getCriticalNotifications();
         setUnreadCount(critRes?.data?.notifications?.length || 0);
-      } catch {}
+      } catch { }
     } catch (e) {
-      console.error('Failed to load dashboard', e);
+      console.error('Failed NGO load', e);
       setDonationAmount(0);
       setTotalFoodDonations(0);
     } finally {
@@ -165,205 +166,201 @@ export default function OrgDashboard({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.greenHeader}>
-        <View style={styles.topRow}>
-          <Image
-            source={require('../../assets/images/logo/logowhite.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-
-          <View style={styles.iconRow}>
-            <TouchableOpacity
-              style={[styles.iconBtn, { position: 'relative' }]}
-              onPress={() => navigation.navigate('Notifications')}
-            >
-              <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
-              {unreadCount > 0 && (
-              <View style={styles.badgeDot}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.openDrawer?.()}
-            >
-              <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, marginHorizontal: -22, marginTop: 5, marginBottom: 15 }} />
-
-        <View style={styles.profileRow}>
-          <TouchableOpacity
-            style={styles.avatarCircle}
-            onPress={() => navigation.navigate?.('Profile')}
-          >
-            {profilePic ? (
-              <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
-            ) : (
-              <Text style={{ fontSize: 26, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.profileName} numberOfLines={1}>
-            {userName}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.whiteSheet}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Animated.View style={{ opacity: titleFadeAnim, transform: [{ translateY: titleTranslateAnim }] }}>
-            <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
-
-            <Text style={styles.subtitle}>
-              Welcome back, <Text style={styles.subtitleBold}>{splitName}!</Text> Here's
-              your activity overview - keep making an impact
-            </Text>
-          </Animated.View>
-
-          <Animated.View style={{ opacity: totalCardFadeAnim, transform: [{ translateY: totalCardTranslateAnim }] }}>
-          <View style={styles.totalCard}>
-            <View style={styles.totalTitleRow}>
-              <FontAwesome5 name="hand-holding-heart" size={18} color="#00592d" />
-              <Text style={styles.totalTitle}> Total Donations Made</Text>
-            </View>
-
-            <Text style={styles.totalAmount}>
-              {totalDonationsMade.toLocaleString('en-US')}
-            </Text>
-
-            {/* Progress bar: flex-based for reliable RN rendering */}
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { flex: progressPct }]} />
-              <View style={{ flex: 100 - progressPct }} />
-            </View>
-
-            <View style={styles.progressLabels}>
-              <Text style={styles.currentLabel}>{totalDonationsMade} / 100 donations</Text>
-              <Text style={styles.goalLabel}>100</Text>
-            </View>
-          </View>
-          </Animated.View>
-
-          <Animated.View style={{ opacity: statsFadeAnim, transform: [{ translateY: statsTranslateAnim }] }}>
-          <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate?.('FinancialDonation')}>
-              <ImageBackground
-                source={require('../../assets/images/cards/financialcard_dashboard.png')}
-                style={styles.imageCardBg}
-                imageStyle={{ borderRadius: 14 }}
-                resizeMode="stretch"
-              >
-                <View style={styles.imageCardContent}>
-                  <Text style={styles.orangeValue}>
-                    ₱ {donationAmount.toLocaleString('en-US')}
-                  </Text>
-                  <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
-                  <Text style={styles.orangeLabel}>DONATION</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate?.('FoodDonationDetails')}>
-              <ImageBackground
-                source={require('../../assets/images/cards/foodcard_dashboard.png')}
-                style={styles.imageCardBg}
-                imageStyle={{ borderRadius: 14 }}
-                resizeMode="stretch"
-              >
-                <View style={styles.imageCardContent}>
-                  <Text style={styles.orangeValue}>{totalFoodDonations}</Text>
-                  <Text style={styles.orangeLabel}>TOTAL FOOD</Text>
-                  <Text style={styles.orangeLabel}>DONATION</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-          </View>
-          </Animated.View>
-
-          {/* ACHIEVEMENT BADGES — only show if earned */}
-          {featuredBadges && featuredBadges.length > 0 && (
-          <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesTranslateAnim }] }}>
-          <View style={styles.badgesSection}>
-            <View style={styles.badgesHeader}>
-              <Text style={styles.badgesTitle}>Achievement Badges</Text>
+    <>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+        <View style={styles.container}>
+          {/* TOP BAR HEADER */}
+          <View style={styles.topHeader}>
+            <Image
+              source={require('../../assets/images/logo/logowhite.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationBell navigation={navigation} color="#FFFFFF" size={26} style={{ marginRight: 5 }} />
               <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => navigation.navigate?.('AchievementBadges')}
+                onPress={() => navigation.openDrawer?.()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.viewAllText}>View All</Text>
+                <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-
-            <View style={styles.badgesRow}>
-              {featuredBadges.map((badge, idx) => (
-                <View style={styles.badgeCard} key={badge.id || idx}>
-                  <Image
-                    source={BADGE_IMAGES[badge.icon]}
-                    style={styles.badgeImage}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.badgeName}>{badge.name}</Text>
-                  <Text style={styles.badgeDesc}>{badge.description}</Text>
-                </View>
-              ))}
-            </View>
           </View>
-          </Animated.View>
-          )}
 
-
-          {/* NEXT BADGE — only show if there's a badge to work toward */}
-          {nextBadge && (
-          <Animated.View style={{ opacity: nextBadgeFadeAnim, transform: [{ translateY: nextBadgeTranslateAnim }] }}>
-          <View style={styles.nextBadgeSection}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <Text style={styles.nextBadgeTitle}>Next Badge Goal</Text>
-              <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-                <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}>🔒 NOT YET EARNED</Text>
-              </View>
-            </View>
-
-            <View style={styles.nextBadgeCard}>
-              <View style={{ position: 'relative' }}>
-                <Image
-                  source={BADGE_IMAGES[nextBadge.icon]}
-                  style={[styles.nextBadgeImage, { opacity: 0.25 }]}
-                  resizeMode="contain"
-                />
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-                  <FontAwesome5 name="lock" size={22} color="#8A8A8A" />
-                </View>
-              </View>
-
-              <View style={styles.nextBadgeTextWrap}>
-                <Text style={styles.nextBadgeName}>{nextBadge.name}</Text>
-                <Text style={styles.nextBadgeDesc}>{nextBadge.description}</Text>
-
-                <View style={styles.nextProgressBar}>
-                  <View style={[styles.nextProgressFill, { width: `${nextBadgePct}%` }]} />
-                </View>
-
-                <Text style={styles.nextProgressText}>
-                  {isFinancial ? '₱ ' : ''}{nextBadgeAmount.toLocaleString('en-US')} / {isFinancial ? '₱ ' : ''}{nextBadgeGoal.toLocaleString('en-US')}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
+          >
+            {/* PROFILE HEADER SECTION */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profileRow}>
+                <TouchableOpacity
+                  style={styles.avatarCircle}
+                  onPress={() => navigation.navigate?.('Profile')}
+                >
+                  {profilePic ? (
+                    <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+                  ) : (
+                    <Text style={{ fontSize: 26, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {userName}
                 </Text>
               </View>
             </View>
-          </View>
-          </Animated.View>
-          )}
+
+            {/* WHITE SHEET */}
+            <View style={styles.whiteSheet}>
+              <Animated.View style={{ opacity: titleFadeAnim, transform: [{ translateY: titleTranslateAnim }] }}>
+                <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
+
+                <Text style={styles.subtitle}>
+                  Welcome back, <Text style={styles.subtitleBold}>{splitName}!</Text> Here's
+                  your activity overview - keep making an impact
+                </Text>
+              </Animated.View>
+
+              <Animated.View style={{ opacity: totalCardFadeAnim, transform: [{ translateY: totalCardTranslateAnim }] }}>
+                <View style={styles.totalCard}>
+                  <View style={styles.totalTitleRow}>
+                    <FontAwesome5 name="hand-holding-heart" size={18} color="#00592d" />
+                    <Text style={styles.totalTitle}> Total Donations Made</Text>
+                  </View>
+
+                  <Text style={styles.totalAmount}>
+                    {totalDonationsMade.toLocaleString('en-US')}
+                  </Text>
+
+                  {/* Progress bar: flex-based for reliable RN rendering */}
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { flex: progressPct }]} />
+                    <View style={{ flex: 100 - progressPct }} />
+                  </View>
+
+                  <View style={styles.progressLabels}>
+                    <Text style={styles.currentLabel}>{totalDonationsMade} / 100 donations</Text>
+                    <Text style={styles.goalLabel}>100</Text>
+                  </View>
+                </View>
+              </Animated.View>
+
+              <Animated.View style={{ opacity: statsFadeAnim, transform: [{ translateY: statsTranslateAnim }] }}>
+                <View style={styles.statsRow}>
+                  <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate?.('FinancialDonation')}>
+                    <ImageBackground
+                      source={require('../../assets/images/cards/financialcard_dashboard.png')}
+                      style={styles.imageCardBg}
+                      imageStyle={{ borderRadius: 14 }}
+                      resizeMode="stretch"
+                    >
+                      <View style={styles.imageCardContent}>
+                        <Text style={styles.orangeValue}>
+                          ₱ {donationAmount.toLocaleString('en-US')}
+                        </Text>
+                        <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
+                        <Text style={styles.orangeLabel}>DONATION</Text>
+                      </View>
+                    </ImageBackground>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.imageCardContainer} activeOpacity={0.9} onPress={() => navigation.navigate?.('FoodDonationDetails')}>
+                    <ImageBackground
+                      source={require('../../assets/images/cards/foodcard_dashboard.png')}
+                      style={styles.imageCardBg}
+                      imageStyle={{ borderRadius: 14 }}
+                      resizeMode="stretch"
+                    >
+                      <View style={styles.imageCardContent}>
+                        <Text style={styles.orangeValue}>{totalFoodDonations}</Text>
+                        <Text style={styles.orangeLabel}>TOTAL FOOD</Text>
+                        <Text style={styles.orangeLabel}>DONATION</Text>
+                      </View>
+                    </ImageBackground>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+
+              {/* ACHIEVEMENT BADGES — only show if earned */}
+              {featuredBadges && featuredBadges.length > 0 && (
+                <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesTranslateAnim }] }}>
+                  <View style={styles.badgesSection}>
+                    <View style={styles.badgesHeader}>
+                      <Text style={styles.badgesTitle}>Achievement Badges</Text>
+                      <TouchableOpacity
+                        style={styles.viewAllButton}
+                        onPress={() => navigation.navigate?.('AchievementBadges')}
+                      >
+                        <Text style={styles.viewAllText}>View All</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.badgesRow}>
+                      {featuredBadges.map((badge, idx) => (
+                        <View style={styles.badgeCard} key={badge.id || idx}>
+                          <Image
+                            source={BADGE_IMAGES[badge.icon]}
+                            style={styles.badgeImage}
+                            resizeMode="contain"
+                          />
+                          <Text style={styles.badgeName}>{badge.name}</Text>
+                          <Text style={styles.badgeDesc}>{badge.description}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </Animated.View>
+              )}
 
 
-          <View style={{ height: 110 }} />
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+              {/* NEXT BADGE — only show if there's a badge to work toward */}
+              {nextBadge && (
+                <Animated.View style={{ opacity: nextBadgeFadeAnim, transform: [{ translateY: nextBadgeTranslateAnim }] }}>
+                  <View style={styles.nextBadgeSection}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <Text style={styles.nextBadgeTitle}>Next Badge Goal</Text>
+                      <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}>🔒 NOT YET EARNED</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.nextBadgeCard}>
+                      <View style={{ position: 'relative' }}>
+                        <Image
+                          source={BADGE_IMAGES[nextBadge.icon]}
+                          style={[styles.nextBadgeImage, { opacity: 0.25 }]}
+                          resizeMode="contain"
+                        />
+                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                          <FontAwesome5 name="lock" size={22} color="#8A8A8A" />
+                        </View>
+                      </View>
+
+                      <View style={styles.nextBadgeTextWrap}>
+                        <Text style={styles.nextBadgeName}>{nextBadge.name}</Text>
+                        <Text style={styles.nextBadgeDesc}>{nextBadge.description}</Text>
+
+                        <View style={styles.nextProgressBar}>
+                          <View style={[styles.nextProgressFill, { width: `${nextBadgePct}%` }]} />
+                        </View>
+
+                        <Text style={styles.nextProgressText}>
+                          {isFinancial ? '₱ ' : ''}{nextBadgeAmount.toLocaleString('en-US')} / {isFinancial ? '₱ ' : ''}{nextBadgeGoal.toLocaleString('en-US')}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </Animated.View>
+              )}
+
+
+            </View>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -380,54 +377,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#00592d',
   },
 
-  greenHeader: {
+  topHeader: {
     backgroundColor: '#00592d',
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 25,
-  },
-
-  topRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    zIndex: 10,
+    elevation: 5,
   },
-
   logoImage: {
     width: 170,
     height: 58,
+    marginBottom: 6,
   },
-
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 4,
+  profileHeader: {
+    backgroundColor: '#00592d',
+    paddingHorizontal: 22,
+    paddingTop: 5,
+    paddingBottom: 25,
   },
-
-  iconBtn: {
-    marginLeft: 12,
-  },
-
-  badgeDot: {
-    position: 'absolute',
-    top: -3,
-    right: -4,
-    backgroundColor: '#E74C3C',
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
-
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -459,12 +432,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     overflow: 'hidden',
-  },
-
-  scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 24,
     paddingBottom: 40,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
   },
 
   dashboardTitle: {

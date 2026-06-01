@@ -136,36 +136,31 @@ export default function FoodDonationDetails({ navigation }: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <View style={styles.topHeaderWrap}>
-          <View style={styles.topNav}>
-            <Image
-              source={require('../../assets/images/logo/logobrown.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-
-            <View style={styles.topRightIcons}>
-              <NotificationBell navigation={navigation} color="#544434" size={28} />
-
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => navigation.openDrawer?.()}
-              >
-                <Ionicons name="menu-outline" size={36} color="#544434" />
-              </TouchableOpacity>
-            </View>
+        {/* TOP BAR HEADER */}
+        <View style={styles.topHeader}>
+          <Image
+            source={require('../../assets/images/logo/logobrown.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.openDrawer?.()}
+            >
+              <Ionicons name="menu-outline" size={32} color="#544434" />
+            </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={styles.topDivider} />
-
-          <View style={styles.heroTitleWrap}>
-            <Image
-              source={require('../../assets/images/foodonationicon.png')}
-              style={styles.heroMainIconImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.heroTitle}>Food Donation</Text>
-          </View>
+        <View style={styles.heroTitleWrap}>
+          <Image
+            source={require('../../assets/images/foodonationicon.png')}
+            style={styles.heroMainIconImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.heroTitle}>Food Donation</Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -224,9 +219,9 @@ export default function FoodDonationDetails({ navigation }: any) {
                       item.category === 'Canned Goods'
                         ? [{ label: "Pieces (pcs)", value: "pcs" }]
                         : [
-                            { label: "Kilograms (kg)", value: "kg" },
-                            { label: "Pieces (pcs)", value: "pcs" }
-                          ]
+                          { label: "Kilograms (kg)", value: "kg" },
+                          { label: "Pieces (pcs)", value: "pcs" }
+                        ]
                     }
                     style={styles.input}
                   />
@@ -346,21 +341,23 @@ export default function FoodDonationDetails({ navigation }: any) {
       </KeyboardAvoidingView>
 
       {/* Android native date picker dialog */}
-      {Platform.OS === 'android' && showDatePickerId !== null && (
-        <DateTimePicker
-          value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
-          mode="date"
-          display="default"
-          minimumDate={new Date()}
-          onChange={(event, date) => {
-            const currentId = showDatePickerId;
-            setShowDatePickerId(null);
-            if (event.type === 'set' && date && currentId) {
-              updateItem(currentId, 'expiryDate', date);
-            }
-          }}
-        />
-      )}
+      {
+        Platform.OS === 'android' && showDatePickerId !== null && (
+          <DateTimePicker
+            value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
+            mode="date"
+            display="default"
+            minimumDate={new Date()}
+            onChange={(event, date) => {
+              const currentId = showDatePickerId;
+              setShowDatePickerId(null);
+              if (event.type === 'set' && date && currentId) {
+                updateItem(currentId, 'expiryDate', date);
+              }
+            }}
+          />
+        )
+      }
 
       {/* iOS date picker modal */}
       <Modal visible={showIOSDatePickerId !== null} transparent animationType="slide">
@@ -383,7 +380,7 @@ export default function FoodDonationDetails({ navigation }: any) {
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
@@ -393,36 +390,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  topHeaderWrap: {
+  topHeader: {
     backgroundColor: '#FFFFFF',
-  },
-
-  topNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
-    paddingBottom: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
   },
-
   logoImage: {
     width: 170,
     height: 58,
+    marginBottom: 6,
   },
-
-  topRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
   iconBtn: {
     marginLeft: 10,
-  },
-
-  topDivider: {
-    height: 1,
-    backgroundColor: '#544434',
-    opacity: 0.5,
   },
 
   heroTitleWrap: {

@@ -188,38 +188,33 @@ export default function ServiceDonation({ navigation }: any) {
       />
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" translucent={false} />
 
-      {/* HEADER */}
-      <View style={styles.topHeaderWrap}>
-        <View style={styles.topNav}>
-          <Image
-            source={require('../../assets/images/logo/logobrown.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-
-          <View style={styles.topRightIcons}>
-            <NotificationBell navigation={navigation} color="#544434" size={28} />
-
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.openDrawer?.()}
-            >
-              <Ionicons name="menu-outline" size={26} color="#544434" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.topDivider} />
-
-        <View style={styles.titleSection}>
-          <Image
-            source={require('../../assets/images/cards/servicedonationicongreen.png')}
-            style={styles.heroMainIconImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.mainTitle}>Service Donation</Text>
+      {/* TOP BAR HEADER */}
+      <View style={styles.topHeader}>
+        <Image
+          source={require('../../assets/images/logo/logobrown.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => navigation.openDrawer?.()}
+          >
+            <Ionicons name="menu-outline" size={32} color="#544434" />
+          </TouchableOpacity>
         </View>
       </View>
+
+      <View style={styles.titleSection}>
+        <Image
+          source={require('../../assets/images/cards/servicedonationicongreen.png')}
+          style={styles.heroMainIconImage}
+          resizeMode="contain"
+        />
+        <Text style={styles.mainTitle}>Service Donation</Text>
+      </View>
+
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -572,31 +567,26 @@ export default function ServiceDonation({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
 
-  topHeaderWrap: {
+  topHeader: {
     backgroundColor: '#FFFFFF',
-  },
-  topNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 18,
+    paddingTop: 12,
     paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
   },
   logoImage: {
     width: 170,
     height: 58,
-  },
-  topRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 6,
   },
   iconBtn: {
-    marginLeft: 18,
-  },
-  topDivider: {
-    height: 1,
-    backgroundColor: '#544434',
-    opacity: 0.5,
+    marginLeft: 10,
   },
 
   scrollContent: { paddingHorizontal: 20, paddingBottom: 120, paddingTop: 15 },

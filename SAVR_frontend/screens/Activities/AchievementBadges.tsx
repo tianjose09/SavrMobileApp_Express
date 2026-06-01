@@ -20,6 +20,7 @@ export default function AchievementBadges({ navigation }: any) {
   const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
   const [allBadges, setAllBadges] = useState<any[]>([]);
   const [totalUnlocked, setTotalUnlocked] = useState(0);
+  const [summaryBadge, setSummaryBadge] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchBadges = useCallback(async () => {
@@ -27,10 +28,20 @@ export default function AchievementBadges({ navigation }: any) {
       setLoading(true);
       const response = await ApiService.getBadges();
       if (response?.data?.success) {
-        const all = response.data.all ?? [];
+        const all = (response.data.all ?? []) as any[];
         setAllBadges(all);
-        setFeaturedBadges(response.data.earned ? response.data.earned.slice(0, 3) : []);
-        setTotalUnlocked(response.data.earned ? response.data.earned.length : 0);
+
+        // Only truly earned badges, sorted lowest goal first
+        const earned = all
+          .filter((b: any) => b.status === 'earned')
+          .sort((a: any, b: any) => parseFloat(a.goal_value) - parseFloat(b.goal_value));
+
+        setFeaturedBadges(earned.slice(0, 3));
+        setTotalUnlocked(earned.length);
+
+        // Summary image = the HIGHEST earned badge (most prestigious)
+        const highest = earned.length > 0 ? earned[earned.length - 1] : null;
+        setSummaryBadge(highest);
       }
     } catch (error) {
       console.error('Failed to fetch badges', error);
@@ -145,9 +156,9 @@ export default function AchievementBadges({ navigation }: any) {
               </View>
 
               <View style={styles.summaryBody}>
-                {totalUnlocked > 0 ? (
+                {summaryBadge && BADGE_IMAGES[summaryBadge.icon] ? (
                   <Image
-                    source={require('../../assets/images/badges/100kbadge_championofchange.png')}
+                    source={BADGE_IMAGES[summaryBadge.icon]}
                     style={styles.summaryBadgeImage}
                     resizeMode="contain"
                   />
@@ -198,18 +209,28 @@ export default function AchievementBadges({ navigation }: any) {
                 </View>
 
                 {featuredBadges && featuredBadges.length > 0 ? (
-                  <View style={styles.badgesRow}>
-                    {featuredBadges.map((badge) => (
-                      <View style={styles.badgeCard} key={badge.id}>
-                        <Image
-                          source={BADGE_IMAGES[badge.icon]}
-                          style={styles.badgeImage}
-                          resizeMode="contain"
-                        />
-                        <Text style={styles.badgeName}>{badge.name}</Text>
-                        <Text style={styles.badgeDesc}>{badge.description}</Text>
-                      </View>
-                    ))}
+                  <View style={[
+                    styles.badgesRow,
+                    {
+                      justifyContent: featuredBadges.length === 3 ? 'space-between' : 'flex-start',
+                      gap: featuredBadges.length === 3 ? 0 : 12,
+                    }
+                  ]}>
+                    {featuredBadges.map((badge) => {
+                      const imgSource = BADGE_IMAGES[badge.icon];
+                      if (!imgSource) return null;
+                      return (
+                        <View style={styles.badgeCard} key={badge.id}>
+                          <Image
+                            source={imgSource}
+                            style={styles.badgeImage}
+                            resizeMode="contain"
+                          />
+                          <Text style={styles.badgeName}>{badge.name}</Text>
+                          <Text style={styles.badgeDesc}>{badge.description}</Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 ) : (
                   <View style={{ padding: 20, alignItems: 'center' }}>
@@ -515,16 +536,17 @@ const styles = StyleSheet.create({
 
   badgesRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
 
   badgeCard: {
-    width: '31%',
+    width: '31.5%',
     backgroundColor: '#FDFDFD',
     borderRadius: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F2F2F2',

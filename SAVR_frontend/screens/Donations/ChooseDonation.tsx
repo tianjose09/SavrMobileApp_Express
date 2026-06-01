@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
-  ActivityIndicator, StatusBar, Image, Animated, Easing,
+  ActivityIndicator, StatusBar, Image, Animated, Easing, SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
@@ -49,115 +49,127 @@ export default function ChooseDonation({ navigation }: any) {
   const hasMore = pickups.length > 3;
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
+    <>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
-      {/* HERO */}
-      <View style={styles.heroBackground}>
-        <View style={styles.topNav}>
-          <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <NotificationBell navigation={navigation} color="#FFF" size={26} />
-            <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="menu" size={34} color="#FFF" />
-            </TouchableOpacity>
+          {/* TOP BAR HEADER */}
+          <View style={styles.topHeader}>
+            <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationBell navigation={navigation} color="#FFF" size={26} style={{ marginRight: 5 }} />
+              <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="menu-outline" size={32} color="#FFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.3, width: '100%', marginTop: 8 }} />
-        <View style={styles.heroContent}>
-          <Text style={styles.heroTitleMain}>
-            CHOOSE WHAT TO <Text style={styles.heroTitleHighlight}>DONATE</Text>
-          </Text>
-        </View>
-      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* Section Header */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionOverline}>DONATION OPTIONS</Text>
-            <Text style={styles.sectionTitle}>Ways to Contribute</Text>
-          </View>
-          <View style={styles.badgePill}>
-            <Text style={styles.badgePillText}>3 Categories</Text>
-          </View>
-        </View>
-
-        {/* Donation Cards */}
-        <View style={styles.cardsRow}>
-          <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('FinancialDonation')} style={styles.imageCardBtn}>
-            <Image source={require('../../assets/images/cards/choosedonation_financial.png')} style={styles.cardImage} resizeMode="stretch" />
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('FoodDonationDetails')} style={styles.imageCardBtn}>
-            <Image source={require('../../assets/images/cards/choosedonation_food.png')} style={styles.cardImage} resizeMode="stretch" />
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('ServiceDonation')} style={styles.imageCardBtn}>
-            <Image source={require('../../assets/images/cards/choosedonation_service.png')} style={styles.cardImage} resizeMode="stretch" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Upcoming Pickups */}
-        <View style={styles.pickupsHeaderInfoRow}>
-          <Text style={styles.pickupsTitle}>Upcoming Pickups</Text>
-          <TouchableOpacity
-            style={styles.viewAllBtn}
-            onPress={() => navigation.navigate('AllUpcomingPickups')}
-          >
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator size="small" color="#00592d" style={{ marginVertical: 20 }} />
-        ) : displayedPickups.length === 0 ? (
-          <Text style={styles.noPickupsText}>You have no upcoming pickups scheduled.</Text>
-        ) : (
-          displayedPickups.map(item => (
-            <View key={item.id} style={styles.pickupRow}>
-              <Text style={styles.pickupDateTime}>
-                {item.preferred_date || 'TBD'} | {item.time_slot || 'Anytime'}
-              </Text>
-              <Text style={styles.pickupAddress} numberOfLines={1}>
-                Address: {item.pickup_address || 'TBD'}
+          {/* HERO */}
+          <View style={styles.heroBackground}>
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitleMain}>
+                CHOOSE WHAT TO <Text style={styles.heroTitleHighlight}>DONATE</Text>
               </Text>
             </View>
-          ))
-        )}
+          </View>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </Animated.View>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+            {/* Section Header */}
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionOverline}>DONATION OPTIONS</Text>
+                <Text style={styles.sectionTitle}>Ways to Contribute</Text>
+              </View>
+              <View style={styles.badgePill}>
+                <Text style={styles.badgePillText}>3 Categories</Text>
+              </View>
+            </View>
+
+            {/* Donation Cards */}
+            <View style={styles.cardsRow}>
+              <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('FinancialDonation')} style={styles.imageCardBtn}>
+                <Image source={require('../../assets/images/cards/choosedonation_financial.png')} style={styles.cardImage} resizeMode="stretch" />
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('FoodDonationDetails')} style={styles.imageCardBtn}>
+                <Image source={require('../../assets/images/cards/choosedonation_food.png')} style={styles.cardImage} resizeMode="stretch" />
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('ServiceDonation')} style={styles.imageCardBtn}>
+                <Image source={require('../../assets/images/cards/choosedonation_service.png')} style={styles.cardImage} resizeMode="stretch" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Upcoming Pickups */}
+            <View style={styles.pickupsHeaderInfoRow}>
+              <Text style={styles.pickupsTitle}>Upcoming Pickups</Text>
+              <TouchableOpacity
+                style={styles.viewAllBtn}
+                onPress={() => navigation.navigate('AllUpcomingPickups')}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <ActivityIndicator size="small" color="#00592d" style={{ marginVertical: 20 }} />
+            ) : displayedPickups.length === 0 ? (
+              <Text style={styles.noPickupsText}>You have no upcoming pickups scheduled.</Text>
+            ) : (
+              displayedPickups.map(item => (
+                <View key={item.id} style={styles.pickupRow}>
+                  <Text style={styles.pickupDateTime}>
+                    {item.preferred_date || 'TBD'} | {item.time_slot || 'Anytime'}
+                  </Text>
+                  <Text style={styles.pickupAddress} numberOfLines={1}>
+                    Address: {item.pickup_address || 'TBD'}
+                  </Text>
+                </View>
+              ))
+            )}
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        </Animated.View>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
 
+  topHeader: {
+    backgroundColor: '#00592d',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
+  },
+  logoImage: { width: 170, height: 58, marginBottom: 6 },
+
   heroBackground: {
     backgroundColor: '#00592d',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    paddingTop: Platform.OS === 'ios' ? 45 : 35,
-    paddingBottom: 15,
+    paddingTop: 20,
+    paddingBottom: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 8,
   },
-  topNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 5,
-    marginTop: 15,
-  },
-  logoImage: { width: 170, height: 58 },
-  heroContent: { paddingHorizontal: 25, marginTop: 35, marginBottom: 25, alignItems: 'center' },
+  heroContent: { paddingHorizontal: 25, marginTop: 15, marginBottom: 15, alignItems: 'center' },
   heroTitleMain: { fontSize: 25, fontWeight: '800', color: '#FFF', letterSpacing: -0.5, textAlign: 'center' },
   heroTitleHighlight: { color: '#FACC15' },
 

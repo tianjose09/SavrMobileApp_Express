@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
-  TextInput, Platform, Image, KeyboardAvoidingView, Alert, ActivityIndicator, Modal, FlatList
+  TextInput, Platform, Image, KeyboardAvoidingView, Alert, ActivityIndicator, Modal, FlatList, StatusBar
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -172,361 +172,402 @@ export default function CreateRequest({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.topHeader}>
-        <View style={styles.headerRow}>
-          <Image source={require('../../assets/images/logo/logobrown.png')} style={{ width: 170, height: 58 }} resizeMode="contain" />
-          <View style={styles.headerIcons}>
-            <NotificationBell navigation={navigation} />
+    <>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+        {/* TOP BAR HEADER */}
+        <View style={styles.topHeader}>
+          <Image source={require('../../assets/images/logo/logobrown.png')} style={styles.logoImage} resizeMode="contain" />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
             <TouchableOpacity onPress={() => navigation.openDrawer()}>
-              <Ionicons name="menu-outline" size={34} color="#4A4A4A" />
+              <Ionicons name="menu-outline" size={32} color="#544434" />
             </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.headerDivider} />
-      </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-          {/* Title */}
-          <View style={styles.titleRow}>
-            <FontAwesome5 name="hand-holding-usd" size={40} color="#00592d" style={styles.titleIcon} />
-            <Text style={styles.pageTitle}>Create Request</Text>
-          </View>
-          <View style={styles.titleDivider} />
+            {/* Title */}
+            <View style={styles.titleRow}>
+              <Image
+                source={require('../../assets/images/icons/createrequesticon.png')}
+                style={styles.titleIconImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.pageTitle}>Create Request</Text>
+            </View>
 
-          {/* Tabs */}
-          <View style={styles.tabsRow}>
-            <TouchableOpacity style={[styles.tabButton, requestType === 'food' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('food')} activeOpacity={0.9}>
-              <MaterialCommunityIcons name="basket-outline" size={22} color={requestType === 'food' ? '#FFFFFF' : '#222222'} style={{ marginRight: 8 }} />
-              <Text style={[styles.tabText, requestType === 'food' ? styles.tabTextActive : styles.tabTextInactive]}>FOOD</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton, requestType === 'financial' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('financial')} activeOpacity={0.9}>
-              <FontAwesome5 name="hand-holding-usd" size={18} color={requestType === 'financial' ? '#FFFFFF' : '#222222'} style={{ marginRight: 8 }} />
-              <Text style={[styles.tabText, requestType === 'financial' ? styles.tabTextActive : styles.tabTextInactive]}>FINANCIAL</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Form Card */}
-          <View style={styles.formCard}>
-
-            <Text style={styles.inputLabel}>Name of Drive</Text>
-            <TextInput
-              style={styles.inputBox}
-              placeholder="eg. Kapatiran Fire Tondo Relief"
-              placeholderTextColor="#A5D1B8"
-              value={form.title}
-              onChangeText={(val) => updateForm('title', val)}
-            />
-
-            {requestType === 'financial' && (
-              <View>
-                <Text style={styles.inputLabel}>Amount of Money Needed</Text>
-
-                <TextInput
-                  style={styles.inputBox}
-                  keyboardType="numeric"
-                  value={form.financial_amount}
-                  onChangeText={(val) => updateForm('financial_amount', val)}
+            {/* Tabs */}
+            <View style={styles.tabsRow}>
+              <TouchableOpacity style={[styles.tabButton, requestType === 'food' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('food')} activeOpacity={0.9}>
+                <Image
+                  source={require('../../assets/images/icons/foodicon.png')}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    marginRight: 8,
+                    tintColor: requestType === 'food' ? '#FFFFFF' : '#222222',
+                  }}
+                  resizeMode="contain"
                 />
-              </View>
-            )}
+                <Text style={[styles.tabText, requestType === 'food' ? styles.tabTextActive : styles.tabTextInactive]}>FOOD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.tabButton, requestType === 'financial' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('financial')} activeOpacity={0.9}>
+                <Image
+                  source={require('../../assets/images/icons/financialicon.png')}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    marginRight: 8,
+                    tintColor: requestType === 'financial' ? '#FFFFFF' : '#222222',
+                  }}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.tabText, requestType === 'financial' ? styles.tabTextActive : styles.tabTextInactive]}>FINANCIAL</Text>
+              </TouchableOpacity>
+            </View>
 
-            {/* Population & Age */}
-            <View style={styles.rowInputs}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>No. of Population</Text>
-                <TextInput style={styles.inputBox} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+            {/* Form Card */}
+            <View style={styles.formCard}>
+
+              <Text style={styles.inputLabel}>Name of Drive</Text>
+              <TextInput
+                style={styles.inputBox}
+                placeholder="eg. Kapatiran Fire Tondo Relief"
+                placeholderTextColor="#A5D1B8"
+                value={form.title}
+                onChangeText={(val) => updateForm('title', val)}
+              />
+
+              {requestType === 'financial' && (
+                <View>
+                  <Text style={styles.inputLabel}>Amount of Money Needed</Text>
+
+                  <TextInput
+                    style={styles.inputBox}
+                    keyboardType="numeric"
+                    value={form.financial_amount}
+                    onChangeText={(val) => updateForm('financial_amount', val)}
+                  />
+                </View>
+              )}
+
+              {/* Population & Age */}
+              <View style={styles.rowInputs}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>No. of Population</Text>
+                  <TextInput style={styles.inputBox} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                </View>
+                <View style={{ flex: 1.5 }}>
+                  <Text style={styles.inputLabel}>Age Range</Text>
+                  <View style={styles.rowInputsNoMargin}>
+                    <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                    <Text style={{ color: '#e4e1e1ff', fontSize: 12, fontWeight: '500', alignSelf: 'center', marginBottom: 15, paddingHorizontal: 6 }}>-</Text>
+                    <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                  </View>
+                </View>
               </View>
-              <View style={{ flex: 1.5 }}>
-                <Text style={styles.inputLabel}>Age Range</Text>
-                <View style={styles.rowInputsNoMargin}>
-                  <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
-                  <Text style={{ color: '#e4e1e1ff', fontSize: 12, fontWeight: '500', alignSelf: 'center', marginBottom: 15, paddingHorizontal: 6 }}>-</Text>
-                  <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+
+              {/* Address */}
+              <Text style={styles.inputLabel}>Address / Coverage</Text>
+              <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
+                <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 8 }]} placeholder="Street" placeholderTextColor="#A5D1B8" textAlign="center" value={form.street} onChangeText={(val) => updateForm('street', val)} />
+                <TextInput style={[styles.inputBox, { flex: 1.5 }]} placeholder="Brgy" placeholderTextColor="#A5D1B8" textAlign="center" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
+              </View>
+              <View style={[styles.rowInputsNoMargin, { marginBottom: 15 }]}>
+                <TextInput style={[styles.inputBox, { flex: 2, marginRight: 8 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" textAlign="center" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
+                <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Zip" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
+              </View>
+
+              {/* Date & Urgency */}
+              <View style={styles.rowInputs}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.inputLabel}>Date Needed</Text>
+
+                  {/* Trigger button — works for both platforms */}
+                  <TouchableOpacity
+                    style={[styles.inputBox, { justifyContent: 'center' }]}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') setShowIOSPicker(true);
+                      else setShowDatePicker(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }}>
+                        {form.needed_date || 'YYYY-MM-DD'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={16} color="#FFF" />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Android native picker */}
+                  {Platform.OS === 'android' && showDatePicker && (
+                    <DateTimePicker
+                      value={dateObj}
+                      mode="date"
+                      display="default"
+                      minimumDate={new Date()}
+                      onChange={onDateChange}
+                    />
+                  )}
+
+                  {/* iOS Modal picker */}
+                  <Modal visible={showIOSPicker} transparent animationType="slide">
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.modalSheet}>
+                        <View style={styles.modalHeader}>
+                          <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
+                            <Text style={styles.modalCancel}>Cancel</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.modalTitle}>Date Needed</Text>
+                          <TouchableOpacity onPress={confirmIOSDate}>
+                            <Text style={styles.modalDone}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                          <DateTimePicker
+                            value={dateObj}
+                            mode="date"
+                            display="spinner"
+                            minimumDate={new Date()}
+                            onChange={(e, d) => { if (d) setDateObj(d); }}
+                            style={{ width: '100%', alignSelf: 'center' }}
+                            textColor="#1a1a1a"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </Modal>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Urgency Level</Text>
+                  <CustomDropdown
+                    selectedValue={form.urgency_level}
+                    onValueChange={(val) => updateForm('urgency_level', val)}
+                    placeholder="Select Level"
+                    items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
+                    style={styles.inputBox}
+                  />
                 </View>
               </View>
             </View>
 
-            {/* Address */}
-            <Text style={styles.inputLabel}>Address / Coverage</Text>
-            <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
-              <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 8 }]} placeholder="Street" placeholderTextColor="#A5D1B8" textAlign="center" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-              <TextInput style={[styles.inputBox, { flex: 1.5 }]} placeholder="Brgy" placeholderTextColor="#A5D1B8" textAlign="center" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
-            </View>
-            <View style={[styles.rowInputsNoMargin, { marginBottom: 15 }]}>
-              <TextInput style={[styles.inputBox, { flex: 2, marginRight: 8 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" textAlign="center" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
-              <TextInput style={[styles.inputBox, { flex: 1 }]} placeholder="Zip" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
-            </View>
+            {/* ── Food Details Card (outside green card) ── */}
+            {requestType === 'food' && (
+              <View style={styles.foodDetailsCard}>
+                <View style={styles.foodDetailsHeader}>
+                  <MaterialCommunityIcons name="food-variant" size={18} color="#00592d" />
+                  <Text style={styles.foodDetailsTitle}>Food Details</Text>
+                </View>
 
-            {/* Date & Urgency */}
-            <View style={styles.rowInputs}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={styles.inputLabel}>Date Needed</Text>
-
-                {/* Trigger button — works for both platforms */}
-                <TouchableOpacity
-                  style={[styles.inputBox, { justifyContent: 'center' }]}
-                  onPress={() => {
-                    if (Platform.OS === 'ios') setShowIOSPicker(true);
-                    else setShowDatePicker(true);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }}>
-                      {form.needed_date || 'YYYY-MM-DD'}
-                    </Text>
-                    <Ionicons name="calendar-outline" size={16} color="#FFF" />
+                {/* Category selector */}
+                <Text style={styles.fdLabel}>Select Food Categories</Text>
+                {inventoryLoading ? (
+                  <View style={styles.loadingWrap}>
+                    <ActivityIndicator color="#00592d" size="small" />
+                    <Text style={styles.loadingText}>Loading...</Text>
                   </View>
-                </TouchableOpacity>
-
-                {/* Android native picker */}
-                {Platform.OS === 'android' && showDatePicker && (
-                  <DateTimePicker
-                    value={dateObj}
-                    mode="date"
-                    display="default"
-                    minimumDate={new Date()}
-                    onChange={onDateChange}
-                  />
+                ) : categories.length === 0 ? (
+                  <View style={styles.emptyWrap}>
+                    <MaterialCommunityIcons name="package-variant" size={32} color="#ccc" />
+                    <Text style={styles.fdEmptyHint}>No inventory available.</Text>
+                  </View>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ paddingRight: 8 }}>
+                    {categories.map(cat => {
+                      const isActive = selectedCategory === cat;
+                      const count = inventoryItems.filter(i => i.category === cat).length;
+                      return (
+                        <TouchableOpacity
+                          key={cat}
+                          style={[styles.fdCatCard, isActive && styles.fdCatCardActive]}
+                          onPress={() => { setSelectedCategory(isActive ? null : cat); setSelectedItem(null); setItemQty(''); }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.fdCatIconWrap, isActive && styles.fdCatIconWrapActive]}>
+                            <CatIcon cat={cat} size={22} active={isActive} />
+                          </View>
+                          <Text style={[styles.fdCatName, isActive && styles.fdCatNameActive]} numberOfLines={1}>{cat}</Text>
+                          <View style={[styles.fdCatBadge, isActive && styles.fdCatBadgeActive]}>
+                            <Text style={[styles.fdCatBadgeText, isActive && styles.fdCatBadgeTextActive]}>{count}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 )}
 
-                {/* iOS Modal picker */}
-                <Modal visible={showIOSPicker} transparent animationType="slide">
+                {/* Items list */}
+                {selectedCategory && (
+                  <View style={styles.fdItemsWrap}>
+                    <View style={styles.fdItemsHeader}>
+                      <Text style={styles.fdItemsTitle}>{selectedCategory}</Text>
+                      <Text style={styles.fdItemsCount}>{itemsInCategory.length} items</Text>
+                    </View>
+                    {itemsInCategory.length === 0 ? (
+                      <Text style={styles.fdEmptyHint}>No items in this category.</Text>
+                    ) : (
+                      itemsInCategory.map((item, idx) => {
+                        const isSel = selectedItem?.id === item.id;
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            style={[styles.fdItemRow, isSel && styles.fdItemRowActive, idx < itemsInCategory.length - 1 && styles.fdItemRowBorder]}
+                            onPress={() => {
+                              setSelectedItem(isSel ? null : item);
+                              setItemQty('');
+                              setItemUnit(item.category === 'Canned Goods' ? 'pcs' : (item.unit || 'kg'));
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={[styles.fdItemIcon, isSel && styles.fdItemIconActive]}>
+                              <CatIcon cat={item.category} size={18} active={false} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.fdItemName, isSel && styles.fdItemNameActive]} numberOfLines={1}>{item.name}</Text>
+                              <Text style={styles.fdItemCat}>{item.category}</Text>
+                            </View>
+                            <View style={{ alignItems: 'flex-end' }}>
+                              <Text style={styles.fdItemStockLabel}>In Stock</Text>
+                            </View>
+                            {isSel && <Ionicons name="checkmark-circle" size={20} color="#00592d" style={{ marginLeft: 8 }} />}
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
+                  </View>
+                )}
+
+                {/* Qty + Add row */}
+                {selectedItem && (
+                  <View style={styles.fdAddRow}>
+                    <View style={styles.fdAddBadge}>
+                      <CatIcon cat={selectedItem.category} size={13} active={false} />
+                      <Text style={[styles.fdAddName, { marginLeft: 5 }]} numberOfLines={1}>{selectedItem.name}</Text>
+                    </View>
+                    <TextInput
+                      style={styles.fdQtyInput}
+                      placeholder="Qty"
+                      placeholderTextColor="#aaa"
+                      keyboardType="numeric"
+                      value={itemQty}
+                      onChangeText={setItemQty}
+                      textAlign="center"
+                    />
+                    {/* Unit selector */}
+                    <TouchableOpacity style={styles.fdUnitBtn} onPress={() => setShowUnitPicker(true)} activeOpacity={0.8}>
+                      <Text style={styles.fdUnitBtnText}>{itemUnit}</Text>
+                      <Ionicons name="chevron-down" size={11} color="#00592d" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.fdAddBtn} onPress={addFoodToList} activeOpacity={0.8}>
+                      <Ionicons name="add" size={20} color="#fff" />
+                      <Text style={styles.fdAddBtnText}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Unit picker modal */}
+                <Modal visible={showUnitPicker} transparent animationType="slide">
                   <View style={styles.modalOverlay}>
                     <View style={styles.modalSheet}>
                       <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
+                        <TouchableOpacity onPress={() => setShowUnitPicker(false)}>
                           <Text style={styles.modalCancel}>Cancel</Text>
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Date Needed</Text>
-                        <TouchableOpacity onPress={confirmIOSDate}>
-                          <Text style={styles.modalDone}>Done</Text>
-                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Select Unit</Text>
+                        <View style={{ width: 60 }} />
                       </View>
-                      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-                        <DateTimePicker
-                          value={dateObj}
-                          mode="date"
-                          display="spinner"
-                          minimumDate={new Date()}
-                          onChange={(e, d) => { if (d) setDateObj(d); }}
-                          style={{ width: '100%', alignSelf: 'center' }}
-                          textColor="#1a1a1a"
-                        />
-                      </View>
+                      <ScrollView style={{ maxHeight: 320 }}>
+                        {(selectedItem?.category === 'Canned Goods' ? ['pcs'] : ['kg', 'pcs']).map(u => (
+                          <TouchableOpacity
+                            key={u}
+                            style={[styles.unitPickerRow, itemUnit === u && styles.unitPickerRowActive]}
+                            onPress={() => { setItemUnit(u); setShowUnitPicker(false); }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={[styles.unitPickerText, itemUnit === u && styles.unitPickerTextActive]}>{u}</Text>
+                            {itemUnit === u && <Ionicons name="checkmark" size={18} color="#00592d" />}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
                     </View>
                   </View>
                 </Modal>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Urgency Level</Text>
-                <CustomDropdown
-                  selectedValue={form.urgency_level}
-                  onValueChange={(val) => updateForm('urgency_level', val)}
-                  placeholder="Select Level"
-                  items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
-                  style={styles.inputBox}
-                />
-              </View>
-            </View>
-          </View>
 
-          {/* ── Food Details Card (outside green card) ── */}
-          {requestType === 'food' && (
-            <View style={styles.foodDetailsCard}>
-              <View style={styles.foodDetailsHeader}>
-                <MaterialCommunityIcons name="food-variant" size={18} color="#00592d" />
-                <Text style={styles.foodDetailsTitle}>Food Details</Text>
-              </View>
-
-              {/* Category selector */}
-              <Text style={styles.fdLabel}>Select Food Categories</Text>
-              {inventoryLoading ? (
-                <View style={styles.loadingWrap}>
-                  <ActivityIndicator color="#00592d" size="small" />
-                  <Text style={styles.loadingText}>Loading...</Text>
+                {/* Table header */}
+                <View style={styles.fdTableHeader}>
+                  <Text style={[styles.fdTableCol, { flex: 1 }]}>TYPE</Text>
+                  <Text style={[styles.fdTableCol, { flex: 2 }]}>FOOD NAME</Text>
+                  <Text style={[styles.fdTableCol, { flex: 1, textAlign: 'right' }]}>QTY</Text>
+                  <Text style={styles.fdTableCol}> </Text>
                 </View>
-              ) : categories.length === 0 ? (
-                <View style={styles.emptyWrap}>
-                  <MaterialCommunityIcons name="package-variant" size={32} color="#ccc" />
-                  <Text style={styles.fdEmptyHint}>No inventory available.</Text>
-                </View>
-              ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ paddingRight: 8 }}>
-                  {categories.map(cat => {
-                    const isActive = selectedCategory === cat;
-                    const count = inventoryItems.filter(i => i.category === cat).length;
-                    return (
-                      <TouchableOpacity
-                        key={cat}
-                        style={[styles.fdCatCard, isActive && styles.fdCatCardActive]}
-                        onPress={() => { setSelectedCategory(isActive ? null : cat); setSelectedItem(null); setItemQty(''); }}
-                        activeOpacity={0.8}
-                      >
-                        <View style={[styles.fdCatIconWrap, isActive && styles.fdCatIconWrapActive]}>
-                          <CatIcon cat={cat} size={22} active={isActive} />
-                        </View>
-                        <Text style={[styles.fdCatName, isActive && styles.fdCatNameActive]} numberOfLines={1}>{cat}</Text>
-                        <View style={[styles.fdCatBadge, isActive && styles.fdCatBadgeActive]}>
-                          <Text style={[styles.fdCatBadgeText, isActive && styles.fdCatBadgeTextActive]}>{count}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              )}
 
-              {/* Items list */}
-              {selectedCategory && (
-                <View style={styles.fdItemsWrap}>
-                  <View style={styles.fdItemsHeader}>
-                    <Text style={styles.fdItemsTitle}>{selectedCategory}</Text>
-                    <Text style={styles.fdItemsCount}>{itemsInCategory.length} items</Text>
+                {/* Table rows */}
+                {requestedFoods.length === 0 ? (
+                  <View style={styles.fdTableEmpty}>
+                    <Text style={styles.fdTableEmptyText}>No items added yet</Text>
                   </View>
-                  {itemsInCategory.length === 0 ? (
-                    <Text style={styles.fdEmptyHint}>No items in this category.</Text>
-                  ) : (
-                    itemsInCategory.map((item, idx) => {
-                      const isSel = selectedItem?.id === item.id;
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={[styles.fdItemRow, isSel && styles.fdItemRowActive, idx < itemsInCategory.length - 1 && styles.fdItemRowBorder]}
-                          onPress={() => {
-                            setSelectedItem(isSel ? null : item);
-                            setItemQty('');
-                            setItemUnit(item.category === 'Canned Goods' ? 'pcs' : (item.unit || 'kg'));
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={[styles.fdItemIcon, isSel && styles.fdItemIconActive]}>
-                            <CatIcon cat={item.category} size={18} active={false} />
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.fdItemName, isSel && styles.fdItemNameActive]} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.fdItemCat}>{item.category}</Text>
-                          </View>
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={styles.fdItemStockLabel}>In Stock</Text>
-                          </View>
-                          {isSel && <Ionicons name="checkmark-circle" size={20} color="#00592d" style={{ marginLeft: 8 }} />}
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                </View>
-              )}
-
-              {/* Qty + Add row */}
-              {selectedItem && (
-                <View style={styles.fdAddRow}>
-                  <View style={styles.fdAddBadge}>
-                    <CatIcon cat={selectedItem.category} size={13} active={false} />
-                    <Text style={[styles.fdAddName, { marginLeft: 5 }]} numberOfLines={1}>{selectedItem.name}</Text>
-                  </View>
-                  <TextInput
-                    style={styles.fdQtyInput}
-                    placeholder="Qty"
-                    placeholderTextColor="#aaa"
-                    keyboardType="numeric"
-                    value={itemQty}
-                    onChangeText={setItemQty}
-                    textAlign="center"
-                  />
-                  {/* Unit selector */}
-                  <TouchableOpacity style={styles.fdUnitBtn} onPress={() => setShowUnitPicker(true)} activeOpacity={0.8}>
-                    <Text style={styles.fdUnitBtnText}>{itemUnit}</Text>
-                    <Ionicons name="chevron-down" size={11} color="#00592d" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.fdAddBtn} onPress={addFoodToList} activeOpacity={0.8}>
-                    <Ionicons name="add" size={20} color="#fff" />
-                    <Text style={styles.fdAddBtnText}>Add</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Unit picker modal */}
-              <Modal visible={showUnitPicker} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalSheet}>
-                    <View style={styles.modalHeader}>
-                      <TouchableOpacity onPress={() => setShowUnitPicker(false)}>
-                        <Text style={styles.modalCancel}>Cancel</Text>
+                ) : (
+                  requestedFoods.map((f, idx) => (
+                    <View key={f.id} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
+                      <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{f.category}</Text>
+                      <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
+                      <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
+                      <TouchableOpacity onPress={() => removeFood(f.id)} style={{ paddingLeft: 10 }}>
+                        <Ionicons name="trash-outline" size={15} color="#E74C3C" />
                       </TouchableOpacity>
-                      <Text style={styles.modalTitle}>Select Unit</Text>
-                      <View style={{ width: 60 }} />
                     </View>
-                    <ScrollView style={{ maxHeight: 320 }}>
-                      {(selectedItem?.category === 'Canned Goods' ? ['pcs'] : ['kg', 'pcs']).map(u => (
-                        <TouchableOpacity
-                          key={u}
-                          style={[styles.unitPickerRow, itemUnit === u && styles.unitPickerRowActive]}
-                          onPress={() => { setItemUnit(u); setShowUnitPicker(false); }}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={[styles.unitPickerText, itemUnit === u && styles.unitPickerTextActive]}>{u}</Text>
-                          {itemUnit === u && <Ionicons name="checkmark" size={18} color="#00592d" />}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
-
-              {/* Table header */}
-              <View style={styles.fdTableHeader}>
-                <Text style={[styles.fdTableCol, { flex: 1 }]}>TYPE</Text>
-                <Text style={[styles.fdTableCol, { flex: 2 }]}>FOOD NAME</Text>
-                <Text style={[styles.fdTableCol, { flex: 1, textAlign: 'right' }]}>QTY</Text>
-                <Text style={styles.fdTableCol}> </Text>
+                  ))
+                )}
               </View>
+            )}
 
-              {/* Table rows */}
-              {requestedFoods.length === 0 ? (
-                <View style={styles.fdTableEmpty}>
-                  <Text style={styles.fdTableEmptyText}>No items added yet</Text>
-                </View>
-              ) : (
-                requestedFoods.map((f, idx) => (
-                  <View key={f.id} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
-                    <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{f.category}</Text>
-                    <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
-                    <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
-                    <TouchableOpacity onPress={() => removeFood(f.id)} style={{ paddingLeft: 10 }}>
-                      <Ionicons name="trash-outline" size={15} color="#E74C3C" />
-                    </TouchableOpacity>
-                  </View>
-                ))
-              )}
+            {/* Submit */}
+            <View style={styles.submitRow}>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isLoading}>
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Submit</Text>}
+              </TouchableOpacity>
             </View>
-          )}
-
-          {/* Submit */}
-          <View style={styles.submitRow}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isLoading}>
-              {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Submit</Text>}
-            </TouchableOpacity>
-          </View>
-          <View style={{ height: 50 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            <View style={{ height: 50 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  topHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FFFFFF' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  headerDivider: { height: 1, backgroundColor: '#E0E0E0', marginHorizontal: -20 },
+  topHeader: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
+  },
+  logoImage: {
+    width: 170,
+    height: 58,
+    marginBottom: 6,
+  },
   scrollContent: { paddingHorizontal: 22, paddingTop: 30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   titleIcon: { marginRight: 12 },
+  titleIconImage: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+  },
   pageTitle: { fontSize: 28, fontWeight: '800', color: '#00592d', letterSpacing: -0.5 },
   titleDivider: { height: 1, backgroundColor: '#A3A3A3', opacity: 0.3, marginHorizontal: -22, marginBottom: 25 },
   tabsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25, paddingHorizontal: 15 },

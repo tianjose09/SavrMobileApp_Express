@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Dimensions,
   Modal,
+  Image,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -235,11 +236,10 @@ export default function DonorRegistration({ navigation }: any) {
           >
             <View style={styles.headerWrap}>
               <View style={styles.titleRow}>
-                <MaterialCommunityIcons
-                  name="hand-heart"
-                  size={34}
-                  color="#FFF"
-                  style={styles.headerIcon}
+                <Image
+                  source={require('../../assets/images/icons/registerindivicon.png')}
+                  style={styles.headerIconImage}
+                  resizeMode="contain"
                 />
                 <Text style={styles.headerTitle}>
                   <Text style={styles.headerTitleYellow}>DONOR </Text>
@@ -662,6 +662,12 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.28)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 8,
+  },
+
+  headerIconImage: {
+    width: 40,
+    height: 40,
+    marginRight: 8,
   },
 
   headerTitle: {
