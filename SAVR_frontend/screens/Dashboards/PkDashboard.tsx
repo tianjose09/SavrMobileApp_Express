@@ -438,7 +438,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 20,
   },
   card: {
     width: '48%',
@@ -447,7 +446,6 @@ const styles = StyleSheet.create({
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -483,7 +481,8 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#CCCCCC',
-    marginVertical: 25,
+    marginTop: 6,
+    marginBottom: 4,
     marginHorizontal: 15,
   },
 
