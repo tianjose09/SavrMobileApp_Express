@@ -85,11 +85,15 @@ export const ApiService = {
   completeBeneficiaryRequest: (
     id: number,
     receivedQty?: number,
-    receivedItems?: { food_name: string; received_qty: number; unit: string }[]
+    receivedItems?: { food_name: string; received_qty: number; unit: string }[],
+    remarks?: string
   ) =>
     api.post(`api/donation/my-requests/${id}/complete`,
-      receivedItems ? { received_items: receivedItems } :
-        receivedQty != null ? { received_qty: receivedQty } : {}
+      receivedItems
+        ? { received_items: receivedItems, ...(remarks ? { remarks } : {}) }
+        : receivedQty != null
+          ? { received_qty: receivedQty, ...(remarks ? { remarks } : {}) }
+          : remarks ? { remarks } : {}
     ),
   // Staff-only: change status; optionally pass delivery_date_time (ISO string)
   updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied', delivery_date_time?: string) =>

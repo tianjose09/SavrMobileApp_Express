@@ -925,6 +925,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
         quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
         unit: r.unit || (foodItems[0]?.unit ?? null),
         delivery_date_time: r.delivery_date_time ? new Date(r.delivery_date_time).toISOString() : null,
+        remarks: r.remarks || null,
       };
     });
   return res.json({ success: true, requests: mapped });
@@ -1017,7 +1018,12 @@ exports.updateRequestStatus = async (req, res) => {
 
 exports.completeBeneficiaryRequest = async (req, res) => {
   const { id } = req.params;
-  const { received_items, received_qty } = req.body;
+  const { received_items, received_qty, remarks } = req.body;
+
+  // Auto-migrate: add remarks column if it doesn't exist
+  try {
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS remarks TEXT`);
+  } catch (_) {}
 
   const [rows] = await db.execute(
     'SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?',
@@ -1070,14 +1076,14 @@ exports.completeBeneficiaryRequest = async (req, res) => {
 
     if (isCompleted) {
       await db.execute(
-        "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, updated_at = NOW() WHERE id = ?",
-        [JSON.stringify(updatedReceived), id]
+        "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, remarks = ?, updated_at = NOW() WHERE id = ?",
+        [JSON.stringify(updatedReceived), remarks || null, id]
       );
       await createNotification(req.user.id, 'service', 'Request Completed', `Your request "${request.request_name || 'Unnamed'}" has been fully fulfilled. Thank you!`, true);
     } else {
       await db.execute(
-        'UPDATE beneficiary_requests SET received_items = ?, updated_at = NOW() WHERE id = ?',
-        [JSON.stringify(updatedReceived), id]
+        'UPDATE beneficiary_requests SET received_items = ?, remarks = ?, updated_at = NOW() WHERE id = ?',
+        [JSON.stringify(updatedReceived), remarks || null, id]
       );
     }
 
@@ -1095,6 +1101,7 @@ exports.completeBeneficiaryRequest = async (req, res) => {
       is_completed: isCompleted,
       received_items: updatedReceived,
       remaining_items: remainingItems,
+      remarks: remarks || null,
       message: isCompleted ? 'Request fully fulfilled!' : `Receipt recorded. ${remainingItems.length} item(s) still remaining.`,
     });
   }
@@ -1117,14 +1124,14 @@ exports.completeBeneficiaryRequest = async (req, res) => {
 
   if (isCompleted) {
     await db.execute(
-      "UPDATE beneficiary_requests SET status = 'Completed', received_quantity = ?, updated_at = NOW() WHERE id = ?",
-      [newReceived || null, id]
+      "UPDATE beneficiary_requests SET status = 'Completed', received_quantity = ?, remarks = ?, updated_at = NOW() WHERE id = ?",
+      [newReceived || null, remarks || null, id]
     );
     await createNotification(req.user.id, 'service', 'Request Completed', `Your request "${request.request_name || 'Unnamed'}" has been fully fulfilled. Thank you!`, true);
   } else {
     await db.execute(
-      'UPDATE beneficiary_requests SET received_quantity = ?, updated_at = NOW() WHERE id = ?',
-      [newReceived, id]
+      'UPDATE beneficiary_requests SET received_quantity = ?, remarks = ?, updated_at = NOW() WHERE id = ?',
+      [newReceived, remarks || null, id]
     );
   }
 
@@ -1135,6 +1142,7 @@ exports.completeBeneficiaryRequest = async (req, res) => {
     received_quantity: newReceived,
     remaining_quantity: remaining,
     unit: request.unit || '',
+    remarks: remarks || null,
     message: isCompleted
       ? 'Request fully fulfilled!'
       : `Receipt recorded. ${remaining} ${request.unit || ''} remaining.`,

@@ -121,6 +121,7 @@ export default function TrackMyRequest({ navigation }: any) {
   }>({ visible: false, requestId: null, foodItems: [], receivedItemsMap: {}, totalQty: null, receivedQty: 0, unit: '' });
   const [itemInputs, setItemInputs] = useState<Record<string, string>>({});
   const [qtyInput, setQtyInput] = useState('');
+  const [remarksInput, setRemarksInput] = useState('');
 
   // Timer that re-computes effective statuses every 30 s (catches In Transit transitions live)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -190,6 +191,7 @@ export default function TrackMyRequest({ navigation }: any) {
 
     setItemInputs({});
     setQtyInput('');
+    setRemarksInput('');
     setReceiptModal({
       visible: true,
       requestId: req.id,
@@ -228,16 +230,12 @@ export default function TrackMyRequest({ navigation }: any) {
 
       setReceiptModal(m => ({ ...m, visible: false }));
       try {
-        const res = await ApiService.completeBeneficiaryRequest(receiptModal.requestId, undefined, receivedItems);
+        const res = await ApiService.completeBeneficiaryRequest(
+          receiptModal.requestId, undefined, receivedItems, remarksInput.trim() || undefined
+        );
         if (res.data.success) {
-          if (res.data.is_completed) {
-            Alert.alert('Completed!', 'Your full request has been fulfilled. Thank you!');
-          } else {
-            const rem = (res.data.remaining_items || [])
-              .map((i: any) => `${i.food_name}: ${i.remaining} ${i.unit}`)
-              .join('\n');
-            Alert.alert('Received!', `Receipt recorded.\n\nStill remaining:\n${rem}`);
-          }
+          const title = res.data.is_completed ? '✅ Request Completed!' : '📦 Partial Receipt Recorded';
+          Alert.alert(title, res.data.message);
           fetchRequests();
         } else {
           Alert.alert('Error', res.data.message || 'Failed to record receipt.');
@@ -263,13 +261,12 @@ export default function TrackMyRequest({ navigation }: any) {
     setReceiptModal(m => ({ ...m, visible: false }));
 
     try {
-      const res = await ApiService.completeBeneficiaryRequest(receiptModal.requestId, receivedQty);
+      const res = await ApiService.completeBeneficiaryRequest(
+        receiptModal.requestId, receivedQty, undefined, remarksInput.trim() || undefined
+      );
       if (res.data.success) {
-        if (res.data.is_completed) {
-          Alert.alert('Completed!', 'Your full request has been fulfilled. Thank you!');
-        } else {
-          Alert.alert('Received!', `Receipt recorded.\nRemaining: ${res.data.remaining_quantity} ${res.data.unit}`);
-        }
+        const title = res.data.is_completed ? '✅ Request Completed!' : '📦 Partial Receipt Recorded';
+        Alert.alert(title, res.data.message);
         fetchRequests();
       } else {
         Alert.alert('Error', res.data.message || 'Failed to record receipt.');
@@ -367,14 +364,10 @@ export default function TrackMyRequest({ navigation }: any) {
           {['In Transit', 'Completed'].includes(effectiveStatus) && (
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
-<<<<<<< HEAD
-              <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#1565C0', fontWeight: '700' } : {}]}>
-=======
               <Text style={[
                 styles.reportTableCellValue,
                 effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {},
               ]}>
->>>>>>> ec08ea77421a929145f6ef1b32883bdf99951d72
                 {formatDeliveryDateTime(req.delivery_date_time)}
               </Text>
             </View>
@@ -421,6 +414,16 @@ export default function TrackMyRequest({ navigation }: any) {
               {[req.street, req.barangay, req.city, req.zip_code].filter(Boolean).join(', ') || 'N/A'}
             </Text>
           </View>
+
+          {/* Remarks — shown when beneficiary left a note on receipt */}
+          {req.remarks ? (
+            <View style={styles.reportTableRow}>
+              <Text style={styles.reportTableCellLabel}>Your Remarks</Text>
+              <Text style={[styles.reportTableCellValue, { color: '#555', fontStyle: 'italic' }]}>
+                {req.remarks}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Action Row */}
@@ -559,24 +562,37 @@ export default function TrackMyRequest({ navigation }: any) {
               {receiptModal.foodItems.length > 0 ? (
                 <>
                   <Text style={styles.modalDesc}>Enter the quantity you received for each item:</Text>
+
+                  {/* Previous receipt recap banner */}
+                  {Object.keys(receiptModal.receivedItemsMap).length > 0 && (
+                    <View style={styles.modalRecapBanner}>
+                      <Ionicons name="information-circle" size={15} color="#1565C0" style={{ marginRight: 5 }} />
+                      <Text style={styles.modalRecapText}>You already received some items previously. Only enter what you received in this delivery.</Text>
+                    </View>
+                  )}
+
                   {receiptModal.foodItems.map((item: any) => {
                     const name = item.food_name || item.name || 'Unknown';
                     const requested = parseFloat(item.qty || item.quantity || '0');
                     const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
                     const remaining = Math.max(0, requested - alreadyReceived);
+                    const isFullyReceived = alreadyReceived >= requested;
                     return (
-                      <View key={name} style={styles.itemInputRow}>
+                      <View key={name} style={[styles.itemInputRow, isFullyReceived && { opacity: 0.5 }]}>
                         <View style={{ flex: 1.5 }}>
                           <Text style={styles.itemInputName}>{name}</Text>
-                          <Text style={styles.itemInputSub}>{alreadyReceived}/{requested} {item.unit || ''} received</Text>
+                          <Text style={[styles.itemInputSub, { color: isFullyReceived ? '#00592d' : '#888' }]}>
+                            {isFullyReceived ? '✓ Fully received' : `${alreadyReceived}/${requested} ${item.unit || ''} received`}
+                          </Text>
                         </View>
                         <TextInput
                           style={[styles.modalInput, { flex: 1, marginBottom: 0 }]}
                           keyboardType="numeric"
-                          value={itemInputs[name] || ''}
+                          editable={!isFullyReceived}
+                          value={isFullyReceived ? '' : (itemInputs[name] || '')}
                           onChangeText={v => setItemInputs(prev => ({ ...prev, [name]: v }))}
-                          placeholder={`Max ${remaining}`}
-                          placeholderTextColor="#AAAAAA"
+                          placeholder={isFullyReceived ? 'Done' : `Max ${remaining}`}
+                          placeholderTextColor={isFullyReceived ? '#00592d' : '#AAAAAA'}
                         />
                       </View>
                     );
@@ -584,33 +600,48 @@ export default function TrackMyRequest({ navigation }: any) {
                 </>
               ) : receiptModal.totalQty ? (
                 <>
-                  <View style={styles.modalInfoRow}>
-                    <Text style={styles.modalInfoLabel}>Total Requested</Text>
-                    <Text style={styles.modalInfoValue}>{receiptModal.totalQty} {receiptModal.unit}</Text>
-                  </View>
-                  <View style={styles.modalInfoRow}>
-                    <Text style={styles.modalInfoLabel}>Already Received</Text>
-                    <Text style={styles.modalInfoValue}>{receiptModal.receivedQty} {receiptModal.unit}</Text>
-                  </View>
-                  <View style={styles.modalInfoRow}>
-                    <Text style={styles.modalInfoLabel}>Remaining</Text>
-                    <Text style={[styles.modalInfoValue, { color: '#1565C0', fontWeight: '800' }]}>
-                      {receiptModal.totalQty - receiptModal.receivedQty} {receiptModal.unit}
+                  {/* Progress summary */}
+                  <View style={styles.modalProgressBanner}>
+                    <Text style={styles.modalProgressText}>
+                      Received so far:{' '}
+                      <Text style={{ fontWeight: '800', color: '#00592d' }}>
+                        {receiptModal.receivedQty} / {receiptModal.totalQty} {receiptModal.unit}
+                      </Text>
                     </Text>
+                    {receiptModal.receivedQty > 0 && receiptModal.receivedQty < (receiptModal.totalQty ?? 0) && (
+                      <Text style={styles.modalProgressSub}>
+                        You received part of this request previously. Enter what you received this time.
+                      </Text>
+                    )}
                   </View>
-                  <Text style={styles.modalInputLabel}>How much did you receive?</Text>
+                  <Text style={styles.modalInputLabel}>How much did you receive this time?</Text>
                   <TextInput
                     style={styles.modalInput}
                     keyboardType="numeric"
                     value={qtyInput}
                     onChangeText={setQtyInput}
-                    placeholder={`Enter quantity (${receiptModal.unit})`}
+                    placeholder={`Max ${receiptModal.totalQty - receiptModal.receivedQty} ${receiptModal.unit}`}
                     placeholderTextColor="#AAAAAA"
                   />
                 </>
               ) : (
                 <Text style={styles.modalDesc}>Confirm that you have received this delivery. This will mark the request as completed.</Text>
               )}
+
+              {/* Optional Remarks */}
+              <View style={styles.remarksSection}>
+                <Text style={styles.remarksLabel}>Remarks <Text style={styles.remarksOptional}>(optional)</Text></Text>
+                <TextInput
+                  style={styles.remarksInput}
+                  multiline
+                  numberOfLines={3}
+                  value={remarksInput}
+                  onChangeText={setRemarksInput}
+                  placeholder="e.g. I only received 3 out of 5 bags. The delivery was partial."
+                  placeholderTextColor="#AAAAAA"
+                  textAlignVertical="top"
+                />
+              </View>
 
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setReceiptModal(m => ({ ...m, visible: false }))}>
@@ -903,4 +934,71 @@ const styles = StyleSheet.create({
   },
   itemInputName: { fontSize: 13, fontWeight: '700', color: '#111' },
   itemInputSub: { fontSize: 11, color: '#888', marginTop: 2 },
+
+  // Remarks section
+  remarksSection: {
+    marginTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    paddingTop: 14,
+  },
+  remarksLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  remarksOptional: {
+    fontWeight: '400',
+    color: '#999',
+    fontSize: 12,
+  },
+  remarksInput: {
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#111',
+    minHeight: 70,
+  },
+
+  // Progress banner (single-qty mode)
+  modalProgressBanner: {
+    backgroundColor: '#F0F8F4',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#00592d',
+  },
+  modalProgressText: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '600',
+  },
+  modalProgressSub: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    lineHeight: 17,
+  },
+
+  // Recap banner (per-item mode when partially received before)
+  modalRecapBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#EBF2FF',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  modalRecapText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#1565C0',
+    lineHeight: 17,
+  },
 });
+
