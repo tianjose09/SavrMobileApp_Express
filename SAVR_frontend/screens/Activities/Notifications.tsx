@@ -107,7 +107,7 @@ export default function Notifications({ navigation }: any) {
           <Text style={styles.pageSubtitle}>
             {notifications.length > 0
               ? `You have ${notifications.length} unread notification${notifications.length > 1 ? 's' : ''}`
-              : 'You are all caught up!'}
+              : 'No new notifications.'}
           </Text>
         </View>
 
@@ -124,7 +124,7 @@ export default function Notifications({ navigation }: any) {
               </View>
               <Text style={styles.emptyTitle}>No Notifications</Text>
               <Text style={styles.emptyDesc}>
-                You're all caught up! Notifications about your donations and badges will appear here.
+                You are completely up to date. Notifications about your donations and badges will appear here.
               </Text>
             </View>
           ) : (
@@ -155,8 +155,6 @@ export default function Notifications({ navigation }: any) {
                       <Text style={styles.cardDesc}>{item.desc}</Text>
                       <Text style={styles.tapHint}>Tap to dismiss</Text>
                     </View>
-
-                    <View style={styles.unreadDot} />
                   </TouchableOpacity>
                 );
               })}
@@ -287,16 +285,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-  },
-
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#00592d',
-    position: 'absolute',
-    top: 14,
-    right: 14,
   },
 
   iconCircle: {
