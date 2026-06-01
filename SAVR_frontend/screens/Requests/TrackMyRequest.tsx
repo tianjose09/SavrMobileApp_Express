@@ -20,10 +20,12 @@ if (Platform.OS === 'android') {
  * Computes the "effective" display status for a request.
  *
  * Rules:
- *  - DB status = 'Approved' / 'Accepted' / 'Allocated'  AND  delivery_date_time exists
+ *  - DB status = 'Allocated'  →  'In Transit'  (allocated = dispatched/in transit)
+ *  - DB status = 'Approved' / 'Accepted' / 'Urgent'  AND  delivery_date_time exists
  *    AND  the scheduled delivery time has already passed  →  'In Transit'
- *  - DB status = 'Approved' / 'Accepted' / 'Allocated'  with NO delivery_date_time
+ *  - DB status = 'Approved' / 'Accepted' / 'Urgent'  with NO delivery_date_time
  *    OR  the scheduled time has NOT yet passed  →  'Approved'
+ *  - DB status = 'Done'  →  'Completed'
  *  - DB status = 'Cancelled' / 'Canceled'  →  'Rejected'
  *  - DB status = 'Completed'  →  'Completed'
  *  - DB status = 'Pending'  →  'Pending'
@@ -33,10 +35,13 @@ function getEffectiveStatus(req: any): string {
   const raw = (req.status || 'PENDING').toUpperCase().trim();
 
   if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Rejected';
-  if (raw === 'COMPLETED') return 'Completed';
+  if (raw === 'COMPLETED' || raw === 'DONE') return 'Completed';
   if (raw === 'PENDING') return 'Pending';
 
-  if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT'].includes(raw)) {
+  // 'Allocated' by itself means the request has been dispatched — always show as In Transit
+  if (raw === 'ALLOCATED') return 'In Transit';
+
+  if (['APPROVED', 'ACCEPTED', 'URGENT'].includes(raw)) {
     if (req.delivery_date_time) {
       const deliveryTime = new Date(req.delivery_date_time).getTime();
       const now = Date.now();
@@ -64,7 +69,7 @@ function getStatusColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
     case 'Pending':    return '#A87919';
     case 'Approved':   return '#00592d';
-    case 'In Transit': return '#1565C0';
+    case 'In Transit': return '#00592d';
     case 'Completed':  return '#00592d';
     case 'Rejected':   return '#C0392B';
     default:           return '#555555';
@@ -75,7 +80,7 @@ function getStatusBadgeColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
     case 'Pending':    return '#FFF8E7';
     case 'Approved':   return '#E8F5E9';
-    case 'In Transit': return '#E3F2FD';
+    case 'In Transit': return '#E8F5E9';
     case 'Completed':  return '#E8F5E9';
     case 'Rejected':   return '#FFEBEE';
     default:           return '#F5F5F5';
@@ -276,7 +281,7 @@ export default function TrackMyRequest({ navigation }: any) {
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
               <Text style={[
                 styles.reportTableCellValue,
-                effectiveStatus === 'In Transit' ? { color: '#1565C0', fontWeight: '700' } : {},
+                effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {},
               ]}>
                 {formatDeliveryDateTime(req.delivery_date_time)}
               </Text>
@@ -603,7 +608,7 @@ const styles = StyleSheet.create({
   receivedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1565C0',
+    backgroundColor: '#00592d',
     borderRadius: 10,
     paddingVertical: 9,
     paddingHorizontal: 16,
