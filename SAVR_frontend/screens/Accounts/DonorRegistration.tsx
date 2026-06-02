@@ -361,8 +361,7 @@ export default function DonorRegistration({ navigation }: any) {
                             placeholder="Select Gender"
                             items={[
                               { label: "Male", value: "Male" },
-                              { label: "Female", value: "Female" },
-                              { label: "Other", value: "Other" }
+                              { label: "Female", value: "Female" }
                             ]}
                             style={{ borderWidth: 0, paddingHorizontal: 0, height: 30 }}
                           />
@@ -470,12 +469,9 @@ export default function DonorRegistration({ navigation }: any) {
                             onValueChange={(val) => updateForm('industry_sector', val)}
                             placeholder="Select Sector"
                             items={[
-                              { label: "Food Services", value: "Food Services" },
-                              { label: "Retail", value: "Retail" },
-                              { label: "Agriculture", value: "Agriculture" },
-                              { label: "Corporate", value: "Corporate" },
-                              { label: "Non-Profit", value: "Non-Profit" },
-                              { label: "Other", value: "Other" }
+                              { label: "Food", value: "Food" },
+                              { label: "NGO", value: "NGO" },
+                              { label: "Corporate", value: "Corporate" }
                             ]}
                             style={{ borderWidth: 0, paddingHorizontal: 0, height: 30 }}
                           />
@@ -493,12 +489,8 @@ export default function DonorRegistration({ navigation }: any) {
                             onValueChange={(val) => updateForm('organization_type', val)}
                             placeholder="Select Type"
                             items={[
-                              { label: "Restaurant", value: "Restaurant" },
-                              { label: "Grocery/Supermarket", value: "Grocery/Supermarket" },
-                              { label: "Bakery", value: "Bakery" },
-                              { label: "Corporation", value: "Corporation" },
-                              { label: "NGO", value: "NGO" },
-                              { label: "Other", value: "Other" }
+                              { label: "Public", value: "Public" },
+                              { label: "Private", value: "Private" }
                             ]}
                             style={{ borderWidth: 0, paddingHorizontal: 0, height: 30 }}
                           />

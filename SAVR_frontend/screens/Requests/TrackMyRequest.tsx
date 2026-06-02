@@ -39,8 +39,21 @@ function getEffectiveStatus(req: any): string {
   if (raw === 'COMPLETED' || raw === 'DONE') return 'Completed';
   if (raw === 'PENDING') return 'Pending';
 
-  if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
+  // Explicitly dispatched / allocated / in transit status in DB always means 'In Transit'
+  if (['ALLOCATED', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
     return 'In Transit';
+  }
+
+  // Approved / Accepted requests show as 'Approved' unless the scheduled delivery time has passed
+  if (['APPROVED', 'ACCEPTED', 'URGENT'].includes(raw)) {
+    if (req.delivery_date_time) {
+      const deliveryTime = new Date(req.delivery_date_time).getTime();
+      const now = Date.now();
+      if (now >= deliveryTime) {
+        return 'In Transit';
+      }
+    }
+    return 'Approved';
   }
 
   // Rejected / Denied / etc.
@@ -60,7 +73,7 @@ function getStatusColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
     case 'Pending': return '#A87919';
     case 'Approved': return '#00592d';
-    case 'In Transit': return '#00592d';
+    case 'In Transit': return '#A87919';
     case 'Completed': return '#00592d';
     case 'Rejected': return '#C0392B';
     default: return '#555555';
@@ -71,7 +84,7 @@ function getStatusBadgeColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
     case 'Pending': return '#FFF8E7';
     case 'Approved': return '#E8F5E9';
-    case 'In Transit': return '#E8F5E9';
+    case 'In Transit': return '#FFF8E7';
     case 'Completed': return '#E8F5E9';
     case 'Rejected': return '#FFEBEE';
     default: return '#F5F5F5';
@@ -100,7 +113,7 @@ function formatDeliveryDateTime(iso: string | null): string {
 const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Rejected'] as const;
 type FilterType = typeof FILTERS[number];
 
-export default function TrackMyRequest({ navigation }: any) {
+export default function TrackMyRequest({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('All');
   const [requestsData, setRequestsData] = useState<any[]>([]);
@@ -114,14 +127,27 @@ export default function TrackMyRequest({ navigation }: any) {
     requestId: number | null;
     foodItems: any[];
     receivedItemsMap: Record<string, number>;
+    dispatchedItems: any[];
+    dispatchedQty: number | null;
     // legacy fallback
     totalQty: number | null;
     receivedQty: number;
     unit: string;
-  }>({ visible: false, requestId: null, foodItems: [], receivedItemsMap: {}, totalQty: null, receivedQty: 0, unit: '' });
+  }>({
+    visible: false,
+    requestId: null,
+    foodItems: [],
+    receivedItemsMap: {},
+    dispatchedItems: [],
+    dispatchedQty: null,
+    totalQty: null,
+    receivedQty: 0,
+    unit: '',
+  });
   const [itemInputs, setItemInputs] = useState<Record<string, string>>({});
   const [qtyInput, setQtyInput] = useState('');
   const [remarksInput, setRemarksInput] = useState('');
+  const [deliveryStatus, setDeliveryStatus] = useState<'complete' | 'partial'>('complete');
 
   // Timer that re-computes effective statuses every 30 s (catches In Transit transitions live)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -133,10 +159,20 @@ export default function TrackMyRequest({ navigation }: any) {
   }, []);
 
   useEffect(() => {
-    const unsubscribeFocus = navigation.addListener('focus', fetchRequests);
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      fetchRequests();
+      if (route?.params?.filter) {
+        setSelectedFilter(route.params.filter);
+        navigation.setParams({ filter: undefined });
+      }
+    });
     fetchRequests();
+    if (route?.params?.filter) {
+      setSelectedFilter(route.params.filter);
+      navigation.setParams({ filter: undefined });
+    }
     return () => unsubscribeFocus();
-  }, [navigation]);
+  }, [navigation, route?.params]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -189,14 +225,48 @@ export default function TrackMyRequest({ navigation }: any) {
       } catch { }
     }
 
+    const dispatchedItems = Array.isArray(req.dispatched_items) ? req.dispatched_items : [];
+
     setItemInputs({});
     setQtyInput('');
     setRemarksInput('');
+
+    // Auto-calculate delivery status based on dispatched qty vs requested remaining qty
+    let isPartial = false;
+    if (foodItems.length > 0) {
+      for (const item of foodItems) {
+        const name = item.food_name || item.name || 'Unknown';
+        const requested = parseFloat(item.qty || item.quantity || '0');
+        const alreadyReceived = receivedItemsMap[name] || 0;
+        const remaining = Math.max(0, requested - alreadyReceived);
+        
+        const dispItem = dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
+        const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : remaining;
+        
+        if (dispQty < remaining) {
+          isPartial = true;
+          break;
+        }
+      }
+    } else if (req.quantity) {
+      const total = parseFloat(req.quantity);
+      const alreadyReceived = parseFloat(req.received_quantity || '0');
+      const remaining = Math.max(0, total - alreadyReceived);
+      const dispQty = req.dispatched_quantity !== null ? parseFloat(req.dispatched_quantity) : remaining;
+      if (dispQty < remaining) {
+        isPartial = true;
+      }
+    }
+
+    setDeliveryStatus(isPartial ? 'partial' : 'complete');
+
     setReceiptModal({
       visible: true,
       requestId: req.id,
       foodItems,
       receivedItemsMap,
+      dispatchedItems,
+      dispatchedQty: req.dispatched_quantity !== null ? parseFloat(req.dispatched_quantity) : null,
       totalQty: req.quantity ? parseFloat(req.quantity) : null,
       receivedQty: parseFloat(req.received_quantity || '0'),
       unit: req.unit && req.unit !== 'null' ? req.unit : '',
@@ -206,36 +276,72 @@ export default function TrackMyRequest({ navigation }: any) {
   const handleSubmitReceipt = async () => {
     if (!receiptModal.requestId) return;
 
+    const isComplete = deliveryStatus === 'complete';
+    
+    // Dynamically build message based on actual database quantities
+    let dynamicMsg = '';
+    if (isComplete) {
+      if (receiptModal.foodItems.length > 0) {
+        const list = receiptModal.foodItems.map(item => {
+          const name = item.food_name || item.name || 'Unknown';
+          const requested = parseFloat(item.qty || item.quantity || '0');
+          return `${name} (${requested} ${item.unit || ''})`;
+        });
+        dynamicMsg = `All items received: ${list.join(', ')}.`;
+      } else if (receiptModal.totalQty) {
+        dynamicMsg = `All items received: ${receiptModal.totalQty} ${receiptModal.unit || 'units'}.`;
+      } else {
+        dynamicMsg = "All items have been received.";
+      }
+    } else {
+      if (receiptModal.foodItems.length > 0) {
+        const list = receiptModal.foodItems.map(item => {
+          const name = item.food_name || item.name || 'Unknown';
+          const requested = parseFloat(item.qty || item.quantity || '0');
+          const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
+          const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
+          const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : Math.max(0, requested - alreadyReceived);
+          const currentTotalReceived = alreadyReceived + dispQty;
+          return `${name} (${currentTotalReceived}/${requested} ${item.unit || ''})`;
+        });
+        dynamicMsg = `Not all requested items have been received. You received ${list.join(', ')} due to lack of supply. Some items are incomplete.`;
+      } else if (receiptModal.totalQty) {
+        const dispQty = receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : (receiptModal.totalQty - receiptModal.receivedQty);
+        const currentTotalReceived = receiptModal.receivedQty + dispQty;
+        dynamicMsg = `Not all requested items have been received. You received ${currentTotalReceived}/${receiptModal.totalQty} ${receiptModal.unit || 'units'} due to lack of supply. Some items are incomplete.`;
+      } else {
+        dynamicMsg = "Not all requested items have been received. The delivery was partial due to lack of supply. Some items are incomplete.";
+      }
+    }
+
+    const finalRemarks = dynamicMsg;
+
     // Per-item mode
     if (receiptModal.foodItems.length > 0) {
       const receivedItems: { food_name: string; received_qty: number; unit: string }[] = [];
       for (const item of receiptModal.foodItems) {
         const name = item.food_name || item.name || 'Unknown';
-        const val = parseFloat(itemInputs[name] || '0');
-        if (isNaN(val) || val < 0) {
-          Alert.alert('Invalid', `Please enter a valid quantity for ${name}.`);
-          return;
-        }
         const requested = parseFloat(item.qty || item.quantity || '0');
         const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
         const remaining = Math.max(0, requested - alreadyReceived);
-        if (val > 0) {
-          receivedItems.push({ food_name: name, received_qty: Math.min(val, remaining), unit: item.unit || '' });
-        }
-      }
-      if (receivedItems.length === 0) {
-        Alert.alert('Invalid', 'Please enter at least one received quantity.');
-        return;
+        
+        // Use dispatched value if set, otherwise fallback to remaining (complete)
+        const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
+        const val = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : remaining;
+        receivedItems.push({ food_name: name, received_qty: val, unit: item.unit || '' });
       }
 
       setReceiptModal(m => ({ ...m, visible: false }));
       try {
         const res = await ApiService.completeBeneficiaryRequest(
-          receiptModal.requestId, undefined, receivedItems, remarksInput.trim() || undefined
+          receiptModal.requestId, undefined, receivedItems, finalRemarks
         );
         if (res.data.success) {
-          const title = res.data.is_completed ? '✅ Request Completed!' : '📦 Partial Receipt Recorded';
-          Alert.alert(title, res.data.message);
+          if (isComplete) {
+            Alert.alert('✅ Request Completed!', dynamicMsg);
+          } else {
+            Alert.alert('📦 Partial Receipt Recorded', dynamicMsg);
+          }
           fetchRequests();
         } else {
           Alert.alert('Error', res.data.message || 'Failed to record receipt.');
@@ -247,26 +353,24 @@ export default function TrackMyRequest({ navigation }: any) {
     }
 
     // Legacy single-qty mode
-    let receivedQty: number | undefined;
+    let receivedQty = 0;
     if (receiptModal.totalQty) {
-      const parsed = parseFloat(qtyInput);
-      if (isNaN(parsed) || parsed <= 0) {
-        Alert.alert('Invalid', 'Please enter a valid quantity.');
-        return;
-      }
       const remaining = receiptModal.totalQty - receiptModal.receivedQty;
-      receivedQty = Math.min(parsed, remaining);
+      receivedQty = receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : remaining;
     }
 
     setReceiptModal(m => ({ ...m, visible: false }));
 
     try {
       const res = await ApiService.completeBeneficiaryRequest(
-        receiptModal.requestId, receivedQty, undefined, remarksInput.trim() || undefined
+        receiptModal.requestId, receivedQty, undefined, finalRemarks
       );
       if (res.data.success) {
-        const title = res.data.is_completed ? '✅ Request Completed!' : '📦 Partial Receipt Recorded';
-        Alert.alert(title, res.data.message);
+        if (isComplete) {
+          Alert.alert('✅ Request Completed!', dynamicMsg);
+        } else {
+          Alert.alert('📦 Partial Receipt Recorded', dynamicMsg);
+        }
         fetchRequests();
       } else {
         Alert.alert('Error', res.data.message || 'Failed to record receipt.');
@@ -354,6 +458,9 @@ export default function TrackMyRequest({ navigation }: any) {
           )}
 
           {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : null)}
+          {!isFood && req.bank_name && renderSummaryRow('Receiving Method', req.bank_name)}
+          {!isFood && req.account_name && renderSummaryRow('Account Name', req.account_name)}
+          {!isFood && req.account_number && renderSummaryRow('Account No.', req.account_number)}
 
           {renderSummaryRow('Target Population', req.population)}
           {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years` : 'All Ages')}
@@ -390,7 +497,7 @@ export default function TrackMyRequest({ navigation }: any) {
                     const received = rMap[name] || 0;
                     const done = received >= requested;
                     return (
-                      <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }, { color: done ? '#00592d' : '#1565C0', fontWeight: '700' }]}>
+                      <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }, { color: done ? '#00592d' : '#00796B', fontWeight: '700' }]}>
                         {name}: {received} / {requested} {item.unit || ''}
                       </Text>
                     );
@@ -402,7 +509,7 @@ export default function TrackMyRequest({ navigation }: any) {
           {effectiveStatus === 'In Transit' && req.quantity && !(Array.isArray(req.food_items) && req.food_items.length > 0) && (
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Received</Text>
-              <Text style={[styles.reportTableCellValue, { color: '#1565C0', fontWeight: '700' }]}>
+              <Text style={[styles.reportTableCellValue, { color: '#00796B', fontWeight: '700' }]}>
                 {parseFloat(req.received_quantity || '0')} / {req.quantity} {req.unit && req.unit !== 'null' ? req.unit : ''}
               </Text>
             </View>
@@ -558,89 +665,116 @@ export default function TrackMyRequest({ navigation }: any) {
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Confirm Receipt</Text>
 
-              {receiptModal.foodItems.length > 0 ? (
-                <>
-                  <Text style={styles.modalDesc}>Enter the quantity you received for each item:</Text>
+              {(() => {
+                const isComplete = deliveryStatus === 'complete';
+                let dynamicExplanation = '';
+                
+                if (isComplete) {
+                  if (receiptModal.foodItems.length > 0) {
+                    const list = receiptModal.foodItems.map(item => {
+                      const name = item.food_name || item.name || 'Unknown';
+                      const requested = parseFloat(item.qty || item.quantity || '0');
+                      return `${name} (${requested} ${item.unit || ''})`;
+                    });
+                    dynamicExplanation = `All items received: ${list.join(', ')}.`;
+                  } else if (receiptModal.totalQty) {
+                    dynamicExplanation = `All items received: ${receiptModal.totalQty} ${receiptModal.unit || 'units'}.`;
+                  } else {
+                    dynamicExplanation = "All items have been received.";
+                  }
+                } else {
+                  if (receiptModal.foodItems.length > 0) {
+                    const list = receiptModal.foodItems.map(item => {
+                      const name = item.food_name || item.name || 'Unknown';
+                      const requested = parseFloat(item.qty || item.quantity || '0');
+                      const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
+                      const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
+                      const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : Math.max(0, requested - alreadyReceived);
+                      const currentTotalReceived = alreadyReceived + dispQty;
+                      return `${name} (${currentTotalReceived}/${requested} ${item.unit || ''})`;
+                    });
+                    dynamicExplanation = `Not all requested items have been received. You received ${list.join(', ')} due to lack of supply. Some items are incomplete.`;
+                  } else if (receiptModal.totalQty) {
+                    const dispQty = receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : (receiptModal.totalQty - receiptModal.receivedQty);
+                    const currentTotalReceived = receiptModal.receivedQty + dispQty;
+                    dynamicExplanation = `Not all requested items have been received. You received ${currentTotalReceived}/${receiptModal.totalQty} ${receiptModal.unit || 'units'} due to lack of supply. Some items are incomplete.`;
+                  } else {
+                    dynamicExplanation = "Not all requested items have been received. The delivery was partial due to lack of supply. Some items are incomplete.";
+                  }
+                }
 
-                  {/* Previous receipt recap banner */}
-                  {Object.keys(receiptModal.receivedItemsMap).length > 0 && (
-                    <View style={styles.modalRecapBanner}>
-                      <Ionicons name="information-circle" size={15} color="#1565C0" style={{ marginRight: 5 }} />
-                      <Text style={styles.modalRecapText}>You already received some items previously. Only enter what you received in this delivery.</Text>
+                return (
+                  <>
+                    <View style={styles.deliveryStatusContainer}>
+                      {isComplete ? (
+                        <View style={[styles.statusOptionCard, styles.statusOptionCardActiveComplete]}>
+                          <Ionicons name="checkmark-circle" size={24} color="#00592d" />
+                          <View style={styles.statusOptionTextWrap}>
+                            <Text style={[styles.statusOptionTitle, styles.statusOptionTitleActive]}>
+                              Complete Delivery
+                            </Text>
+                            <Text style={styles.statusOptionSub}>
+                              All requested items are being completed and received in full.
+                            </Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={[styles.statusOptionCard, styles.statusOptionCardActivePartial]}>
+                          <Ionicons name="alert-circle" size={24} color="#D87A38" />
+                          <View style={styles.statusOptionTextWrap}>
+                            <Text style={[styles.statusOptionTitle, styles.statusOptionTitleActive]}>
+                              Partial Delivery
+                            </Text>
+                            <Text style={styles.statusOptionSub}>
+                              Some items are missing or the quantity is incomplete.
+                            </Text>
+                          </View>
+                        </View>
+                      )}
                     </View>
-                  )}
 
-                  {receiptModal.foodItems.map((item: any) => {
-                    const name = item.food_name || item.name || 'Unknown';
-                    const requested = parseFloat(item.qty || item.quantity || '0');
-                    const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
-                    const remaining = Math.max(0, requested - alreadyReceived);
-                    const isFullyReceived = alreadyReceived >= requested;
-                    return (
-                      <View key={name} style={[styles.itemInputRow, isFullyReceived && { opacity: 0.5 }]}>
-                        <View style={{ flex: 1.5 }}>
-                          <Text style={styles.itemInputName}>{name}</Text>
-                          <Text style={[styles.itemInputSub, { color: isFullyReceived ? '#00592d' : '#888' }]}>
-                            {isFullyReceived ? '✓ Fully received' : `${alreadyReceived}/${requested} ${item.unit || ''} received`}
+                    {/* Shipment Details list */}
+                    <View style={styles.shipmentDetailsSection}>
+                      <Text style={styles.shipmentDetailsLabel}>Shipment Details:</Text>
+                      {receiptModal.foodItems.length > 0 ? (
+                        receiptModal.foodItems.map((item: any, i: number) => {
+                          const name = item.food_name || item.name || 'Unknown';
+                          const requested = parseFloat(item.qty || item.quantity || '0');
+                          const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
+                          const remaining = Math.max(0, requested - alreadyReceived);
+                          const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
+                          const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : remaining;
+
+                          return (
+                            <View key={i} style={styles.shipmentDetailRow}>
+                              <Text style={styles.shipmentItemName}>{name}</Text>
+                              <Text style={styles.shipmentItemQty}>
+                                {dispQty} / {requested} {item.unit || ''}
+                              </Text>
+                            </View>
+                          );
+                        })
+                      ) : (
+                        <View style={styles.shipmentDetailRow}>
+                          <Text style={styles.shipmentItemName}>Quantity</Text>
+                          <Text style={styles.shipmentItemQty}>
+                            {receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : (receiptModal.totalQty ? (receiptModal.totalQty - receiptModal.receivedQty) : 0)} / {receiptModal.totalQty} {receiptModal.unit || ''}
                           </Text>
                         </View>
-                        <TextInput
-                          style={[styles.modalInput, { flex: 1, marginBottom: 0 }]}
-                          keyboardType="numeric"
-                          editable={!isFullyReceived}
-                          value={isFullyReceived ? '' : (itemInputs[name] || '')}
-                          onChangeText={v => setItemInputs(prev => ({ ...prev, [name]: v }))}
-                          placeholder={isFullyReceived ? 'Done' : `Max ${remaining}`}
-                          placeholderTextColor={isFullyReceived ? '#00592d' : '#AAAAAA'}
-                        />
-                      </View>
-                    );
-                  })}
-                </>
-              ) : receiptModal.totalQty ? (
-                <>
-                  {/* Progress summary */}
-                  <View style={styles.modalProgressBanner}>
-                    <Text style={styles.modalProgressText}>
-                      Received so far:{' '}
-                      <Text style={{ fontWeight: '800', color: '#00592d' }}>
-                        {receiptModal.receivedQty} / {receiptModal.totalQty} {receiptModal.unit}
-                      </Text>
-                    </Text>
-                    {receiptModal.receivedQty > 0 && receiptModal.receivedQty < (receiptModal.totalQty ?? 0) && (
-                      <Text style={styles.modalProgressSub}>
-                        You received part of this request previously. Enter what you received this time.
-                      </Text>
-                    )}
-                  </View>
-                  <Text style={styles.modalInputLabel}>How much did you receive this time?</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    keyboardType="numeric"
-                    value={qtyInput}
-                    onChangeText={setQtyInput}
-                    placeholder={`Max ${receiptModal.totalQty - receiptModal.receivedQty} ${receiptModal.unit}`}
-                    placeholderTextColor="#AAAAAA"
-                  />
-                </>
-              ) : (
-                <Text style={styles.modalDesc}>Confirm that you have received this delivery. This will mark the request as completed.</Text>
-              )}
+                      )}
+                    </View>
 
-              {/* Optional Remarks */}
-              <View style={styles.remarksSection}>
-                <Text style={styles.remarksLabel}>Remarks <Text style={styles.remarksOptional}>(optional)</Text></Text>
-                <TextInput
-                  style={styles.remarksInput}
-                  multiline
-                  numberOfLines={3}
-                  value={remarksInput}
-                  onChangeText={setRemarksInput}
-                  placeholder="e.g. I only received 3 out of 5 bags. The delivery was partial."
-                  placeholderTextColor="#AAAAAA"
-                  textAlignVertical="top"
-                />
-              </View>
+                    {/* Explanation Banner */}
+                    <View style={[styles.explanationBanner, isComplete ? styles.explanationBannerComplete : styles.explanationBannerPartial]}>
+                      <Text style={[styles.explanationText, isComplete ? styles.explanationTextComplete : styles.explanationTextPartial]}>
+                        {dynamicExplanation}
+                      </Text>
+                    </View>
+                  </>
+                );
+              })()}
+
+
 
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setReceiptModal(m => ({ ...m, visible: false }))}>
@@ -849,15 +983,25 @@ const styles = StyleSheet.create({
   receivedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#00592d',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderWidth: 1.5,
+    borderColor: '#E8A835',
+    shadowColor: '#00592d',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   receivedBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
 
   emptyText: {
@@ -881,6 +1025,43 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: '100%',
+  },
+  deliveryStatusContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  statusOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  statusOptionCardActiveComplete: {
+    borderColor: '#00592d',
+    backgroundColor: '#E8F5E9',
+  },
+  statusOptionCardActivePartial: {
+    borderColor: '#D87A38',
+    backgroundColor: '#FFF3E0',
+  },
+  statusOptionTextWrap: {
+    flex: 1,
+  },
+  statusOptionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
+  },
+  statusOptionTitleActive: {
+    color: '#111',
+  },
+  statusOptionSub: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   modalTitle: {
     fontSize: 18,
@@ -927,7 +1108,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,
-    backgroundColor: '#1565C0',
+    backgroundColor: '#00592d',
   },
   modalConfirmText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
 
@@ -996,7 +1177,7 @@ const styles = StyleSheet.create({
   modalRecapBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#EBF2FF',
+    backgroundColor: '#E0F2F1',
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
@@ -1004,8 +1185,65 @@ const styles = StyleSheet.create({
   modalRecapText: {
     flex: 1,
     fontSize: 12,
-    color: '#1565C0',
+    color: '#00796B',
     lineHeight: 17,
+  },
+  shipmentDetailsSection: {
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 14,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  shipmentDetailsLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  shipmentDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  shipmentItemName: {
+    fontSize: 13,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  shipmentItemQty: {
+    fontSize: 13,
+    color: '#111827',
+    fontWeight: '700',
+  },
+  explanationBanner: {
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+  },
+  explanationBannerComplete: {
+    backgroundColor: '#FFF8E7',
+    borderColor: '#E8A835',
+  },
+  explanationBannerPartial: {
+    backgroundColor: '#FFF3E0',
+    borderColor: '#D87A38',
+  },
+  explanationText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  explanationTextComplete: {
+    color: '#A87919',
+  },
+  explanationTextPartial: {
+    color: '#8C4D11',
   },
 });
 

@@ -23,7 +23,8 @@ export default function CustomDropdown({
   style
 }: CustomDropdownProps) {
   const [modalVisible, setModalVisible] = useState(false);
-  const selectedItem = items.find(i => i.value === selectedValue);
+  const sortedItems = [...(items || [])].sort((a, b) => a.label.localeCompare(b.label));
+  const selectedItem = sortedItems.find(i => i.value === selectedValue);
 
   return (
     <>
@@ -46,7 +47,7 @@ export default function CustomDropdown({
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
           <View style={styles.dropdownBox}>
             <FlatList
-              data={items}
+              data={sortedItems}
               keyExtractor={(item, index) => `${item.value}-${index}`}
               renderItem={({ item }) => (
                 <TouchableOpacity

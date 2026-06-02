@@ -27,7 +27,7 @@ function getTypeConfig(type: NotificationItem['type']) {
     case 'food':
       return { icon: 'restaurant-outline', bg: '#FFF3E0', color: '#E65100' };
     case 'service':
-      return { icon: 'people-outline', bg: '#E3F2FD', color: '#1565C0' };
+      return { icon: 'people-outline', bg: '#E0F2F1', color: '#00796B' };
     case 'badge':
       return { icon: 'ribbon-outline', bg: '#FFF8E1', color: '#B8860B' };
     case 'system':

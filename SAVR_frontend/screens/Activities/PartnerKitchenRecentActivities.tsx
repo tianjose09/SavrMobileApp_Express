@@ -71,8 +71,8 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
         };
       case 'service':
         return {
-          bg: '#E3F2FD',
-          icon: '#1565C0',
+          bg: '#E0F2F1',
+          icon: '#00796B',
         };
       default:
         return {

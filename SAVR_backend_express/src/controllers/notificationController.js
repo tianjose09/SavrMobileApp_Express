@@ -28,6 +28,21 @@ db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS received_q
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS received_items JSONB`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_quantity NUMERIC DEFAULT NULL`)
+  .catch(() => {});
+
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_items JSONB DEFAULT NULL`)
+  .catch(() => {});
+
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`)
+  .catch(() => {});
+
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_name VARCHAR(255) DEFAULT NULL`)
+  .catch(() => {});
+
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_number VARCHAR(255) DEFAULT NULL`)
+  .catch(() => {});
+
 db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 

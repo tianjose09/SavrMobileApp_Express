@@ -317,7 +317,6 @@ export default function ServiceDonation({ navigation }: any) {
                     { label: "One-time", value: "One-time" },
                     { label: "Weekly", value: "Weekly" },
                     { label: "Monthly", value: "Monthly" },
-                    { label: "Quarterly", value: "Quarterly" },
                     { label: "Yearly", value: "Yearly" }
                   ]}
                   style={styles.inputBox}

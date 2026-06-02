@@ -193,7 +193,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                 <TouchableOpacity
                   style={styles.glassCard}
                   activeOpacity={0.85}
-                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}
+                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Track', params: { filter: 'Approved' } })}
                 >
                   <View style={styles.glassCardBg}>
                     <LinearGradient
@@ -219,7 +219,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                 <TouchableOpacity
                   style={styles.glassCard}
                   activeOpacity={0.85}
-                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Track' })}
+                  onPress={() => navigation.navigate('HomeTabs', { screen: 'Track', params: { filter: 'Pending' } })}
                 >
                   <View style={styles.glassCardBg}>
                     <LinearGradient

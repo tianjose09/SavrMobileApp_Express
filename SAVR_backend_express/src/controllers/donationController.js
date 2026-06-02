@@ -851,6 +851,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
     population, age_start, age_end, street, barangay,
     city_municipality, postal_zip_code, needed_date, urgency_level,
     food_items,
+    bank_name, account_name, account_number,
   } = req.body;
 
   if (!title || !type) {
@@ -873,8 +874,8 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO beneficiary_requests
-     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
+     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, bank_name, account_name, account_number, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
     [
       req.user.id,
       title,
@@ -893,6 +894,9 @@ exports.submitBeneficiaryRequest = async (req, res) => {
       needed_date || null,
       urgency_level || null,
       parsedFoodItems ? JSON.stringify(parsedFoodItems) : null,
+      bank_name || null,
+      account_name || null,
+      account_number || null,
     ]
   );
 
@@ -917,10 +921,20 @@ exports.getBeneficiaryRequests = async (req, res) => {
       try {
         receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []);
       } catch { receivedItems = []; }
+      let dispatchedItems = [];
+      try {
+        dispatchedItems = typeof r.dispatched_items === 'string' ? JSON.parse(r.dispatched_items) : (r.dispatched_items || []);
+      } catch { dispatchedItems = []; }
+
       return {
         ...r,
         food_items: foodItems,
         received_items: receivedItems,
+        dispatched_items: dispatchedItems,
+        dispatched_quantity: r.dispatched_quantity != null ? parseFloat(r.dispatched_quantity) : null,
+        bank_name: r.bank_name || null,
+        account_name: r.account_name || null,
+        account_number: r.account_number || null,
         food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
         quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
         unit: r.unit || (foodItems[0]?.unit ?? null),
@@ -961,7 +975,7 @@ exports.updateRequestStatus = async (req, res) => {
   }
 
   const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed'];
-  const { delivery_date_time } = req.body;
+  const { delivery_date_time, dispatched_quantity, dispatched_items } = req.body;
   // Normalize to Title Case so 'approved', 'APPROVED', 'Approved' all work
   const rawStatus = req.body.status || '';
   const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
@@ -975,14 +989,32 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Request not found.' });
   }
 
-  // If approving / accepting / allocating, optionally save delivery_date_time
-  // These are all "approval-type" statuses that can transition to In Transit on the frontend
+  // If approving / accepting / allocating, optionally save delivery_date_time and dispatched info
   const approvalStatuses = ['Approved', 'Accepted', 'Allocated'];
-  if (approvalStatuses.includes(status) && delivery_date_time) {
-    await db.execute(
-      'UPDATE beneficiary_requests SET status = ?, delivery_date_time = ?, updated_at = NOW() WHERE id = ?',
-      [status, new Date(delivery_date_time), req.params.id]
-    );
+  if (approvalStatuses.includes(status)) {
+    const dispQty = dispatched_quantity !== undefined ? (dispatched_quantity !== null ? parseFloat(dispatched_quantity) : null) : undefined;
+    const dispItems = dispatched_items !== undefined ? (dispatched_items !== null ? (typeof dispatched_items === 'string' ? dispatched_items : JSON.stringify(dispatched_items)) : null) : undefined;
+
+    let query = 'UPDATE beneficiary_requests SET status = ?, updated_at = NOW()';
+    const params = [status];
+
+    if (delivery_date_time !== undefined) {
+      query += ', delivery_date_time = ?';
+      params.push(delivery_date_time ? new Date(delivery_date_time) : null);
+    }
+    if (dispQty !== undefined) {
+      query += ', dispatched_quantity = ?';
+      params.push(dispQty);
+    }
+    if (dispItems !== undefined) {
+      query += ', dispatched_items = ?';
+      params.push(dispItems);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(req.params.id);
+
+    await db.execute(query, params);
   } else {
     await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
   }
@@ -1020,9 +1052,14 @@ exports.completeBeneficiaryRequest = async (req, res) => {
   const { id } = req.params;
   const { received_items, received_qty, remarks } = req.body;
 
-  // Auto-migrate: add remarks column if it doesn't exist
+  // Auto-migrate: add remarks, dispatched, and bank details columns if they don't exist
   try {
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS remarks TEXT`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_quantity NUMERIC DEFAULT NULL`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_items JSONB DEFAULT NULL`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_name VARCHAR(255) DEFAULT NULL`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_number VARCHAR(255) DEFAULT NULL`);
   } catch (_) {}
 
   const [rows] = await db.execute(
@@ -1040,27 +1077,57 @@ exports.completeBeneficiaryRequest = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Only in-transit requests can be marked as received.' });
   }
 
-  // Per-item path: food_items exists and received_items sent
+  // Per-item path: food_items exists
   let foodItems = [];
   try {
     foodItems = typeof request.food_items === 'string' ? JSON.parse(request.food_items) : (request.food_items || []);
   } catch { foodItems = []; }
 
-  if (Array.isArray(received_items) && received_items.length > 0 && foodItems.length > 0) {
-    // Load current received_items
-    let existingReceived = [];
-    try {
-      existingReceived = typeof request.received_items === 'string' ? JSON.parse(request.received_items) : (request.received_items || []);
-    } catch { existingReceived = []; }
+  // Load current received_items
+  let existingReceived = [];
+  try {
+    existingReceived = typeof request.received_items === 'string' ? JSON.parse(request.received_items) : (request.received_items || []);
+  } catch { existingReceived = []; }
 
-    // Merge new quantities into existing map
-    const receivedMap = {};
-    for (const item of existingReceived) {
-      receivedMap[item.food_name] = parseFloat(item.received_qty || '0');
+  const receivedMap = {};
+  for (const item of existingReceived) {
+    receivedMap[item.food_name] = parseFloat(item.received_qty || '0');
+  }
+
+  if (foodItems.length > 0) {
+    // Determine what is being received in this delivery.
+    // Read from DB dispatched_items first.
+    let currentDeliveryItems = [];
+    let dbDispItems = [];
+    try {
+      dbDispItems = typeof request.dispatched_items === 'string' ? JSON.parse(request.dispatched_items) : (request.dispatched_items || []);
+    } catch {}
+
+    if (Array.isArray(dbDispItems) && dbDispItems.length > 0) {
+      currentDeliveryItems = dbDispItems;
+    } else if (Array.isArray(received_items) && received_items.length > 0) {
+      // Fallback to body-supplied received_items
+      currentDeliveryItems = received_items;
+    } else {
+      // Default to complete delivery of remaining requested quantities
+      currentDeliveryItems = foodItems.map(item => {
+        const name = item.food_name || item.name || 'Unknown';
+        const requested = parseFloat(item.qty || item.quantity || '0');
+        const alreadyReceived = receivedMap[name] || 0;
+        return {
+          food_name: name,
+          received_qty: Math.max(0, requested - alreadyReceived),
+          unit: item.unit || ''
+        };
+      });
     }
-    for (const item of received_items) {
+
+    // Merge currentDeliveryItems into existing map
+    for (const item of currentDeliveryItems) {
       const prev = receivedMap[item.food_name] || 0;
-      receivedMap[item.food_name] = prev + parseFloat(item.received_qty || '0');
+      // Note: check either received_qty or qty
+      const addedQty = parseFloat(item.received_qty ?? item.qty ?? item.quantity ?? 0);
+      receivedMap[item.food_name] = prev + addedQty;
     }
 
     const updatedReceived = Object.entries(receivedMap).map(([food_name, received_qty]) => ({ food_name, received_qty }));
@@ -1109,14 +1176,21 @@ exports.completeBeneficiaryRequest = async (req, res) => {
   // Legacy single-qty fallback
   const totalQty   = request.quantity ? parseFloat(request.quantity) : null;
   const alreadyGot = parseFloat(request.received_quantity) || 0;
-  const addingQty  = received_qty != null ? parseFloat(received_qty) : null;
+  
+  let addingQty = 0;
+  if (request.dispatched_quantity !== null) {
+    addingQty = parseFloat(request.dispatched_quantity);
+  } else if (received_qty != null) {
+    addingQty = parseFloat(received_qty);
+  } else if (totalQty) {
+    addingQty = totalQty - alreadyGot;
+  }
 
   let newReceived = alreadyGot;
   let isCompleted = false;
 
   if (totalQty) {
-    const toAdd = addingQty != null ? addingQty : (totalQty - alreadyGot);
-    newReceived  = Math.min(alreadyGot + toAdd, totalQty);
+    newReceived  = Math.min(alreadyGot + addingQty, totalQty);
     isCompleted  = newReceived >= totalQty;
   } else {
     isCompleted = true;
