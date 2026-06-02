@@ -719,7 +719,7 @@ exports.getUpcomingPickups = async (req, res) => {
     const uid = req.user.id;
 
     const [pickups] = await db.execute(
-      "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','approved') ORDER BY created_at DESC LIMIT 5",
+      "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','scheduled','approved') ORDER BY created_at DESC LIMIT 5",
       [uid]
     );
 
