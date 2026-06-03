@@ -114,7 +114,8 @@ async function autoNotifyBeneficiary(userId) {
     // Check truck_stops DELIVER entries linked to this beneficiary's requests
     try {
       const [deliveryStops] = await db.execute(`
-        SELECT ts.id, ts.status, ts.date, ts.time_slot_start, br.request_name, br.user_id
+        SELECT ts.id, ts.status, ts.date, ts.time_slot_start,
+               br.request_name, br.user_id, dd.beneficiary_request_id
         FROM truck_stops ts
         JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
         JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
@@ -136,13 +137,28 @@ async function autoNotifyBeneficiary(userId) {
           const timeStr = stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : '';
           const timeLabel = timeStr ? ` at ${timeStr}` : '';
 
+          // Check if the full request is already completed
+          let requestCompleted = false;
+          try {
+            const [reqRows] = await db.execute(
+              "SELECT status FROM beneficiary_requests WHERE id = ?",
+              [stop.beneficiary_request_id]
+            );
+            requestCompleted = (reqRows[0]?.status || '').toLowerCase() === 'completed';
+          } catch {}
+
           let title, msg;
           if (stop.status === 'pending') {
             title = 'Delivery Incoming!';
             msg = `Great news! A delivery for your request "${name}" is on its way. Expected on ${dateStr}${timeLabel}. Please be available to receive it.`;
           } else if (stop.status === 'completed') {
-            title = 'Delivery Completed';
-            msg = `The delivery for your request "${name}" has been completed. Please confirm receipt in the app.`;
+            if (requestCompleted) {
+              title = 'Request Fully Fulfilled!';
+              msg = `All items for your request "${name}" have been delivered. Thank you for reaching out to us!`;
+            } else {
+              title = 'Partial Delivery Made';
+              msg = `Some items for your request "${name}" have been delivered. Please confirm what you received in the app. More deliveries may follow until your request is fully fulfilled.`;
+            }
           } else if (stop.status === 'missed') {
             title = 'Delivery Missed';
             msg = `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;

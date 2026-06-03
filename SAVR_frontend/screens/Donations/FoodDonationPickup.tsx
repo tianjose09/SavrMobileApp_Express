@@ -99,8 +99,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const handleSubmit = async () => {
     const hours = pickupTime.getHours();
     const minutes = pickupTime.getMinutes();
-    if (hours < 7 || hours > 17 || (hours === 17 && minutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a time between 7:00 AM and 5:00 PM.');
+    if (hours < 7 || hours > 21 || (hours === 21 && minutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a time between 7:00 AM and 9:00 PM.');
       return;
     }
 

@@ -911,38 +911,179 @@ exports.getBeneficiaryRequests = async (req, res) => {
     [req.user.id]
   );
 
-  const mapped = requests
-    .map(r => {
-      let foodItems = [];
-      try {
-        foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []);
-      } catch { foodItems = []; }
-      let receivedItems = [];
-      try {
-        receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []);
-      } catch { receivedItems = []; }
-      let dispatchedItems = [];
-      try {
-        dispatchedItems = typeof r.dispatched_items === 'string' ? JSON.parse(r.dispatched_items) : (r.dispatched_items || []);
-      } catch { dispatchedItems = []; }
+  // Bulk-fetch all DELIVER truck stops — each row is one food item in a delivery
+  const requestIds = requests.map(r => r.id);
+  let allStops = [];
+  if (requestIds.length > 0) {
+    const placeholders = requestIds.map(() => '?').join(',');
+    [allStops] = await db.execute(`
+      SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start,
+             ts.food_name, ts.qty, ts.unit, ts.food_type,
+             dd.id AS drive_id, dd.beneficiary_request_id
+      FROM truck_stops ts
+      JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
+      WHERE dd.beneficiary_request_id IN (${placeholders}) AND ts.stop_type = 'DELIVER'
+      ORDER BY dd.id ASC, ts.id ASC
+    `, requestIds);
+  }
 
-      return {
-        ...r,
-        food_items: foodItems,
-        received_items: receivedItems,
-        dispatched_items: dispatchedItems,
-        dispatched_quantity: r.dispatched_quantity != null ? parseFloat(r.dispatched_quantity) : null,
-        bank_name: r.bank_name || null,
-        account_name: r.account_name || null,
-        account_number: r.account_number || null,
-        food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
-        quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
-        unit: r.unit || (foodItems[0]?.unit ?? null),
-        delivery_date_time: r.delivery_date_time ? new Date(r.delivery_date_time).toISOString() : null,
-        remarks: r.remarks || null,
+  // Group truck_stops by drive_id — each donation_drive = one delivery batch
+  const batchesByRequest = {};
+  const driveMap = {};
+  for (const stop of allStops) {
+    const rid = stop.beneficiary_request_id;
+    const did = stop.drive_id;
+    if (!driveMap[did]) {
+      driveMap[did] = {
+        drive_id: did,
+        request_id: rid,
+        first_stop_id: stop.stop_id,
+        status: stop.status,
+        date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
+        time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
+        items: [],
       };
+    }
+    // Batch is pending if ANY stop in the drive is pending
+    if (stop.status === 'pending') driveMap[did].status = 'pending';
+    driveMap[did].items.push({
+      food_name: stop.food_name || '',
+      qty: parseFloat(stop.qty || '0'),
+      unit: stop.unit || '',
+      category: stop.food_type || '',
     });
+  }
+
+  for (const batch of Object.values(driveMap)) {
+    const rid = batch.request_id;
+    if (!batchesByRequest[rid]) batchesByRequest[rid] = [];
+    batchesByRequest[rid].push(batch);
+  }
+
+  const mapped = requests.map(r => {
+    let foodItems = [];
+    try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+    let receivedItems = [];
+    try { receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []); } catch {}
+
+    const deliveryBatches = (batchesByRequest[r.id] || []).map((b, idx) => ({
+      batch_number: idx + 1,
+      stop_id: b.first_stop_id,
+      drive_id: b.drive_id,
+      status: b.status,           // 'pending' | 'completed' | 'missed'
+      delivery_date: b.date,
+      delivery_time_start: b.time,
+      delivery_food_items: b.items,
+    }));
+
+    // Top-level delivery_food_items from the first pending batch
+    const pendingBatch = deliveryBatches.find(b => b.status === 'pending') || deliveryBatches[0] || null;
+
+    return {
+      ...r,
+      food_items: foodItems,
+      received_items: receivedItems,
+      delivery_batches: deliveryBatches,
+      delivery_food_items: pendingBatch?.delivery_food_items || [],
+      // Aliased field names per spec
+      receiving_method: r.bank_name || null,
+      account_name: r.account_name || null,
+      account_number: r.account_number || null,
+      age_range_min: r.age_min ?? null,
+      age_range_max: r.age_max ?? null,
+      drive_id: pendingBatch?.drive_id || null,
+      food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
+      quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
+      unit: r.unit || (foodItems[0]?.unit ?? null),
+    };
+  });
+
   return res.json({ success: true, requests: mapped });
+};
+
+exports.receiveBeneficiaryStop = async (req, res) => {
+  const { id, stopId } = req.params;
+
+  // Verify the stop is a DELIVER stop linked to this beneficiary's request
+  const [stopRows] = await db.execute(`
+    SELECT ts.id, ts.status, ts.reference_id AS drive_id, dd.beneficiary_request_id
+    FROM truck_stops ts
+    JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
+    WHERE ts.id = ? AND dd.beneficiary_request_id = ? AND ts.stop_type = 'DELIVER'
+  `, [stopId, id]);
+  if (!stopRows.length) {
+    return res.status(404).json({ success: false, message: 'Delivery stop not found.' });
+  }
+  const stop = stopRows[0];
+
+  const [reqRows] = await db.execute(
+    'SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?',
+    [id, req.user.id]
+  );
+  if (!reqRows.length) {
+    return res.status(404).json({ success: false, message: 'Request not found.' });
+  }
+  const request = reqRows[0];
+
+  // Mark ALL truck stops in this drive as completed (one drive = one delivery batch)
+  await db.execute(
+    "UPDATE truck_stops SET status = 'completed', notified_at = NOW(), updated_at = NOW() WHERE reference_id = ? AND source = 'donation_drive' AND stop_type = 'DELIVER'",
+    [stop.drive_id]
+  );
+
+  // Get the staff-dispatched quantities directly from truck_stops (authoritative)
+  const [driveItems] = await db.execute(
+    "SELECT food_name, qty, unit FROM truck_stops WHERE reference_id = ? AND source = 'donation_drive' AND stop_type = 'DELIVER'",
+    [stop.drive_id]
+  );
+
+  // Merge into accumulated received_items
+  let existingReceived = [];
+  try { existingReceived = typeof request.received_items === 'string' ? JSON.parse(request.received_items) : (request.received_items || []); } catch {}
+  const receivedMap = {};
+  for (const item of existingReceived) receivedMap[item.food_name] = parseFloat(item.received_qty || '0');
+  for (const item of driveItems) {
+    receivedMap[item.food_name] = (receivedMap[item.food_name] || 0) + parseFloat(item.qty || '0');
+  }
+  const updatedReceived = Object.entries(receivedMap).map(([food_name, received_qty]) => ({ food_name, received_qty }));
+
+  // Check goal: all food_items requested qty met
+  let foodItems = [];
+  try { foodItems = typeof request.food_items === 'string' ? JSON.parse(request.food_items) : (request.food_items || []); } catch {}
+
+  let goalMet = false;
+  if (foodItems.length > 0) {
+    goalMet = foodItems.every(item => {
+      const name = item.food_name || item.name || 'Unknown';
+      return (receivedMap[name] || 0) >= parseFloat(item.qty || item.quantity || '0');
+    });
+  } else if (request.quantity) {
+    const totalReceived = Object.values(receivedMap).reduce((s, q) => s + q, 0);
+    goalMet = totalReceived >= parseFloat(request.quantity);
+  } else {
+    goalMet = true;
+  }
+
+  if (goalMet) {
+    await db.execute(
+      "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, updated_at = NOW() WHERE id = ?",
+      [JSON.stringify(updatedReceived), id]
+    );
+    await createNotification(req.user.id, 'service', 'Request Completed',
+      `Your request "${request.request_name || 'Unnamed'}" has been fully fulfilled. Thank you!`, true);
+  } else {
+    await db.execute(
+      'UPDATE beneficiary_requests SET received_items = ?, updated_at = NOW() WHERE id = ?',
+      [JSON.stringify(updatedReceived), id]
+    );
+  }
+
+  return res.json({
+    success: true,
+    message: goalMet ? 'All items received. Request completed!' : 'Delivery confirmed. More deliveries may follow.',
+    status: goalMet ? 'Completed' : request.status,
+    goal_met: goalMet,
+  });
 };
 
 exports.cancelBeneficiaryRequest = async (req, res) => {
