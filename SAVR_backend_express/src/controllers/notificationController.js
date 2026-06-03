@@ -46,6 +46,9 @@ db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_nu
 db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP DEFAULT NULL`)
+  .catch(() => {});
+
 async function createNotification(userId, type, title, description, isCritical = false) {
   try {
     await db.execute(
@@ -107,6 +110,53 @@ async function autoNotifyBeneficiary(userId) {
       } catch (e) {
         console.error('[autoNotifyBeneficiary] item', r.id, e.message);
       }
+    }
+    // Check truck_stops DELIVER entries linked to this beneficiary's requests
+    try {
+      const [deliveryStops] = await db.execute(`
+        SELECT ts.id, ts.status, ts.date, ts.time_slot_start, br.request_name, br.user_id
+        FROM truck_stops ts
+        JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
+        JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
+        WHERE br.user_id = ? AND ts.stop_type = 'DELIVER' AND ts.notified_at IS NULL
+      `, [userId]);
+
+      for (const stop of deliveryStops) {
+        try {
+          const [res] = await db.execute(
+            'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL',
+            [stop.id]
+          );
+          if (res.affectedRows === 0) continue;
+
+          const name = stop.request_name || 'Unnamed';
+          const dateStr = stop.date
+            ? new Date(stop.date).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+            : 'soon';
+          const timeStr = stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : '';
+          const timeLabel = timeStr ? ` at ${timeStr}` : '';
+
+          let title, msg;
+          if (stop.status === 'pending') {
+            title = 'Delivery Incoming!';
+            msg = `Great news! A delivery for your request "${name}" is on its way. Expected on ${dateStr}${timeLabel}. Please be available to receive it.`;
+          } else if (stop.status === 'completed') {
+            title = 'Delivery Completed';
+            msg = `The delivery for your request "${name}" has been completed. Please confirm receipt in the app.`;
+          } else if (stop.status === 'missed') {
+            title = 'Delivery Missed';
+            msg = `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;
+          } else {
+            continue;
+          }
+
+          await createNotification(stop.user_id, 'service', title, msg, true);
+        } catch (e) {
+          console.error('[autoNotifyBeneficiary delivery] stop', stop.id, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[autoNotifyBeneficiary delivery]', e.message);
     }
   } catch (e) {
     console.error('[autoNotifyBeneficiary]', e.message);
@@ -186,6 +236,42 @@ async function autoNotifyDonor(userId) {
       } catch (e) {
         console.error('[autoNotifyDonor service] item', r.id, e.message);
       }
+    }
+    // Sync food_donation_records status from completed/missed PICKUP truck stops
+    try {
+      const [pickupStops] = await db.execute(`
+        SELECT ts.id, ts.status, ts.reference_id AS donation_id
+        FROM truck_stops ts
+        JOIN food_donation_records fdr ON fdr.id = ts.reference_id
+        WHERE fdr.user_id = ? AND ts.source = 'food_donation' AND ts.stop_type = 'PICKUP'
+          AND ts.status IN ('completed', 'missed') AND ts.notified_at IS NULL
+      `, [userId]);
+
+      for (const stop of pickupStops) {
+        try {
+          const [res] = await db.execute(
+            'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL',
+            [stop.id]
+          );
+          if (res.affectedRows === 0) continue;
+
+          if (stop.status === 'completed') {
+            await db.execute(
+              "UPDATE food_donation_records SET status = 'received', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
+              [stop.donation_id]
+            );
+          } else if (stop.status === 'missed') {
+            await db.execute(
+              "UPDATE food_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
+              [stop.donation_id]
+            );
+          }
+        } catch (e) {
+          console.error('[autoNotifyDonor pickup sync] stop', stop.id, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[autoNotifyDonor pickup sync]', e.message);
     }
   } catch (e) {
     console.error('[autoNotifyDonor]', e.message);
