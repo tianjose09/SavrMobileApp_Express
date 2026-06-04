@@ -42,6 +42,7 @@ function getEffectiveStatus(req: any): string {
   //   date+time has already been reached; otherwise stays Approved.
   if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
     const batches = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
+    if (batches.some((b: any) => b.status === 'missed')) return 'Cancelled';
     if (batches.some((b: any) => b.status === 'pending' && isDeliveryTimeReached(b))) return 'In Transit';
     return 'Approved';
   }
