@@ -71,10 +71,11 @@ async function autoNotifyBeneficiary(userId) {
       [userId]
     );
 
-    const notableStatuses = ['rejected', 'denied', 'approved', 'accepted', 'allocated', 'urgent', 'completed'];
+    const notableStatuses = ['rejected', 'denied', 'cancelled', 'approved', 'accepted', 'allocated', 'urgent', 'completed'];
     const statusMessages = {
       rejected:  'We regret to inform you that your request has been rejected. Please contact our team if you have any questions.',
       denied:    'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
+      cancelled: 'Your request has been cancelled by our team. Please contact us if you have any questions.',
       approved:  'Great news! Your request has been approved and is now being prepared for fulfillment.',
       accepted:  'Great news! Your request has been accepted and is now being prepared for fulfillment.',
       allocated: 'Your request has been allocated and will be processed soon. Thank you for your patience.',
@@ -84,6 +85,7 @@ async function autoNotifyBeneficiary(userId) {
     const statusTitles = {
       rejected:  'Request Rejected',
       denied:    'Request Denied',
+      cancelled: 'Request Cancelled',
       approved:  'Request Approved',
       accepted:  'Request Accepted',
       allocated: 'Request Allocated',
@@ -111,23 +113,36 @@ async function autoNotifyBeneficiary(userId) {
         console.error('[autoNotifyBeneficiary] item', r.id, e.message);
       }
     }
-    // Check truck_stops DELIVER entries linked to this beneficiary's requests
+    // Check truck_stops DELIVER entries linked to this beneficiary's requests.
+    // Two cases:
+    //   1. Never notified (notified_at IS NULL) — covers pending/completed/missed on first touch
+    //   2. Already notified but then marked missed (updated_at > notified_at) — staff changed
+    //      status to 'missed' after the initial 'pending' notification was already sent
     try {
       const [deliveryStops] = await db.execute(`
-        SELECT ts.id, ts.status, ts.date, ts.time_slot_start,
+        SELECT ts.id, ts.status, ts.notified_at, ts.date, ts.time_slot_start,
                br.request_name, br.user_id, dd.beneficiary_request_id
         FROM truck_stops ts
         JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
         JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
-        WHERE br.user_id = ? AND ts.stop_type = 'DELIVER' AND ts.notified_at IS NULL
+        WHERE br.user_id = ? AND ts.stop_type = 'DELIVER'
+          AND (
+            ts.notified_at IS NULL
+            OR (ts.status = 'missed' AND ts.updated_at > ts.notified_at)
+          )
       `, [userId]);
 
       for (const stop of deliveryStops) {
         try {
-          const [res] = await db.execute(
-            'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL',
-            [stop.id]
-          );
+          // For never-notified stops use the NULL guard; for re-notify on missed use the
+          // status+updated_at guard — both are atomic so only one concurrent caller wins.
+          const claimQuery = stop.status === 'missed' && stop.notified_at != null
+            ? 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND status = ? AND updated_at > notified_at'
+            : 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL';
+          const claimParams = stop.status === 'missed' && stop.notified_at != null
+            ? [stop.id, 'missed']
+            : [stop.id];
+          const [res] = await db.execute(claimQuery, claimParams);
           if (res.affectedRows === 0) continue;
 
           const name = stop.request_name || 'Unnamed';

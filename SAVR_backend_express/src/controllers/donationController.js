@@ -1115,7 +1115,7 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(403).json({ success: false, message: 'Unauthorized.' });
   }
 
-  const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed'];
+  const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed', 'Cancelled'];
   const { delivery_date_time, dispatched_quantity, dispatched_items } = req.body;
   // Normalize to Title Case so 'approved', 'APPROVED', 'Approved' all work
   const rawStatus = req.body.status || '';
@@ -1173,8 +1173,9 @@ exports.updateRequestStatus = async (req, res) => {
     Rejected:  'We regret to inform you that your request has been rejected. Please contact us for more details.',
     Denied:    'Your request has been denied. Please contact our team if you have any questions.',
     Completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
+    Cancelled: 'Your request has been cancelled by our team. Please contact us if you have any questions.',
   };
-  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed'];
+  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed', 'Cancelled'];
   try {
     await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
     // Stamp notified_status so the auto-notify check won't create a duplicate
