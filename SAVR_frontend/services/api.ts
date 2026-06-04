@@ -10,8 +10,10 @@ const BASE_URL = 'https://blurb-perm-stalling.ngrok-free.dev/';
 
 export const api = axios.create({
   baseURL: BASE_URL,
+  timeout: 15000, // 15-second timeout so the app doesn't hang when backend is unreachable
   headers: {
     Accept: 'application/json',
+    'Content-Type': 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
     'ngrok-skip-browser-warning': 'true',
   },
@@ -30,6 +32,28 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response interceptor: reject 2xx responses where the server explicitly signals failure
+api.interceptors.response.use(
+  (response) => {
+    // If the server returned success: false with a 200 status, treat it as an error
+    if (response.data && response.data.success === false) {
+      const err: any = new Error(response.data.message || 'Request failed');
+      err.response = response;
+      return Promise.reject(err);
+    }
+    return response;
+  },
+  (error) => {
+    // Enhance error messages for common network issues
+    if (error.code === 'ECONNABORTED') {
+      error.message = 'Request timed out. Please check your connection and try again.';
+    } else if (!error.response) {
+      error.message = 'Cannot reach the server. Please check if the backend is running.';
+    }
+    return Promise.reject(error);
+  }
 );
 
 export const ApiService = {

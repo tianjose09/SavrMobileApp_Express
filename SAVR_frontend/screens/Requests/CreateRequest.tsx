@@ -365,12 +365,12 @@ export default function CreateRequest({ navigation }: any) {
             {/* Address */}
             <Text style={styles.inputLabel}>Address / Coverage</Text>
             <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
-              <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 8, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" textAlign="center" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-              <TextInput style={[styles.inputBox, { flex: 1.5, marginBottom: 0 }]} placeholder="Brgy" placeholderTextColor="#A5D1B8" textAlign="center" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
+              <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 8, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" textAlign="left" value={form.street} onChangeText={(val) => updateForm('street', val)} />
+              <TextInput style={[styles.inputBox, { flex: 1.5, marginBottom: 0 }]} placeholder="Brgy" placeholderTextColor="#A5D1B8" textAlign="left" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
             </View>
             <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
-              <TextInput style={[styles.inputBox, { flex: 2, marginRight: 8, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" textAlign="center" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
-              <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Zip" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
+              <TextInput style={[styles.inputBox, { flex: 2, marginRight: 8, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" textAlign="left" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
+              <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Zip" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
             </View>
 
             {/* Population & Age */}
@@ -472,7 +472,6 @@ export default function CreateRequest({ navigation }: any) {
               </View>
 
               {/* Category selector */}
-              <Text style={styles.fdLabel}>Select Food Categories</Text>
               {inventoryLoading ? (
                 <View style={styles.loadingWrap}>
                   <ActivityIndicator color="#00592d" size="small" />
@@ -484,28 +483,17 @@ export default function CreateRequest({ navigation }: any) {
                   <Text style={styles.fdEmptyHint}>No inventory available.</Text>
                 </View>
               ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ paddingRight: 8 }}>
-                  {categories.map(cat => {
-                    const isActive = selectedCategory === cat;
-                    const count = inventoryItems.filter(i => i.category === cat).length;
-                    return (
-                      <TouchableOpacity
-                        key={cat}
-                        style={[styles.fdCatCard, isActive && styles.fdCatCardActive]}
-                        onPress={() => { setSelectedCategory(isActive ? null : cat); setSelectedItem(null); setItemQty(''); }}
-                        activeOpacity={0.8}
-                      >
-                        <View style={[styles.fdCatIconWrap, isActive && styles.fdCatIconWrapActive]}>
-                          <CatIcon cat={cat} size={22} active={isActive} />
-                        </View>
-                        <Text style={[styles.fdCatName, isActive && styles.fdCatNameActive]} numberOfLines={1}>{cat}</Text>
-                        <View style={[styles.fdCatBadge, isActive && styles.fdCatBadgeActive]}>
-                          <Text style={[styles.fdCatBadgeText, isActive && styles.fdCatBadgeTextActive]}>{count}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                <CustomDropdown
+                  selectedValue={selectedCategory || ''}
+                  onValueChange={(val) => {
+                    setSelectedCategory(val || null);
+                    setSelectedItem(null);
+                    setItemQty('');
+                  }}
+                  placeholder="Select Food Categories"
+                  items={categories.map(cat => ({ label: cat, value: cat }))}
+                  style={styles.fdCatDropdown}
+                />
               )}
 
               {/* Items list */}
@@ -571,8 +559,7 @@ export default function CreateRequest({ navigation }: any) {
                     <Ionicons name="chevron-down" size={11} color="#00592d" />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.fdAddBtn} onPress={addFoodToList} activeOpacity={0.8}>
-                    <Ionicons name="add" size={20} color="#fff" />
-                    <Text style={styles.fdAddBtnText}>Add</Text>
+                    <Ionicons name="add" size={22} color="#fff" />
                   </TouchableOpacity>
                 </View>
               )}
@@ -703,7 +690,8 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: 'center', paddingVertical: 14 },
   emptyIcon: { fontSize: 26, marginBottom: 4 },
 
-  catScroll: { marginBottom: 16 },
+  fdCatDropdown: { height: 42, borderWidth: 1, borderColor: '#C8DFD0', borderRadius: 8, backgroundColor: '#F5F9F6', paddingHorizontal: 14, marginBottom: 16, color: '#00592d' },
+
   fdCatCard: { alignItems: 'center', marginRight: 10, backgroundColor: '#F5F9F6', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1.5, borderColor: '#C8DFD0', minWidth: 74, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 1 },
   fdCatCardActive: { backgroundColor: '#00592d', borderColor: '#00592d', shadowColor: '#00592d', shadowOpacity: 0.25, elevation: 5 },
   fdCatIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#EEF7F1', justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
@@ -737,7 +725,7 @@ const styles = StyleSheet.create({
   fdQtyInput: { width: 50, height: 36, borderWidth: 1, borderColor: '#C8DFD0', borderRadius: 6, color: '#1a1a1a', fontSize: 13, backgroundColor: '#FFF' },
   fdUnitBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF7F1', borderRadius: 6, borderWidth: 1, borderColor: '#C8DFD0', paddingHorizontal: 8, paddingVertical: 6, gap: 3, minWidth: 44 },
   fdUnitBtnText: { color: '#00592d', fontSize: 12, fontWeight: '800' },
-  fdAddBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#00592d', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, gap: 4 },
+  fdAddBtn: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#00592d', width: 36, height: 36, borderRadius: 8 },
   fdAddBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
 
   unitPickerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
