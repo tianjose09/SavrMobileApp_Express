@@ -99,8 +99,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const handleSubmit = async () => {
     const hours = pickupTime.getHours();
     const minutes = pickupTime.getMinutes();
-    if (hours < 7 || hours > 17 || (hours === 17 && minutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a time between 7:00 AM and 5:00 PM.');
+    if (hours < 7 || hours > 21 || (hours === 21 && minutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a time between 7:00 AM and 9:00 PM.');
       return;
     }
 
@@ -152,7 +152,6 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           title: 'Food Donation Received!',
           message: `You successfully donated ${donatedItemsStr}. Thank you for your contribution!`,
         });
-        navigation.popToTop();
         setTimeout(() => navigation.navigate('HomeTabs', { screen: 'Home' }), 4500);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit.');
@@ -186,7 +185,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         visible={toast.visible}
         title={toast.title}
         message={toast.message}
-        type="food"
+        type="success"
         onHide={() => setToast(t => ({ ...t, visible: false }))}
       />
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />

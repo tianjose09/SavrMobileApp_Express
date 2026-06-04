@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform,
-  Modal, TextInput, KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,53 +17,25 @@ if (Platform.OS === 'android') {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Computes the "effective" display status for a request.
- *
- * Rules:
- *  - DB status = 'Allocated'  →  'In Transit'  (allocated = dispatched/in transit)
- *  - DB status = 'Approved' / 'Accepted' / 'Urgent'  AND  delivery_date_time exists
- *    AND  the scheduled delivery time has already passed  →  'In Transit'
- *  - DB status = 'Approved' / 'Accepted' / 'Urgent'  with NO delivery_date_time
- *    OR  the scheduled time has NOT yet passed  →  'Approved'
- *  - DB status = 'Done'  →  'Completed'
- *  - DB status = 'Cancelled' / 'Canceled'  →  'Rejected'
- *  - DB status = 'Completed'  →  'Completed'
- *  - DB status = 'Pending'  →  'Pending'
- *  - Everything else (Rejected, Denied …)  →  'Rejected'
- */
 function getEffectiveStatus(req: any): string {
   const raw = (req.status || 'PENDING').toUpperCase().trim();
 
+  // Final / terminal states
   if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Rejected';
   if (raw === 'COMPLETED' || raw === 'DONE') return 'Completed';
-  if (raw === 'PENDING') return 'Pending';
-
-  // Explicitly dispatched / allocated / in transit status in DB always means 'In Transit'
-  if (['ALLOCATED', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
-    return 'In Transit';
-  }
-
-  // Approved / Accepted requests show as 'Approved' unless the scheduled delivery time has passed
-  if (['APPROVED', 'ACCEPTED', 'URGENT'].includes(raw)) {
-    if (req.delivery_date_time) {
-      const deliveryTime = new Date(req.delivery_date_time).getTime();
-      const now = Date.now();
-      if (now >= deliveryTime) {
-        return 'In Transit';
-      }
-    }
-    return 'Approved';
-  }
-
-  // Rejected / Denied / etc.
   if (
     ['REJECTED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(raw) ||
-    raw.includes('REJECT') ||
-    raw.includes('DEN') ||
-    raw.includes('DECLIN')
-  ) {
-    return 'Rejected';
+    raw.includes('REJECT') || raw.includes('DEN') || raw.includes('DECLIN')
+  ) return 'Rejected';
+  if (raw === 'PENDING') return 'Pending';
+
+  // Approved / Accepted / Allocated / Urgent:
+  // → In Transit only when staff has an active (pending) delivery batch
+  // → Otherwise Approved (stays here between batches and after partial receipt)
+  if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
+    const batches = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
+    if (batches.some((b: any) => b.status === 'pending')) return 'In Transit';
+    return 'Approved';
   }
 
   return 'Pending';
@@ -71,23 +43,23 @@ function getEffectiveStatus(req: any): string {
 
 function getStatusColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
-    case 'Pending': return '#A87919';
-    case 'Approved': return '#00592d';
+    case 'Pending':    return '#A87919';
+    case 'Approved':   return '#00592d';
     case 'In Transit': return '#A87919';
-    case 'Completed': return '#00592d';
-    case 'Rejected': return '#C0392B';
-    default: return '#555555';
+    case 'Completed':  return '#00592d';
+    case 'Rejected':   return '#C0392B';
+    default:           return '#555555';
   }
 }
 
 function getStatusBadgeColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
-    case 'Pending': return '#FFF8E7';
-    case 'Approved': return '#E8F5E9';
+    case 'Pending':    return '#FFF8E7';
+    case 'Approved':   return '#E8F5E9';
     case 'In Transit': return '#FFF8E7';
-    case 'Completed': return '#E8F5E9';
-    case 'Rejected': return '#FFEBEE';
-    default: return '#F5F5F5';
+    case 'Completed':  return '#E8F5E9';
+    case 'Rejected':   return '#FFEBEE';
+    default:           return '#F5F5F5';
   }
 }
 
@@ -125,38 +97,20 @@ export default function TrackMyRequest({ route, navigation }: any) {
   const [receiptModal, setReceiptModal] = useState<{
     visible: boolean;
     requestId: number | null;
-    foodItems: any[];
-    receivedItemsMap: Record<string, number>;
-    dispatchedItems: any[];
-    dispatchedQty: number | null;
-    // legacy fallback
-    totalQty: number | null;
-    receivedQty: number;
-    unit: string;
-  }>({
-    visible: false,
-    requestId: null,
-    foodItems: [],
-    receivedItemsMap: {},
-    dispatchedItems: [],
-    dispatchedQty: null,
-    totalQty: null,
-    receivedQty: 0,
-    unit: '',
-  });
-  const [itemInputs, setItemInputs] = useState<Record<string, string>>({});
-  const [qtyInput, setQtyInput] = useState('');
-  const [remarksInput, setRemarksInput] = useState('');
-  const [deliveryStatus, setDeliveryStatus] = useState<'complete' | 'partial'>('complete');
+    stopId: number | null;
+    batchDate: string | null;
+    batchTime: string | null;
+  }>({ visible: false, requestId: null, stopId: null, batchDate: null, batchTime: null });
 
-  // Timer that re-computes effective statuses every 30 s (catches In Transit transitions live)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [, setTick] = useState(0);
+  const [itemsModal, setItemsModal] = useState<{
+    visible: boolean;
+    requestName: string;
+    requestStatus: string;
+    foodItems: { food_name: string; food_type: string; qty: number; unit: string }[];
+    deliveryFoodItems: { food_name: string; qty: number; unit: string; category: string }[];
+    allBatches: any[];
+  }>({ visible: false, requestName: '', requestStatus: '', foodItems: [], deliveryFoodItems: [], allBatches: [] });
 
-  useEffect(() => {
-    timerRef.current = setInterval(() => setTick(t => t + 1), 30_000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -210,170 +164,56 @@ export default function TrackMyRequest({ route, navigation }: any) {
     ]);
   };
 
-  const handleReceivedRequest = (req: any) => {
-    const foodItems = Array.isArray(req.food_items) && req.food_items.length > 0 ? req.food_items : [];
-
-    const receivedItemsMap: Record<string, number> = {};
-    if (req.received_items) {
-      try {
-        const existing = Array.isArray(req.received_items)
-          ? req.received_items
-          : JSON.parse(req.received_items || '[]');
-        for (const item of existing) {
-          receivedItemsMap[item.food_name] = parseFloat(item.received_qty || '0');
-        }
-      } catch { }
-    }
-
-    const dispatchedItems = Array.isArray(req.dispatched_items) ? req.dispatched_items : [];
-
-    setItemInputs({});
-    setQtyInput('');
-    setRemarksInput('');
-
-    // Auto-calculate delivery status based on dispatched qty vs requested remaining qty
-    let isPartial = false;
-    if (foodItems.length > 0) {
-      for (const item of foodItems) {
-        const name = item.food_name || item.name || 'Unknown';
-        const requested = parseFloat(item.qty || item.quantity || '0');
-        const alreadyReceived = receivedItemsMap[name] || 0;
-        const remaining = Math.max(0, requested - alreadyReceived);
-        
-        const dispItem = dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
-        const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : remaining;
-        
-        if (dispQty < remaining) {
-          isPartial = true;
-          break;
-        }
-      }
-    } else if (req.quantity) {
-      const total = parseFloat(req.quantity);
-      const alreadyReceived = parseFloat(req.received_quantity || '0');
-      const remaining = Math.max(0, total - alreadyReceived);
-      const dispQty = req.dispatched_quantity !== null ? parseFloat(req.dispatched_quantity) : remaining;
-      if (dispQty < remaining) {
-        isPartial = true;
-      }
-    }
-
-    setDeliveryStatus(isPartial ? 'partial' : 'complete');
-
+  const handleReceivedRequest = (req: any, batch: any) => {
     setReceiptModal({
       visible: true,
       requestId: req.id,
-      foodItems,
-      receivedItemsMap,
-      dispatchedItems,
-      dispatchedQty: req.dispatched_quantity !== null ? parseFloat(req.dispatched_quantity) : null,
-      totalQty: req.quantity ? parseFloat(req.quantity) : null,
-      receivedQty: parseFloat(req.received_quantity || '0'),
-      unit: req.unit && req.unit !== 'null' ? req.unit : '',
+      stopId: batch.stop_id ?? null,
+      batchDate: batch.delivery_date ?? null,
+      batchTime: batch.delivery_time_start ?? null,
+    });
+  };
+
+  const handleViewItems = (req: any) => {
+    setItemsModal({
+      visible: true,
+      requestName: req.request_name || 'Request',
+      foodItems: Array.isArray(req.food_items) ? req.food_items : [],
+      deliveryFoodItems: Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [],
+      allBatches: Array.isArray(req.delivery_batches) ? req.delivery_batches : [],
+      requestStatus: getEffectiveStatus(req),
     });
   };
 
   const handleSubmitReceipt = async () => {
     if (!receiptModal.requestId) return;
-
-    const isComplete = deliveryStatus === 'complete';
-    
-    // Dynamically build message based on actual database quantities
-    let dynamicMsg = '';
-    if (isComplete) {
-      if (receiptModal.foodItems.length > 0) {
-        const list = receiptModal.foodItems.map(item => {
-          const name = item.food_name || item.name || 'Unknown';
-          const requested = parseFloat(item.qty || item.quantity || '0');
-          return `${name} (${requested} ${item.unit || ''})`;
-        });
-        dynamicMsg = `All items received: ${list.join(', ')}.`;
-      } else if (receiptModal.totalQty) {
-        dynamicMsg = `All items received: ${receiptModal.totalQty} ${receiptModal.unit || 'units'}.`;
-      } else {
-        dynamicMsg = "All items have been received.";
-      }
-    } else {
-      if (receiptModal.foodItems.length > 0) {
-        const list = receiptModal.foodItems.map(item => {
-          const name = item.food_name || item.name || 'Unknown';
-          const requested = parseFloat(item.qty || item.quantity || '0');
-          const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
-          const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
-          const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : Math.max(0, requested - alreadyReceived);
-          const currentTotalReceived = alreadyReceived + dispQty;
-          return `${name} (${currentTotalReceived}/${requested} ${item.unit || ''})`;
-        });
-        dynamicMsg = `Not all requested items have been received. You received ${list.join(', ')} due to lack of supply. Some items are incomplete.`;
-      } else if (receiptModal.totalQty) {
-        const dispQty = receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : (receiptModal.totalQty - receiptModal.receivedQty);
-        const currentTotalReceived = receiptModal.receivedQty + dispQty;
-        dynamicMsg = `Not all requested items have been received. You received ${currentTotalReceived}/${receiptModal.totalQty} ${receiptModal.unit || 'units'} due to lack of supply. Some items are incomplete.`;
-      } else {
-        dynamicMsg = "Not all requested items have been received. The delivery was partial due to lack of supply. Some items are incomplete.";
-      }
-    }
-
-    const finalRemarks = dynamicMsg;
-
-    // Per-item mode
-    if (receiptModal.foodItems.length > 0) {
-      const receivedItems: { food_name: string; received_qty: number; unit: string }[] = [];
-      for (const item of receiptModal.foodItems) {
-        const name = item.food_name || item.name || 'Unknown';
-        const requested = parseFloat(item.qty || item.quantity || '0');
-        const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
-        const remaining = Math.max(0, requested - alreadyReceived);
-        
-        // Use dispatched value if set, otherwise fallback to remaining (complete)
-        const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
-        const val = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : remaining;
-        receivedItems.push({ food_name: name, received_qty: val, unit: item.unit || '' });
-      }
-
-      setReceiptModal(m => ({ ...m, visible: false }));
-      try {
-        const res = await ApiService.completeBeneficiaryRequest(
-          receiptModal.requestId, undefined, receivedItems, finalRemarks
-        );
-        if (res.data.success) {
-          if (isComplete) {
-            Alert.alert('✅ Request Completed!', dynamicMsg);
-          } else {
-            Alert.alert('📦 Partial Receipt Recorded', dynamicMsg);
-          }
-          fetchRequests();
-        } else {
-          Alert.alert('Error', res.data.message || 'Failed to record receipt.');
-        }
-      } catch (error: any) {
-        Alert.alert('Error', error.response?.data?.message || 'Connection error.');
-      }
+    if (!receiptModal.stopId) {
+      Alert.alert('No Delivery', 'No pending delivery stop found for this request.');
       return;
     }
-
-    // Legacy single-qty mode
-    let receivedQty = 0;
-    if (receiptModal.totalQty) {
-      const remaining = receiptModal.totalQty - receiptModal.receivedQty;
-      receivedQty = receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : remaining;
-    }
-
+    const { requestId, stopId } = receiptModal;
     setReceiptModal(m => ({ ...m, visible: false }));
-
     try {
-      const res = await ApiService.completeBeneficiaryRequest(
-        receiptModal.requestId, receivedQty, undefined, finalRemarks
-      );
+      const res = await ApiService.receiveBeneficiaryStop(requestId, stopId);
       if (res.data.success) {
-        if (isComplete) {
-          Alert.alert('✅ Request Completed!', dynamicMsg);
-        } else {
-          Alert.alert('📦 Partial Receipt Recorded', dynamicMsg);
-        }
+        // Optimistically mark that batch as received locally — request stays in Approved
+        // until staff marks Done or drive expires (never completed by beneficiary confirm alone)
+        setRequestsData(prev => prev.map(req => {
+          if (req.id !== requestId) return req;
+          const updatedBatches = (req.delivery_batches || []).map((b: any) =>
+            b.stop_id === stopId ? { ...b, status: 'completed' } : b
+          );
+          return { ...req, delivery_batches: updatedBatches };
+        }));
+        // Always re-fetch so the Approved tab shows updated cumulative received amounts
         fetchRequests();
+        if (res.data.goal_met) {
+          Alert.alert('Delivery Confirmed!', 'Items received! Your request will be marked complete once the staff finalises it.');
+        } else {
+          Alert.alert('Delivery Confirmed!', res.data.message || 'Delivery confirmed. Your request stays open until fully fulfilled.');
+        }
       } else {
-        Alert.alert('Error', res.data.message || 'Failed to record receipt.');
+        Alert.alert('Error', res.data.message || 'Failed to confirm receipt.');
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Connection error.');
@@ -385,19 +225,22 @@ export default function TrackMyRequest({ route, navigation }: any) {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
-  // Filter requests based on selected tab — re-evaluated on every tick (for In Transit)
   const filteredRequests = requestsData.filter(req => {
     if (selectedFilter === 'All') return true;
-    // Approved tab matches by raw DB status so the same request shows in both Approved and In Transit
-    if (selectedFilter === 'Approved') {
-      const raw = (req.status || '').toUpperCase().trim();
-      return ['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw);
-    }
     return getEffectiveStatus(req) === selectedFilter;
   });
 
-  const financialRequests = filteredRequests.filter(req => req.type?.toLowerCase() === 'financial');
-  const foodRequests = filteredRequests.filter(req => req.type?.toLowerCase() !== 'financial');
+  // In Transit requests with multiple batches expand into one entry per batch
+  const expandedRequests = filteredRequests.flatMap(req => {
+    const batches: any[] = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
+    if (getEffectiveStatus(req) === 'In Transit' && batches.length > 1) {
+      return batches.map(batch => ({ ...req, _activeBatch: batch }));
+    }
+    return [{ ...req, _activeBatch: batches.find((b: any) => b.status === 'pending') || batches[0] || null }];
+  });
+
+  const financialRequests = expandedRequests.filter(req => req.type?.toLowerCase() === 'financial');
+  const foodRequests = expandedRequests.filter(req => req.type?.toLowerCase() !== 'financial');
 
   const renderSummaryRow = (label: string, value: string | number | null | undefined) => (
     <View style={styles.reportTableRow}>
@@ -411,6 +254,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
     const statusColor = getStatusColor(effectiveStatus);
     const statusBg = getStatusBadgeColor(effectiveStatus);
     const isFood = req.type?.toLowerCase() !== 'financial';
+    const activeBatch: any = req._activeBatch || null;
+    const allBatches: any[] = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
 
     return (
       <View key={req.id}>
@@ -441,20 +286,56 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
           {isFood && Array.isArray(req.food_items) && req.food_items.length > 0 && (
             <View style={styles.reportTableRow}>
-              <Text style={styles.reportTableCellLabel}>Food Items</Text>
+              <Text style={styles.reportTableCellLabel}>Items</Text>
               <View style={{ flex: 1.8 }}>
-                {req.food_items.map((item: any, i: number) => (
-                  <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }]}>
-                    {item.food_name || item.name || 'Unknown'} — {item.qty ?? item.quantity ?? 0} {item.unit || ''}
-                  </Text>
-                ))}
+                {req.food_items.map((item: any, i: number) => {
+                  const name = item.food_name || item.name || 'Unknown';
+                  const category = item.food_type || item.category || '';
+                  const rQty = item.qty ?? item.quantity ?? 0;
+                  const rUnit = item.unit || '';
+
+                  // Approved: show cumulative received so far
+                  const receivedItems = Array.isArray(req.received_items) ? req.received_items : [];
+                  const receivedEntry = receivedItems.find((ri: any) => ri.food_name === name);
+                  const receivedQty = receivedEntry ? parseFloat(receivedEntry.received_qty || '0') : 0;
+
+                  // In Transit: show current delivery batch amount
+                  const delivItems: any[] = Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [];
+                  const delivEntry = effectiveStatus === 'In Transit'
+                    ? delivItems.find((d: any) => d.food_name === name)
+                    : null;
+
+                  return (
+                    <View key={i} style={{ marginTop: i > 0 ? 10 : 0 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#111', marginBottom: 5 }}>
+                        {name}{category ? ` · ${category}` : ''}
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        <View style={styles.badgeRequested}>
+                          <Text style={styles.badgeRequestedText}>REQUESTED: {rQty} {rUnit}</Text>
+                        </View>
+                        {effectiveStatus === 'Approved' && receivedQty > 0 && (
+                          <View style={styles.badgeReceived}>
+                            <Text style={styles.badgeReceivedText}>RECEIVED: {receivedQty} {rUnit}</Text>
+                          </View>
+                        )}
+                        {effectiveStatus === 'In Transit' && (
+                          delivEntry ? (
+                            <View style={styles.badgeDelivering}>
+                              <Text style={styles.badgeDeliveringText}>DELIVERING: {delivEntry.qty} {delivEntry.unit}</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.badgeNone}>
+                              <Text style={styles.badgeNoneText}>DELIVERING: —</Text>
+                            </View>
+                          )
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             </View>
-          )}
-
-          {isFood && renderSummaryRow(
-            'Quantity',
-            req.quantity ? `${req.quantity} ${req.unit && req.unit !== 'null' ? req.unit : ''}`.trim() : null
           )}
 
           {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : null)}
@@ -467,53 +348,16 @@ export default function TrackMyRequest({ route, navigation }: any) {
           {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString('en-PH') : null)}
           {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString('en-PH') : null)}
 
-          {/* Scheduled Delivery — shown once in transit */}
-          {['In Transit', 'Completed'].includes(effectiveStatus) && (
+          {/* Scheduled Delivery from active batch */}
+          {(['In Transit', 'Completed'].includes(effectiveStatus)) && activeBatch?.delivery_date && (
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
-              <Text style={[
-                styles.reportTableCellValue,
-                effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {},
-              ]}>
-                {formatDeliveryDateTime(req.delivery_date_time)}
+              <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {}]}>
+                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start : ''}
               </Text>
             </View>
           )}
 
-          {/* Received progress — per item when food_items present, otherwise single qty */}
-          {effectiveStatus === 'In Transit' && Array.isArray(req.food_items) && req.food_items.length > 0 && (() => {
-            const rMap: Record<string, number> = {};
-            try {
-              const ri = Array.isArray(req.received_items) ? req.received_items : JSON.parse(req.received_items || '[]');
-              for (const item of ri) rMap[item.food_name] = parseFloat(item.received_qty || '0');
-            } catch { }
-            return (
-              <View style={styles.reportTableRow}>
-                <Text style={styles.reportTableCellLabel}>Received</Text>
-                <View style={{ flex: 1.8 }}>
-                  {req.food_items.map((item: any, i: number) => {
-                    const name = item.food_name || item.name || 'Unknown';
-                    const requested = parseFloat(item.qty || item.quantity || '0');
-                    const received = rMap[name] || 0;
-                    const done = received >= requested;
-                    return (
-                      <Text key={i} style={[styles.reportTableCellValue, i > 0 && { marginTop: 4 }, { color: done ? '#00592d' : '#00796B', fontWeight: '700' }]}>
-                        {name}: {received} / {requested} {item.unit || ''}
-                      </Text>
-                    );
-                  })}
-                </View>
-              </View>
-            );
-          })()}
-          {effectiveStatus === 'In Transit' && req.quantity && !(Array.isArray(req.food_items) && req.food_items.length > 0) && (
-            <View style={styles.reportTableRow}>
-              <Text style={styles.reportTableCellLabel}>Received</Text>
-              <Text style={[styles.reportTableCellValue, { color: '#00796B', fontWeight: '700' }]}>
-                {parseFloat(req.received_quantity || '0')} / {req.quantity} {req.unit && req.unit !== 'null' ? req.unit : ''}
-              </Text>
-            </View>
-          )}
 
           <View style={styles.reportTableRow}>
             <Text style={styles.reportTableCellLabel}>Address</Text>
@@ -533,31 +377,48 @@ export default function TrackMyRequest({ route, navigation }: any) {
           ) : null}
         </View>
 
-        {/* Action Row */}
-        <View style={styles.actionRowContainer}>
-          {/* Cancel — only when Pending */}
-          {effectiveStatus === 'Pending' && (
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              activeOpacity={0.8}
-              onPress={() => handleCancelRequest(req.id)}
-            >
+        {/* Cancel — only pending requests */}
+        {effectiveStatus === 'Pending' && (
+          <View style={styles.actionRowContainer}>
+            <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.8} onPress={() => handleCancelRequest(req.id)}>
               <Text style={styles.cancelBtnText}>Cancel This Request</Text>
             </TouchableOpacity>
-          )}
+          </View>
+        )}
 
-          {/* Received — only when In Transit */}
-          {effectiveStatus === 'In Transit' && (
-            <TouchableOpacity
-              style={styles.receivedBtn}
-              activeOpacity={0.8}
-              onPress={() => handleReceivedRequest(req)}
-            >
-              <Ionicons name="checkmark-circle" size={16} color="#FFF" style={{ marginRight: 6 }} />
-              <Text style={styles.receivedBtnText}>I Received This</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* Per-batch row — In Transit only; multiple batches already expanded to separate cards */}
+        {effectiveStatus === 'In Transit' && activeBatch && (
+          <View style={styles.batchSection}>
+            {allBatches.length > 1 && (
+              <Text style={styles.batchSectionLabel}>
+                BATCH {activeBatch.batch_number} OF {allBatches.length}
+                {activeBatch.delivery_date ? '  ·  ' + activeBatch.delivery_date : ''}
+              </Text>
+            )}
+            <View style={styles.batchRow}>
+              <View style={{ flex: 1 }}>
+                {allBatches.length === 1 && activeBatch.delivery_date && (
+                  <Text style={styles.batchDate}>{activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start : ''}</Text>
+                )}
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => handleViewItems(req)}>
+                  <Ionicons name="ellipsis-vertical" size={18} color="#555" />
+                </TouchableOpacity>
+                {activeBatch.status === 'completed' || activeBatch.status === 'missed' ? (
+                  <View style={styles.batchConfirmedBadge}>
+                    <Text style={styles.batchConfirmedText}>Received</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.receivedBtn} activeOpacity={0.8} onPress={() => handleReceivedRequest(req, activeBatch)}>
+                    <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.receivedBtnText}>I Received This</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     );
   };
@@ -658,135 +519,116 @@ export default function TrackMyRequest({ route, navigation }: any) {
         )}
       </SafeAreaView>
 
-      {/* Receipt Modal */}
-      <Modal visible={receiptModal.visible} transparent animationType="fade" onRequestClose={() => setReceiptModal(m => ({ ...m, visible: false }))}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 }} keyboardShouldPersistTaps="handled">
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Confirm Receipt</Text>
+      {/* Items Detail Modal (three-dots view) */}
+      <Modal visible={itemsModal.visible} transparent animationType="fade" onRequestClose={() => setItemsModal(m => ({ ...m, visible: false }))}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>Requested Items</Text>
+            <Text style={[styles.modalDesc, { marginBottom: 12 }]}>{itemsModal.requestName}</Text>
 
-              {(() => {
-                const isComplete = deliveryStatus === 'complete';
-                let dynamicExplanation = '';
-                
-                if (isComplete) {
-                  if (receiptModal.foodItems.length > 0) {
-                    const list = receiptModal.foodItems.map(item => {
-                      const name = item.food_name || item.name || 'Unknown';
-                      const requested = parseFloat(item.qty || item.quantity || '0');
-                      return `${name} (${requested} ${item.unit || ''})`;
-                    });
-                    dynamicExplanation = `All items received: ${list.join(', ')}.`;
-                  } else if (receiptModal.totalQty) {
-                    dynamicExplanation = `All items received: ${receiptModal.totalQty} ${receiptModal.unit || 'units'}.`;
-                  } else {
-                    dynamicExplanation = "All items have been received.";
-                  }
-                } else {
-                  if (receiptModal.foodItems.length > 0) {
-                    const list = receiptModal.foodItems.map(item => {
-                      const name = item.food_name || item.name || 'Unknown';
-                      const requested = parseFloat(item.qty || item.quantity || '0');
-                      const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
-                      const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
-                      const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : Math.max(0, requested - alreadyReceived);
-                      const currentTotalReceived = alreadyReceived + dispQty;
-                      return `${name} (${currentTotalReceived}/${requested} ${item.unit || ''})`;
-                    });
-                    dynamicExplanation = `Not all requested items have been received. You received ${list.join(', ')} due to lack of supply. Some items are incomplete.`;
-                  } else if (receiptModal.totalQty) {
-                    const dispQty = receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : (receiptModal.totalQty - receiptModal.receivedQty);
-                    const currentTotalReceived = receiptModal.receivedQty + dispQty;
-                    dynamicExplanation = `Not all requested items have been received. You received ${currentTotalReceived}/${receiptModal.totalQty} ${receiptModal.unit || 'units'} due to lack of supply. Some items are incomplete.`;
-                  } else {
-                    dynamicExplanation = "Not all requested items have been received. The delivery was partial due to lack of supply. Some items are incomplete.";
-                  }
-                }
+            {/* Column headers */}
+            <View style={{ flexDirection: 'row', paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#DDD', marginBottom: 4 }}>
+              <Text style={{ flex: 2, fontSize: 11, fontWeight: '800', color: '#888', letterSpacing: 0.5 }}>ITEM</Text>
+              <Text style={{ width: 90, fontSize: 11, fontWeight: '800', color: '#00592d', letterSpacing: 0.5, textAlign: 'center' }}>REQUESTED</Text>
+              {itemsModal.requestStatus === 'In Transit' && (
+                <Text style={{ width: 90, fontSize: 11, fontWeight: '800', color: '#A87919', letterSpacing: 0.5, textAlign: 'center' }}>DELIVERING</Text>
+              )}
+            </View>
 
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Requested vs Delivering table */}
+              {itemsModal.foodItems.map((item, i) => {
+                const itemName = item.food_name || item.name || 'Unknown';
+                const itemCategory = item.food_type || item.category || '';
+                const showDelivering = itemsModal.requestStatus === 'In Transit';
+                const delivItem = showDelivering
+                  ? itemsModal.deliveryFoodItems.find(d => (d.food_name || '') === itemName)
+                  : null;
                 return (
-                  <>
-                    <View style={styles.deliveryStatusContainer}>
-                      {isComplete ? (
-                        <View style={[styles.statusOptionCard, styles.statusOptionCardActiveComplete]}>
-                          <Ionicons name="checkmark-circle" size={24} color="#00592d" />
-                          <View style={styles.statusOptionTextWrap}>
-                            <Text style={[styles.statusOptionTitle, styles.statusOptionTitleActive]}>
-                              Complete Delivery
-                            </Text>
-                            <Text style={styles.statusOptionSub}>
-                              All requested items are being completed and received in full.
-                            </Text>
-                          </View>
-                        </View>
-                      ) : (
-                        <View style={[styles.statusOptionCard, styles.statusOptionCardActivePartial]}>
-                          <Ionicons name="alert-circle" size={24} color="#D87A38" />
-                          <View style={styles.statusOptionTextWrap}>
-                            <Text style={[styles.statusOptionTitle, styles.statusOptionTitleActive]}>
-                              Partial Delivery
-                            </Text>
-                            <Text style={styles.statusOptionSub}>
-                              Some items are missing or the quantity is incomplete.
-                            </Text>
-                          </View>
-                        </View>
-                      )}
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
+                    <View style={{ flex: 2 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#111' }}>{itemName}</Text>
+                      {itemCategory ? <Text style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{itemCategory}</Text> : null}
                     </View>
+                    <View style={{ width: 90, alignItems: 'center' }}>
+                      <View style={styles.badgeRequested}>
+                        <Text style={styles.badgeRequestedText}>{item.qty} {item.unit}</Text>
+                      </View>
+                    </View>
+                    {showDelivering && (
+                      <View style={{ width: 90, alignItems: 'center' }}>
+                        {delivItem ? (
+                          <View style={styles.badgeDelivering}>
+                            <Text style={styles.badgeDeliveringText}>{delivItem.qty} {delivItem.unit}</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.badgeNone}>
+                            <Text style={styles.badgeNoneText}>—</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
 
-                    {/* Shipment Details list */}
-                    <View style={styles.shipmentDetailsSection}>
-                      <Text style={styles.shipmentDetailsLabel}>Shipment Details:</Text>
-                      {receiptModal.foodItems.length > 0 ? (
-                        receiptModal.foodItems.map((item: any, i: number) => {
-                          const name = item.food_name || item.name || 'Unknown';
-                          const requested = parseFloat(item.qty || item.quantity || '0');
-                          const alreadyReceived = receiptModal.receivedItemsMap[name] || 0;
-                          const remaining = Math.max(0, requested - alreadyReceived);
-                          const dispItem = receiptModal.dispatchedItems.find((d: any) => (d.food_name || d.name) === name);
-                          const dispQty = dispItem ? parseFloat(dispItem.received_qty ?? dispItem.qty ?? dispItem.quantity ?? 0) : remaining;
-
-                          return (
-                            <View key={i} style={styles.shipmentDetailRow}>
-                              <Text style={styles.shipmentItemName}>{name}</Text>
-                              <Text style={styles.shipmentItemQty}>
-                                {dispQty} / {requested} {item.unit || ''}
-                              </Text>
-                            </View>
-                          );
-                        })
-                      ) : (
-                        <View style={styles.shipmentDetailRow}>
-                          <Text style={styles.shipmentItemName}>Quantity</Text>
-                          <Text style={styles.shipmentItemQty}>
-                            {receiptModal.dispatchedQty !== null ? receiptModal.dispatchedQty : (receiptModal.totalQty ? (receiptModal.totalQty - receiptModal.receivedQty) : 0)} / {receiptModal.totalQty} {receiptModal.unit || ''}
+              {/* Delivered Batches section */}
+              {itemsModal.allBatches.length > 0 && (() => {
+                const visibleBatches = itemsModal.requestStatus === 'Completed'
+                  ? itemsModal.allBatches
+                  : itemsModal.allBatches.filter((b: any) => b.status === 'completed');
+                if (visibleBatches.length === 0) return null;
+                return (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#888', letterSpacing: 0.8, marginBottom: 8 }}>DELIVERED BATCHES</Text>
+                    {visibleBatches.map((batch: any, i: number) => (
+                      <View key={i} style={{ backgroundColor: '#F8FBF9', borderRadius: 10, padding: 10, marginBottom: 8 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#00592d', marginBottom: 4 }}>
+                          Batch {batch.batch_number}{batch.delivery_date ? '  ·  ' + batch.delivery_date : ''}
+                        </Text>
+                        {(batch.delivery_food_items || []).map((fi: any, j: number) => (
+                          <Text key={j} style={{ fontSize: 12, color: '#333', marginTop: 2 }}>
+                            {fi.food_name}  {fi.qty} {fi.unit}
                           </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Explanation Banner */}
-                    <View style={[styles.explanationBanner, isComplete ? styles.explanationBannerComplete : styles.explanationBannerPartial]}>
-                      <Text style={[styles.explanationText, isComplete ? styles.explanationTextComplete : styles.explanationTextPartial]}>
-                        {dynamicExplanation}
-                      </Text>
-                    </View>
-                  </>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
                 );
               })()}
+            </ScrollView>
 
+            <TouchableOpacity
+              style={[styles.modalConfirmBtn, { marginTop: 16, alignSelf: 'stretch', alignItems: 'center' }]}
+              onPress={() => setItemsModal(m => ({ ...m, visible: false }))}
+            >
+              <Text style={styles.modalConfirmText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setReceiptModal(m => ({ ...m, visible: false }))}>
-                  <Text style={styles.modalCancelText}>Not Yet</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalConfirmBtn} onPress={handleSubmitReceipt}>
-                  <Text style={styles.modalConfirmText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
+      {/* Receipt Modal */}
+      <Modal visible={receiptModal.visible} transparent animationType="fade" onRequestClose={() => setReceiptModal(m => ({ ...m, visible: false }))}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Confirm Receipt</Text>
+            <Text style={styles.modalDesc}>
+              Have you received the items in this delivery?
+              {receiptModal.batchDate
+                ? '\n\nScheduled: ' + new Date(receiptModal.batchDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) + (receiptModal.batchTime ? ' at ' + receiptModal.batchTime : '')
+                : ''}
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setReceiptModal(m => ({ ...m, visible: false }))}>
+                <Text style={styles.modalCancelText}>Not Yet</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalConfirmBtn} onPress={handleSubmitReceipt}>
+                <Text style={styles.modalConfirmText}>Yes, Received</Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1112,16 +954,69 @@ const styles = StyleSheet.create({
   },
   modalConfirmText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
 
-  itemInputRow: {
+  batchSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  batchSectionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#AAAAAA',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  batchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    gap: 10,
+    borderBottomColor: '#F5F5F5',
   },
-  itemInputName: { fontSize: 13, fontWeight: '700', color: '#111' },
-  itemInputSub: { fontSize: 11, color: '#888', marginTop: 2 },
+  batchLabel: { fontSize: 13, fontWeight: '700', color: '#222' },
+  batchDate: { fontSize: 11, color: '#888', marginTop: 2 },
+  batchConfirmedBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  batchConfirmedText: { fontSize: 12, fontWeight: '800', color: '#00592d' },
+
+  badgeRequested: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  badgeRequestedText: { fontSize: 11, fontWeight: '800', color: '#00592d' },
+  badgeReceived: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  badgeReceivedText: { fontSize: 11, fontWeight: '800', color: '#1565C0' },
+  badgeDelivering: {
+    backgroundColor: '#FFF8E7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeDeliveringText: { fontSize: 11, fontWeight: '800', color: '#A87919' },
+  badgeNone: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeNoneText: { fontSize: 11, fontWeight: '700', color: '#888' },
 
   // Remarks section
   remarksSection: {

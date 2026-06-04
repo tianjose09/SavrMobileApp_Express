@@ -68,6 +68,7 @@ router.post('/donation/request',                       donationController.submit
 router.get('/donation/my-requests',                    donationController.getBeneficiaryRequests);
 router.post('/donation/my-requests/:id/cancel',        donationController.cancelBeneficiaryRequest);
 router.post('/donation/my-requests/:id/complete',      donationController.completeBeneficiaryRequest);
+router.post('/donation/requests/:id/stops/:stopId/received', donationController.receiveBeneficiaryStop);
 router.put('/donation/requests/:id/status',            donationController.updateRequestStatus);
 router.get('/donation/stats',                          donationController.getDonationStats);
 router.get('/donation/upcoming',                       donationController.getUpcomingPickups);

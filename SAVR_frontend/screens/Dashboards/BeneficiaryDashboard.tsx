@@ -26,27 +26,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   const [pendingRequests, setPendingRequests] = useState(0);
   const [acceptedRequests, setAcceptedRequests] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const bannerShownRef = React.useRef(false);
-  const slideAnim = React.useRef(new Animated.Value(-150)).current;
-
-  const showNotification = (msg: string) => {
-    setNotificationMsg(msg);
-    Animated.sequence([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.delay(2000),
-      Animated.timing(slideAnim, {
-        toValue: -150,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setNotificationMsg(null));
-  };
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -97,14 +77,6 @@ export default function BeneficiaryDashboard({ navigation }: any) {
           const critRes = await ApiService.getCriticalNotifications();
           setUnreadCount(critRes?.data?.notifications?.length || 0);
 
-          if (!bannerShownRef.current) {
-            const allRes = await ApiService.getNotifications();
-            const successNotifs = (allRes?.data?.notifications || []).filter((n: any) => !n.is_critical);
-            if (successNotifs.length > 0) {
-              bannerShownRef.current = true;
-              setTimeout(() => showNotification(successNotifs[0].title), 800);
-            }
-          }
         } catch { }
       }
     } catch (e) {
@@ -126,15 +98,6 @@ export default function BeneficiaryDashboard({ navigation }: any) {
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }}>
-        {/* Slide-in notification banner */}
-        <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.notificationContent}>
-            <Ionicons name="notifications" size={24} color="#00592d" />
-            <Text style={styles.notificationText}>{notificationMsg}</Text>
-            <Text style={styles.notificationTime}>Now</Text>
-          </View>
-        </Animated.View>
-
         <View style={styles.container}>
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>

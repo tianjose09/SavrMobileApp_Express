@@ -73,6 +73,21 @@ export default function CreateRequest({ navigation }: any) {
 
   const updateForm = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
+  const resetForm = () => {
+    setForm({
+      title: '', financial_amount: '', population: '',
+      age_start: '', age_end: '', street: '', barangay: '',
+      city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
+      bank_name: '', account_name: '', account_number: '',
+    });
+    setRequestedFoods([]);
+    setSelectedCategory(null);
+    setSelectedItem(null);
+    setItemQty('');
+    setDateObj(new Date());
+    isSubmitting.current = false;
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     setForm({
@@ -206,8 +221,8 @@ export default function CreateRequest({ navigation }: any) {
       };
       const res = await ApiService.submitBeneficiaryRequest(payload);
       if (res.data.success) {
+        resetForm();
         Alert.alert('Success', 'Your request has been submitted successfully.');
-        navigation.navigate('HomeTabs', { screen: 'Track' });
       } else {
         Alert.alert('Error', res.data.message || 'Failed to submit request.');
         isSubmitting.current = false;
