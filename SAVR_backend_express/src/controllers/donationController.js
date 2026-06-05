@@ -851,8 +851,9 @@ exports.submitBeneficiaryRequest = async (req, res) => {
     population, age_start, age_end, street, barangay,
     city_municipality, postal_zip_code, needed_date, urgency_level,
     food_items,
-    bank_name, account_name, account_number,
+    account_name, account_number,
   } = req.body;
+  const bank_name = req.body.bank_name || req.body.receiving_method || null;
 
   if (!title || !type) {
     return res.status(422).json({ success: false, message: 'Title and type are required.' });
@@ -1212,7 +1213,12 @@ exports.updateRequestStatus = async (req, res) => {
     console.error('[updateRequestStatus notify]', notifyErr.message);
   }
 
-  return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
+  const r = updated[0];
+  return res.json({
+    success: true,
+    message: `Request status updated to "${status}".`,
+    request: { ...r, receiving_method: r.bank_name || null },
+  });
 };
 
 // Staff: list all beneficiary requests with full details including banking fields

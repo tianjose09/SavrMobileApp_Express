@@ -358,7 +358,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           )}
 
           {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : null)}
-          {!isFood && req.bank_name && renderSummaryRow('Receiving Method', req.bank_name)}
+          {!isFood && (req.receiving_method || req.bank_name) && renderSummaryRow('Receiving Method', req.receiving_method || req.bank_name)}
           {!isFood && req.account_name && renderSummaryRow('Account Name', req.account_name)}
           {!isFood && req.account_number && renderSummaryRow('Account No.', req.account_number)}
 
