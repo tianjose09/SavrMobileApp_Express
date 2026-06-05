@@ -34,7 +34,12 @@ export default function CustomDropdown({
         activeOpacity={0.8}
       >
         <Text
-          style={[styles.text, !selectedValue && styles.placeholderText, { flex: 1, paddingRight: 5 }]}
+          style={[
+            styles.text,
+            !selectedValue && styles.placeholderText,
+            { flex: 1, paddingRight: 5 },
+            style?.color ? { color: selectedValue ? style.color : 'rgba(0,0,0,0.35)' } : null,
+          ]}
           numberOfLines={1}
           adjustsFontSizeToFit
         >
