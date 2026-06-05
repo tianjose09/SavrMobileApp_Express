@@ -853,7 +853,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
     food_items,
     account_name, account_number,
   } = req.body;
-  const bank_name = req.body.bank_name || req.body.receiving_method || null;
+  const receiving_method = req.body.receiving_method || req.body.bank_name || null;
 
   if (!title || !type) {
     return res.status(422).json({ success: false, message: 'Title and type are required.' });
@@ -875,7 +875,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO beneficiary_requests
-     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, bank_name, account_name, account_number, status, created_at, updated_at)
+     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
     [
       req.user.id,
@@ -895,7 +895,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
       needed_date || null,
       urgency_level || null,
       parsedFoodItems ? JSON.stringify(parsedFoodItems) : null,
-      bank_name || null,
+      receiving_method || null,
       account_name || null,
       account_number || null,
     ]
@@ -994,7 +994,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       delivery_batches: deliveryBatches,
       delivery_food_items: pendingBatch?.delivery_food_items || [],
       // Aliased field names per spec
-      receiving_method: r.bank_name || null,
+      receiving_method: r.receiving_method || null,
       account_name: r.account_name || null,
       account_number: r.account_number || null,
       age_range_min: r.age_min ?? null,
@@ -1213,12 +1213,7 @@ exports.updateRequestStatus = async (req, res) => {
     console.error('[updateRequestStatus notify]', notifyErr.message);
   }
 
-  const r = updated[0];
-  return res.json({
-    success: true,
-    message: `Request status updated to "${status}".`,
-    request: { ...r, receiving_method: r.bank_name || null },
-  });
+  return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
 
 // Staff: list all beneficiary requests with full details including banking fields
@@ -1244,7 +1239,7 @@ exports.getAllBeneficiaryRequests = async (req, res) => {
     return {
       ...r,
       food_items: foodItems,
-      receiving_method: r.bank_name || null,
+      receiving_method: r.receiving_method || null,
       account_name:     r.account_name || null,
       account_number:   r.account_number || null,
     };
@@ -1282,7 +1277,7 @@ exports.getBeneficiaryRequestById = async (req, res) => {
     request: {
       ...r,
       food_items: foodItems,
-      receiving_method: r.bank_name || null,
+      receiving_method: r.receiving_method || null,
       account_name:     r.account_name || null,
       account_number:   r.account_number || null,
     },
@@ -1325,7 +1320,7 @@ exports.completeBeneficiaryRequest = async (req, res) => {
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS remarks TEXT`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_quantity NUMERIC DEFAULT NULL`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_items JSONB DEFAULT NULL`);
-    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS receiving_method VARCHAR(255) DEFAULT NULL`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_name VARCHAR(255) DEFAULT NULL`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_number VARCHAR(255) DEFAULT NULL`);
   } catch (_) {}

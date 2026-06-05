@@ -34,7 +34,13 @@ db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_items JSONB DEFAULT NULL`)
   .catch(() => {});
 
-db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`)
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS receiving_method VARCHAR(255) DEFAULT NULL`)
+  .catch(() => {});
+
+// Migrate existing bank_name data into receiving_method then drop the old column
+db.execute(`UPDATE beneficiary_requests SET receiving_method = bank_name WHERE receiving_method IS NULL AND bank_name IS NOT NULL`)
+  .catch(() => {});
+db.execute(`ALTER TABLE beneficiary_requests DROP COLUMN IF EXISTS bank_name`)
   .catch(() => {});
 
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_name VARCHAR(255) DEFAULT NULL`)
