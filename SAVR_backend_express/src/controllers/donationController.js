@@ -919,7 +919,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
     [allStops] = await db.execute(`
       SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start, ts.time_slot_end,
              ts.food_name, ts.qty, ts.unit, ts.food_type,
-             dd.id AS drive_id, dd.beneficiary_request_id
+             dd.id AS drive_id, dd.beneficiary_request_id,
+             dd.start_date AS drive_start_date, dd.end_date AS drive_end_date
       FROM truck_stops ts
       JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
       WHERE dd.beneficiary_request_id IN (${placeholders}) AND ts.stop_type = 'DELIVER'
@@ -942,6 +943,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
         date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
         time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
         time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
+        start_date: stop.drive_start_date ? new Date(stop.drive_start_date).toISOString().split('T')[0] : null,
+        end_date: stop.drive_end_date ? new Date(stop.drive_end_date).toISOString().split('T')[0] : null,
         items: [],
       };
     }
@@ -975,6 +978,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
       delivery_date: b.date,
       delivery_time_start: b.time,
       delivery_time_end: b.time_end,
+      drive_start_date: b.start_date,
+      drive_end_date: b.end_date,
       delivery_food_items: b.items,
     }));
 
@@ -994,6 +999,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
       age_range_min: r.age_min ?? null,
       age_range_max: r.age_max ?? null,
       drive_id: pendingBatch?.drive_id || null,
+      drive_start_date: (deliveryBatches[0]?.drive_start_date) || null,
+      drive_end_date: (deliveryBatches[0]?.drive_end_date) || null,
       food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
       quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
       unit: r.unit || (foodItems[0]?.unit ?? null),

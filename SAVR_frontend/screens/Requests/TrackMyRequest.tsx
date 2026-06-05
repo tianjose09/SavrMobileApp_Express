@@ -364,8 +364,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
           {renderSummaryRow('Target Population', req.population)}
           {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years` : 'All Ages')}
-          {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString('en-PH') : null)}
-          {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString('en-PH') : null)}
+          {renderSummaryRow('Start Date', req.drive_start_date ? new Date(req.drive_start_date).toLocaleDateString('en-PH') : null)}
+          {renderSummaryRow('End Date', req.drive_end_date ? new Date(req.drive_end_date).toLocaleDateString('en-PH') : null)}
 
           {/* Scheduled Delivery from active batch */}
           {(['In Transit', 'Completed'].includes(effectiveStatus)) && activeBatch?.delivery_date && (
