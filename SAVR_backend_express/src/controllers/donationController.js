@@ -1308,7 +1308,7 @@ exports.markStopMissed = async (req, res) => {
   }
 
   await db.execute(
-    "UPDATE truck_stops SET status = 'missed', staff_message = ?, updated_at = NOW() WHERE id = ?",
+    "UPDATE truck_stops SET status = 'missed', staff_message = ?, missed_notified_at = NULL, updated_at = NOW() WHERE id = ?",
     [message.trim(), stopId]
   );
 

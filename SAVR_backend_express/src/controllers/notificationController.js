@@ -58,6 +58,9 @@ db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notifi
 db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP DEFAULT NULL`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS missed_notified_at TIMESTAMP DEFAULT NULL`)
+  .catch(() => {});
+
 db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS staff_message TEXT DEFAULT NULL`)
   .catch(() => {});
 
@@ -140,7 +143,8 @@ async function autoNotifyBeneficiary(userId) {
     //      status to 'missed' after the initial 'pending' notification was already sent
     try {
       const [deliveryStops] = await db.execute(`
-        SELECT ts.id, ts.status, ts.notified_at, ts.staff_message, ts.date, ts.time_slot_start,
+        SELECT ts.id, ts.status, ts.notified_at, ts.missed_notified_at, ts.staff_message,
+               ts.date, ts.time_slot_start,
                br.request_name, br.user_id, dd.beneficiary_request_id
         FROM truck_stops ts
         JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
@@ -148,20 +152,18 @@ async function autoNotifyBeneficiary(userId) {
         WHERE br.user_id = ? AND ts.stop_type = 'DELIVER'
           AND (
             ts.notified_at IS NULL
-            OR (ts.status = 'missed' AND ts.updated_at > ts.notified_at)
+            OR (LOWER(ts.status) = 'missed' AND ts.missed_notified_at IS NULL)
           )
       `, [userId]);
 
       for (const stop of deliveryStops) {
         try {
-          // For never-notified stops use the NULL guard; for re-notify on missed use the
-          // status+updated_at guard — both are atomic so only one concurrent caller wins.
-          const claimQuery = stop.status === 'missed' && stop.notified_at != null
-            ? 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND status = ? AND updated_at > notified_at'
+          const isMissed = (stop.status || '').toLowerCase() === 'missed';
+          // Missed stops use a dedicated missed_notified_at guard; all others use notified_at
+          const claimQuery = isMissed
+            ? 'UPDATE truck_stops SET missed_notified_at = NOW() WHERE id = ? AND LOWER(status) = ? AND missed_notified_at IS NULL'
             : 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL';
-          const claimParams = stop.status === 'missed' && stop.notified_at != null
-            ? [stop.id, 'missed']
-            : [stop.id];
+          const claimParams = isMissed ? [stop.id, 'missed'] : [stop.id];
           const [res] = await db.execute(claimQuery, claimParams);
           if (res.affectedRows === 0) continue;
 
@@ -194,7 +196,7 @@ async function autoNotifyBeneficiary(userId) {
               title = 'Partial Delivery Made';
               msg = `Some items for your request "${name}" have been delivered. Please confirm what you received in the app. More deliveries may follow until your request is fully fulfilled.`;
             }
-          } else if (stop.status === 'missed') {
+          } else if ((stop.status || '').toLowerCase() === 'missed') {
             title = 'Delivery Missed';
             msg = stop.staff_message || `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;
           } else {
@@ -292,27 +294,32 @@ async function autoNotifyDonor(userId) {
     try {
       const [pickupStops] = await db.execute(`
         SELECT ts.id, ts.status, ts.staff_message, ts.reference_id AS donation_id,
-               fdr.user_id AS donor_id, fdr.donation_name
+               ts.missed_notified_at, fdr.user_id AS donor_id, fdr.donation_name
         FROM truck_stops ts
         JOIN food_donation_records fdr ON fdr.id = ts.reference_id
         WHERE fdr.user_id = ? AND ts.source = 'food_donation' AND ts.stop_type = 'PICKUP'
-          AND ts.status IN ('completed', 'missed') AND ts.notified_at IS NULL
+          AND (
+            (LOWER(ts.status) = 'completed' AND ts.notified_at IS NULL)
+            OR (LOWER(ts.status) = 'missed' AND ts.missed_notified_at IS NULL)
+          )
       `, [userId]);
 
       for (const stop of pickupStops) {
         try {
-          const [res] = await db.execute(
-            'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL',
-            [stop.id]
-          );
+          const isDonorMissed = (stop.status || '').toLowerCase() === 'missed';
+          const donorClaimQuery = isDonorMissed
+            ? 'UPDATE truck_stops SET missed_notified_at = NOW() WHERE id = ? AND LOWER(status) = ? AND missed_notified_at IS NULL'
+            : 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL';
+          const donorClaimParams = isDonorMissed ? [stop.id, 'missed'] : [stop.id];
+          const [res] = await db.execute(donorClaimQuery, donorClaimParams);
           if (res.affectedRows === 0) continue;
 
-          if (stop.status === 'completed') {
+          if ((stop.status || '').toLowerCase() === 'completed') {
             await db.execute(
               "UPDATE food_donation_records SET status = 'received', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
               [stop.donation_id]
             );
-          } else if (stop.status === 'missed') {
+          } else if ((stop.status || '').toLowerCase() === 'missed') {
             const donationLabel = stop.donation_name ? `"${stop.donation_name}"` : 'your food donation';
             const missedMsg = stop.staff_message ||
               `Unfortunately, the scheduled pickup for ${donationLabel} was missed. Please consider donating again or choosing another schedule through the app.`;
