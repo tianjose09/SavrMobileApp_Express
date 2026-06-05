@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { StorageUtils, StorageKeys } from '../utils/storage';
 
+
 // In Expo, use the IP address of your machine for the emulator, or localhost if strictly on emulator.
 // The default React Native Android emulator alias for localhost is 10.0.2.2
 // IMPORTANT: If you are testing on your PHYSICAL PHONE via Expo Go, you MUST change this
@@ -45,9 +46,12 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
-    // Enhance error messages for common network issues
-    if (error.code === 'ECONNABORTED') {
+  async (error) => {
+    if (error?.response?.status === 401) {
+      // Token expired or invalid — clear it so the next navigation to a protected
+      // screen sends the user to login instead of looping on 401s.
+      await StorageUtils.removeItem(StorageKeys.AUTH_TOKEN);
+    } else if (error.code === 'ECONNABORTED') {
       error.message = 'Request timed out. Please check your connection and try again.';
     } else if (!error.response) {
       error.message = 'Cannot reach the server. Please check if the backend is running.';
