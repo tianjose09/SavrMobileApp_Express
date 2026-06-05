@@ -940,7 +940,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
         drive_id: did,
         request_id: rid,
         first_stop_id: stop.stop_id,
-        status: stop.status,
+        status: (stop.status || '').toLowerCase(),
         date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
         time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
         time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
@@ -950,7 +950,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       };
     }
     // Batch is pending if ANY stop in the drive is pending
-    if (stop.status === 'pending') driveMap[did].status = 'pending';
+    if ((stop.status || '').toLowerCase() === 'pending') driveMap[did].status = 'pending';
     driveMap[did].items.push({
       food_name: stop.food_name || '',
       qty: parseFloat(stop.qty || '0'),
