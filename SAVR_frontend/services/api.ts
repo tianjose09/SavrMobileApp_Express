@@ -46,12 +46,8 @@ api.interceptors.response.use(
     }
     return response;
   },
-  async (error) => {
-    if (error?.response?.status === 401) {
-      // Token expired or invalid — clear it so the next navigation to a protected
-      // screen sends the user to login instead of looping on 401s.
-      await StorageUtils.removeItem(StorageKeys.AUTH_TOKEN);
-    } else if (error.code === 'ECONNABORTED') {
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
       error.message = 'Request timed out. Please check your connection and try again.';
     } else if (!error.response) {
       error.message = 'Cannot reach the server. Please check if the backend is running.';

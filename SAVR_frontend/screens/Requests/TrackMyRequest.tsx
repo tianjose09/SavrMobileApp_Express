@@ -7,7 +7,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
-import { StorageUtils, StorageKeys } from '../../utils/storage';
 import NotificationBell from '../../components/NotificationBell';
 
 if (Platform.OS === 'android') {
@@ -146,12 +145,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
         setRequestsData(res.data.requests);
       }
     } catch (error: any) {
-      if (error?.response?.status === 401) {
-        await StorageUtils.removeItem(StorageKeys.AUTH_TOKEN);
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-      } else {
-        console.error('Failed to fetch requests', error);
-      }
+      console.error('Failed to fetch requests', error);
     } finally {
       setIsLoading(false);
     }
