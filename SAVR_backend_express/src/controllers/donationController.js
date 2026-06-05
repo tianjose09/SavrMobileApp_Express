@@ -970,6 +970,9 @@ exports.getBeneficiaryRequests = async (req, res) => {
     try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
     let receivedItems = [];
     try { receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []); } catch {}
+    let disbursements = [];
+    try { disbursements = typeof r.dispatched_items === 'string' ? JSON.parse(r.dispatched_items) : (r.dispatched_items || []); } catch {}
+    if (!Array.isArray(disbursements)) disbursements = [];
 
     const deliveryBatches = (batchesByRequest[r.id] || []).map((b, idx) => ({
       batch_number: idx + 1,
@@ -991,6 +994,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
       ...r,
       food_items: foodItems,
       received_items: receivedItems,
+      dispatched_items: disbursements,
+      dispatched_quantity: parseFloat(r.dispatched_quantity || '0'),
       delivery_batches: deliveryBatches,
       delivery_food_items: pendingBatch?.delivery_food_items || [],
       // Aliased field names per spec

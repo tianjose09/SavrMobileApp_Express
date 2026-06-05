@@ -364,7 +364,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
           {/* Financial disbursements — shows each partial payment sent by staff */}
           {!isFood && (() => {
-            const disbursements: any[] = Array.isArray(req.dispatched_items) ? req.dispatched_items : [];
+            let disbursements: any[] = [];
+            try {
+              const raw = req.dispatched_items;
+              disbursements = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+              if (!Array.isArray(disbursements)) disbursements = [];
+            } catch { disbursements = []; }
             const totalSent: number = parseFloat(req.dispatched_quantity || '0');
             if (totalSent <= 0 && disbursements.length === 0) return null;
             return (
