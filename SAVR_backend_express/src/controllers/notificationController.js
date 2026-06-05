@@ -52,6 +52,9 @@ db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_nu
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS notified_statuses_json JSONB DEFAULT '[]'`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP DEFAULT NULL`)
+  .catch(() => {});
+
 db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 
@@ -137,6 +140,64 @@ async function autoNotifyBeneficiary(userId) {
       }
     }
     // Check truck_stops DELIVER entries linked to this beneficiary's requests.
+    // Notify beneficiary when financial disbursements are made via donation_deliveries
+    try {
+      const [financialDeliveries] = await db.execute(`
+        SELECT del.id, del.delivery_items, del.created_at,
+               dd.beneficiary_request_id, br.request_name, br.amount AS total_amount, br.user_id
+        FROM donation_deliveries del
+        JOIN donation_drives dd ON dd.id = del.donation_drive_id
+        JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
+        WHERE br.user_id = ? AND br.type = 'financial'
+          AND del.notified_at IS NULL
+        ORDER BY del.created_at ASC
+      `, [userId]);
+
+      for (const del of financialDeliveries) {
+        try {
+          let items = [];
+          try { items = typeof del.delivery_items === 'string' ? JSON.parse(del.delivery_items) : (del.delivery_items || []); } catch {}
+          const financialItems = items.filter((i) => i.type === 'financial');
+          if (financialItems.length === 0) continue;
+
+          const [claimRes] = await db.execute(
+            'UPDATE donation_deliveries SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL',
+            [del.id]
+          );
+          if (claimRes.affectedRows === 0) continue;
+
+          const amountSent = financialItems.reduce((s, i) => s + parseFloat(i.qty || i.amount || '0'), 0);
+          const name = del.request_name || 'Unnamed';
+          const totalAmount = parseFloat(del.total_amount || '0');
+
+          // Compute total sent across all deliveries for this request to check if fulfilled
+          const [totals] = await db.execute(`
+            SELECT COALESCE(SUM(
+              (SELECT SUM((fi->>'qty')::numeric)
+               FROM json_array_elements(del2.delivery_items) AS fi
+               WHERE (fi->>'type') = 'financial')
+            ), 0) AS total_sent
+            FROM donation_deliveries del2
+            JOIN donation_drives dd2 ON dd2.id = del2.donation_drive_id
+            WHERE dd2.beneficiary_request_id = ?
+          `, [del.beneficiary_request_id]);
+          const totalSent = parseFloat(totals[0]?.total_sent || '0');
+          const goalMet = totalAmount > 0 && totalSent >= totalAmount;
+
+          const title = goalMet ? 'Financial Request Fulfilled' : 'Partial Payment Sent';
+          const msg = goalMet
+            ? `The full amount of ₱${totalAmount.toLocaleString()} for your request "${name}" has been sent to your account.`
+            : `₱${amountSent.toLocaleString()} has been sent for your request "${name}". Total received so far: ₱${totalSent.toLocaleString()}${totalAmount > 0 ? ' of ₱' + totalAmount.toLocaleString() : ''}.`;
+
+          await createNotification(del.user_id, 'service', title, msg, true);
+        } catch (e) {
+          console.error('[autoNotifyBeneficiary financial] delivery', del.id, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[autoNotifyBeneficiary financial]', e.message);
+    }
+
     // Two cases:
     //   1. Never notified (notified_at IS NULL) — covers pending/completed/missed on first touch
     //   2. Already notified but then marked missed (updated_at > notified_at) — staff changed

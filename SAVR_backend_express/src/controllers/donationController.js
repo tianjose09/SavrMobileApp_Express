@@ -912,8 +912,38 @@ exports.getBeneficiaryRequests = async (req, res) => {
     [req.user.id]
   );
 
-  // Bulk-fetch all DELIVER truck stops — each row is one food item in a delivery
   const requestIds = requests.map(r => r.id);
+
+  // Bulk-fetch financial disbursements from donation_deliveries
+  const disbursementsByRequest = {};
+  if (requestIds.length > 0) {
+    const placeholders = requestIds.map(() => '?').join(',');
+    const [deliveryRows] = await db.execute(`
+      SELECT dd.beneficiary_request_id, del.delivery_items, del.status, del.created_at
+      FROM donation_deliveries del
+      JOIN donation_drives dd ON dd.id = del.donation_drive_id
+      WHERE dd.beneficiary_request_id IN (${placeholders})
+      ORDER BY del.created_at ASC
+    `, requestIds);
+
+    for (const row of deliveryRows) {
+      const rid = row.beneficiary_request_id;
+      let items = [];
+      try { items = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : (row.delivery_items || []); } catch {}
+      const financialItems = items.filter((item) => item.type === 'financial');
+      if (financialItems.length === 0) continue;
+      if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
+      for (const fi of financialItems) {
+        disbursementsByRequest[rid].push({
+          amount: parseFloat(fi.qty || fi.amount || '0'),
+          date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
+          status: row.status,
+        });
+      }
+    }
+  }
+
+  // Bulk-fetch all DELIVER truck stops — each row is one food item in a delivery
   let allStops = [];
   if (requestIds.length > 0) {
     const placeholders = requestIds.map(() => '?').join(',');
@@ -970,9 +1000,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
     try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
     let receivedItems = [];
     try { receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []); } catch {}
-    let disbursements = [];
-    try { disbursements = typeof r.dispatched_items === 'string' ? JSON.parse(r.dispatched_items) : (r.dispatched_items || []); } catch {}
-    if (!Array.isArray(disbursements)) disbursements = [];
+    // Use donation_deliveries financial data (authoritative) over dispatched_items
+    const disbursements = disbursementsByRequest[r.id] || [];
 
     const deliveryBatches = (batchesByRequest[r.id] || []).map((b, idx) => ({
       batch_number: idx + 1,
@@ -995,7 +1024,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       food_items: foodItems,
       received_items: receivedItems,
       dispatched_items: disbursements,
-      dispatched_quantity: parseFloat(r.dispatched_quantity || '0'),
+      dispatched_quantity: disbursements.reduce((sum, d) => sum + (d.amount || 0), 0),
       delivery_batches: deliveryBatches,
       delivery_food_items: pendingBatch?.delivery_food_items || [],
       // Aliased field names per spec
