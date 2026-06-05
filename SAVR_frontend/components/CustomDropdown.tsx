@@ -57,7 +57,8 @@ export default function CustomDropdown({
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.dropdownItem}
-                  onPress={() => {
+                  onPress={(e) => {
+                    (e as any)?.stopPropagation?.();
                     onValueChange(item.value);
                     setModalVisible(false);
                   }}

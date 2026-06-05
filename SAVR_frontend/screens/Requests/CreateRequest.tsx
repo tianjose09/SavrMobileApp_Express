@@ -66,7 +66,7 @@ export default function CreateRequest({ navigation }: any) {
     title: '', financial_amount: '', population: '',
     age_start: '', age_end: '', street: '', barangay: '',
     city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
-    bank_name: '', account_name: '', account_number: '',
+    receiving_method: '', account_name: '', account_number: '',
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +78,7 @@ export default function CreateRequest({ navigation }: any) {
       title: '', financial_amount: '', population: '',
       age_start: '', age_end: '', street: '', barangay: '',
       city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
-      bank_name: '', account_name: '', account_number: '',
+      receiving_method: '', account_name: '', account_number: '',
     });
     setRequestedFoods([]);
     setSelectedCategory(null);
@@ -94,7 +94,7 @@ export default function CreateRequest({ navigation }: any) {
       title: '', financial_amount: '', population: '',
       age_start: '', age_end: '', street: '', barangay: '',
       city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
-      bank_name: '', account_name: '', account_number: '',
+      receiving_method: '', account_name: '', account_number: '',
     });
     setDateObj(new Date());
     setRequestedFoods([]);
@@ -206,7 +206,7 @@ export default function CreateRequest({ navigation }: any) {
         Alert.alert('Error', 'Please enter a valid amount needed.');
         return;
       }
-      if (!form.bank_name || !form.account_name || !form.account_number) {
+      if (!form.receiving_method || !form.account_name || !form.account_number) {
         Alert.alert('Error', 'Please fill out all receiving account details.');
         return;
       }
@@ -346,8 +346,8 @@ export default function CreateRequest({ navigation }: any) {
 
                 <Text style={styles.inputLabel}>Receiving Method</Text>
                 <CustomDropdown
-                  selectedValue={form.bank_name}
-                  onValueChange={(val) => updateForm('bank_name', val)}
+                  selectedValue={form.receiving_method}
+                  onValueChange={(val) => updateForm('receiving_method', val)}
                   placeholder="Select Method"
                   items={[
                     { label: 'E-Wallet', value: 'E-Wallet' },

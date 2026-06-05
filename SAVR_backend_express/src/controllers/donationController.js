@@ -851,8 +851,9 @@ exports.submitBeneficiaryRequest = async (req, res) => {
     population, age_start, age_end, street, barangay,
     city_municipality, postal_zip_code, needed_date, urgency_level,
     food_items,
-    bank_name, account_name, account_number,
+    account_name, account_number,
   } = req.body;
+  const receiving_method = req.body.receiving_method || req.body.bank_name || null;
 
   if (!title || !type) {
     return res.status(422).json({ success: false, message: 'Title and type are required.' });
@@ -874,7 +875,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO beneficiary_requests
-     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, bank_name, account_name, account_number, status, created_at, updated_at)
+     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
     [
       req.user.id,
@@ -894,7 +895,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
       needed_date || null,
       urgency_level || null,
       parsedFoodItems ? JSON.stringify(parsedFoodItems) : null,
-      bank_name || null,
+      receiving_method || null,
       account_name || null,
       account_number || null,
     ]
@@ -917,9 +918,10 @@ exports.getBeneficiaryRequests = async (req, res) => {
   if (requestIds.length > 0) {
     const placeholders = requestIds.map(() => '?').join(',');
     [allStops] = await db.execute(`
-      SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start,
+      SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start, ts.time_slot_end,
              ts.food_name, ts.qty, ts.unit, ts.food_type,
-             dd.id AS drive_id, dd.beneficiary_request_id
+             dd.id AS drive_id, dd.beneficiary_request_id,
+             dd.start_date AS drive_start_date, dd.end_date AS drive_end_date
       FROM truck_stops ts
       JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
       WHERE dd.beneficiary_request_id IN (${placeholders}) AND ts.stop_type = 'DELIVER'
@@ -941,6 +943,9 @@ exports.getBeneficiaryRequests = async (req, res) => {
         status: stop.status,
         date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
         time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
+        time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
+        start_date: stop.drive_start_date ? new Date(stop.drive_start_date).toISOString().split('T')[0] : null,
+        end_date: stop.drive_end_date ? new Date(stop.drive_end_date).toISOString().split('T')[0] : null,
         items: [],
       };
     }
@@ -973,6 +978,9 @@ exports.getBeneficiaryRequests = async (req, res) => {
       status: b.status,           // 'pending' | 'completed' | 'missed'
       delivery_date: b.date,
       delivery_time_start: b.time,
+      delivery_time_end: b.time_end,
+      drive_start_date: b.start_date,
+      drive_end_date: b.end_date,
       delivery_food_items: b.items,
     }));
 
@@ -986,12 +994,16 @@ exports.getBeneficiaryRequests = async (req, res) => {
       delivery_batches: deliveryBatches,
       delivery_food_items: pendingBatch?.delivery_food_items || [],
       // Aliased field names per spec
-      receiving_method: r.bank_name || null,
+      receiving_method: r.receiving_method || null,
       account_name: r.account_name || null,
       account_number: r.account_number || null,
       age_range_min: r.age_min ?? null,
       age_range_max: r.age_max ?? null,
       drive_id: pendingBatch?.drive_id || null,
+      drive_start_date: r.request_date
+        ? new Date(r.request_date).toISOString().split('T')[0]
+        : (r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : null),
+      drive_end_date: (deliveryBatches[0]?.drive_end_date) || null,
       food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
       quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
       unit: r.unit || (foodItems[0]?.unit ?? null),
@@ -1115,8 +1127,8 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(403).json({ success: false, message: 'Unauthorized.' });
   }
 
-  const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed'];
-  const { delivery_date_time, dispatched_quantity, dispatched_items } = req.body;
+  const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed', 'Cancelled'];
+  const { delivery_date_time, dispatched_quantity, dispatched_items, request_date, submitted_date } = req.body;
   // Normalize to Title Case so 'approved', 'APPROVED', 'Approved' all work
   const rawStatus = req.body.status || '';
   const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
@@ -1130,14 +1142,27 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Request not found.' });
   }
 
-  // If approving / accepting / allocating, optionally save delivery_date_time and dispatched info
+  // Build update query — always update status; optionally update dates and dispatched info
+  let query = 'UPDATE beneficiary_requests SET status = ?, updated_at = NOW()';
+  const params = [status];
+
+  // Date Needed (request_date)
+  if (request_date !== undefined) {
+    query += ', request_date = ?';
+    params.push(request_date ? new Date(request_date) : null);
+  }
+
+  // Date Submitted (created_at) — staff can correct the submission timestamp
+  if (submitted_date !== undefined) {
+    query += ', created_at = ?';
+    params.push(submitted_date ? new Date(submitted_date) : null);
+  }
+
+  // Approval-specific fields
   const approvalStatuses = ['Approved', 'Accepted', 'Allocated'];
   if (approvalStatuses.includes(status)) {
     const dispQty = dispatched_quantity !== undefined ? (dispatched_quantity !== null ? parseFloat(dispatched_quantity) : null) : undefined;
     const dispItems = dispatched_items !== undefined ? (dispatched_items !== null ? (typeof dispatched_items === 'string' ? dispatched_items : JSON.stringify(dispatched_items)) : null) : undefined;
-
-    let query = 'UPDATE beneficiary_requests SET status = ?, updated_at = NOW()';
-    const params = [status];
 
     if (delivery_date_time !== undefined) {
       query += ', delivery_date_time = ?';
@@ -1151,14 +1176,12 @@ exports.updateRequestStatus = async (req, res) => {
       query += ', dispatched_items = ?';
       params.push(dispItems);
     }
-
-    query += ' WHERE id = ?';
-    params.push(req.params.id);
-
-    await db.execute(query, params);
-  } else {
-    await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
   }
+
+  query += ' WHERE id = ?';
+  params.push(req.params.id);
+
+  await db.execute(query, params);
 
   const [updated] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
 
@@ -1173,20 +1196,119 @@ exports.updateRequestStatus = async (req, res) => {
     Rejected:  'We regret to inform you that your request has been rejected. Please contact us for more details.',
     Denied:    'Your request has been denied. Please contact our team if you have any questions.',
     Completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
+    Cancelled: 'Your request has been cancelled by our team. Please contact us if you have any questions.',
   };
-  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed'];
+  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed', 'Cancelled'];
   try {
-    await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
-    // Stamp notified_status so the auto-notify check won't create a duplicate
-    await db.execute(
-      'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
-      [status, req.params.id]
+    // Stamp notified_status atomically first. If affectedRows = 0 the notification
+    // was already sent (race condition with autoNotifyBeneficiary), so skip it.
+    const [claimResult] = await db.execute(
+      'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ? AND (notified_status IS NULL OR notified_status != ?)',
+      [status, req.params.id, status]
     );
+    if (claimResult.affectedRows > 0) {
+      await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
+    }
   } catch (notifyErr) {
     console.error('[updateRequestStatus notify]', notifyErr.message);
   }
 
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
+};
+
+// Staff: list all beneficiary requests with full details including banking fields
+exports.getAllBeneficiaryRequests = async (req, res) => {
+  if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const [requests] = await db.execute(
+    `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
+            population, age_min, age_max, street, barangay, city, zip_code,
+            request_date, urgency, food_items, status, created_at, updated_at,
+            bank_name, account_name, account_number,
+            received_items, dispatched_quantity, dispatched_items, notified_status
+     FROM beneficiary_requests
+     ORDER BY created_at DESC`
+  );
+
+  const mapped = requests.map(r => {
+    let foodItems = [];
+    try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+
+    return {
+      ...r,
+      food_items: foodItems,
+      receiving_method: r.receiving_method || null,
+      account_name:     r.account_name || null,
+      account_number:   r.account_number || null,
+    };
+  });
+
+  return res.json({ success: true, requests: mapped });
+};
+
+// Staff: get a single beneficiary request by ID with full details
+exports.getBeneficiaryRequestById = async (req, res) => {
+  if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const [rows] = await db.execute(
+    `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
+            population, age_min, age_max, street, barangay, city, zip_code,
+            request_date, urgency, food_items, status, created_at, updated_at,
+            bank_name, account_name, account_number,
+            received_items, dispatched_quantity, dispatched_items, notified_status
+     FROM beneficiary_requests WHERE id = ?`,
+    [req.params.id]
+  );
+
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Request not found.' });
+  }
+
+  const r = rows[0];
+  let foodItems = [];
+  try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+
+  return res.json({
+    success: true,
+    request: {
+      ...r,
+      food_items: foodItems,
+      receiving_method: r.receiving_method || null,
+      account_name:     r.account_name || null,
+      account_number:   r.account_number || null,
+    },
+  });
+};
+
+// Staff: mark a truck stop as missed and attach a message for the beneficiary/donor
+exports.markStopMissed = async (req, res) => {
+  const user = req.user;
+  if (user.role === 'beneficiary' || user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const { stopId } = req.params;
+  const { message } = req.body;
+
+  if (!message || !message.trim()) {
+    return res.status(422).json({ success: false, message: 'A message is required when marking a stop as missed.' });
+  }
+
+  const [rows] = await db.execute('SELECT * FROM truck_stops WHERE id = ?', [stopId]);
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Stop not found.' });
+  }
+
+  await db.execute(
+    "UPDATE truck_stops SET status = 'missed', staff_message = ?, updated_at = NOW() WHERE id = ?",
+    [message.trim(), stopId]
+  );
+
+  return res.json({ success: true, message: 'Stop marked as missed.' });
 };
 
 exports.completeBeneficiaryRequest = async (req, res) => {
@@ -1198,7 +1320,7 @@ exports.completeBeneficiaryRequest = async (req, res) => {
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS remarks TEXT`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_quantity NUMERIC DEFAULT NULL`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS dispatched_items JSONB DEFAULT NULL`);
-    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`);
+    await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS receiving_method VARCHAR(255) DEFAULT NULL`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_name VARCHAR(255) DEFAULT NULL`);
     await db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_number VARCHAR(255) DEFAULT NULL`);
   } catch (_) {}

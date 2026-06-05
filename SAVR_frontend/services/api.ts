@@ -122,7 +122,7 @@ export const ApiService = {
           : remarks ? { remarks } : {}
     ),
   // Staff-only: change status; optionally pass delivery_date_time (ISO string)
-  updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied', delivery_date_time?: string) =>
+  updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied' | 'Cancelled', delivery_date_time?: string) =>
     api.put(`api/donation/requests/${id}/status`, { status, ...(delivery_date_time ? { delivery_date_time } : {}) }),
 
   // PayMongo

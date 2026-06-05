@@ -17,24 +17,33 @@ if (Platform.OS === 'android') {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function isDeliveryTimeReached(batch: any): boolean {
+  if (!batch.delivery_date) return false;
+  const dateTimeStr = batch.delivery_time_start
+    ? `${batch.delivery_date}T${batch.delivery_time_start}:00`
+    : `${batch.delivery_date}T00:00:00`;
+  return new Date() >= new Date(dateTimeStr);
+}
+
 function getEffectiveStatus(req: any): string {
   const raw = (req.status || 'PENDING').toUpperCase().trim();
 
   // Final / terminal states
-  if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Rejected';
+  if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Cancelled';
   if (raw === 'COMPLETED' || raw === 'DONE') return 'Completed';
   if (
     ['REJECTED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(raw) ||
     raw.includes('REJECT') || raw.includes('DEN') || raw.includes('DECLIN')
-  ) return 'Rejected';
+  ) return 'Cancelled';
   if (raw === 'PENDING') return 'Pending';
 
   // Approved / Accepted / Allocated / Urgent:
-  // → In Transit only when staff has an active (pending) delivery batch
-  // → Otherwise Approved (stays here between batches and after partial receipt)
+  // → In Transit only when staff has a pending delivery batch whose scheduled
+  //   date+time has already been reached; otherwise stays Approved.
   if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
     const batches = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
-    if (batches.some((b: any) => b.status === 'pending')) return 'In Transit';
+    if (batches.some((b: any) => b.status === 'missed')) return 'Cancelled';
+    if (batches.some((b: any) => b.status === 'pending' && isDeliveryTimeReached(b))) return 'In Transit';
     return 'Approved';
   }
 
@@ -47,7 +56,7 @@ function getStatusColor(effectiveStatus: string): string {
     case 'Approved':   return '#00592d';
     case 'In Transit': return '#A87919';
     case 'Completed':  return '#00592d';
-    case 'Rejected':   return '#C0392B';
+    case 'Cancelled':   return '#C0392B';
     default:           return '#555555';
   }
 }
@@ -58,7 +67,7 @@ function getStatusBadgeColor(effectiveStatus: string): string {
     case 'Approved':   return '#E8F5E9';
     case 'In Transit': return '#FFF8E7';
     case 'Completed':  return '#E8F5E9';
-    case 'Rejected':   return '#FFEBEE';
+    case 'Cancelled':   return '#FFEBEE';
     default:           return '#F5F5F5';
   }
 }
@@ -82,7 +91,7 @@ function formatDeliveryDateTime(iso: string | null): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Rejected'] as const;
+const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Cancelled'] as const;
 type FilterType = typeof FILTERS[number];
 
 export default function TrackMyRequest({ route, navigation }: any) {
@@ -236,7 +245,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
     if (getEffectiveStatus(req) === 'In Transit' && batches.length > 1) {
       return batches.map(batch => ({ ...req, _activeBatch: batch }));
     }
-    return [{ ...req, _activeBatch: batches.find((b: any) => b.status === 'pending') || batches[0] || null }];
+    const activeBatch =
+      batches.find((b: any) => b.status === 'pending' && isDeliveryTimeReached(b)) ||
+      batches.find((b: any) => b.status === 'pending') ||
+      batches[0] ||
+      null;
+    return [{ ...req, _activeBatch: activeBatch }];
   });
 
   const financialRequests = expandedRequests.filter(req => req.type?.toLowerCase() === 'financial');
@@ -282,7 +296,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
             </Text>
           </View>
 
-          {isFood && renderSummaryRow('Food Categories', req.food_type)}
+          {isFood && renderSummaryRow(
+            'Food Categories',
+            Array.isArray(req.food_items) && req.food_items.length > 0
+              ? [...new Set(req.food_items.map((item: any) => item.food_type || item.category || '').filter(Boolean))].join(', ')
+              : req.food_type
+          )}
 
           {isFood && Array.isArray(req.food_items) && req.food_items.length > 0 && (
             <View style={styles.reportTableRow}>
@@ -339,21 +358,20 @@ export default function TrackMyRequest({ route, navigation }: any) {
           )}
 
           {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : null)}
-          {!isFood && req.bank_name && renderSummaryRow('Receiving Method', req.bank_name)}
+          {!isFood && (req.receiving_method) && renderSummaryRow('Receiving Method', req.receiving_method)}
           {!isFood && req.account_name && renderSummaryRow('Account Name', req.account_name)}
           {!isFood && req.account_number && renderSummaryRow('Account No.', req.account_number)}
 
           {renderSummaryRow('Target Population', req.population)}
           {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years` : 'All Ages')}
-          {renderSummaryRow('Date Needed', req.request_date ? new Date(req.request_date).toLocaleDateString('en-PH') : null)}
-          {renderSummaryRow('Date Submitted', req.created_at ? new Date(req.created_at).toLocaleDateString('en-PH') : null)}
+          {renderSummaryRow('Start Date', (req.request_date || req.created_at) ? new Date(req.request_date || req.created_at).toLocaleDateString('en-PH') : null)}
 
           {/* Scheduled Delivery from active batch */}
           {(['In Transit', 'Completed'].includes(effectiveStatus)) && activeBatch?.delivery_date && (
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
               <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {}]}>
-                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start : ''}
+                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}
               </Text>
             </View>
           )}
@@ -398,7 +416,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <View style={styles.batchRow}>
               <View style={{ flex: 1 }}>
                 {allBatches.length === 1 && activeBatch.delivery_date && (
-                  <Text style={styles.batchDate}>{activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start : ''}</Text>
+                  <Text style={styles.batchDate}>{activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}</Text>
                 )}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
