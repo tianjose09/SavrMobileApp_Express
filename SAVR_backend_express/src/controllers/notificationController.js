@@ -213,18 +213,18 @@ async function autoNotifyBeneficiary(userId) {
         WHERE br.user_id = ? AND ts.stop_type = 'DELIVER'
           AND (
             ts.notified_at IS NULL
-            OR (LOWER(ts.status) = 'missed' AND ts.missed_notified_at IS NULL)
+            OR (LOWER(ts.status) IN ('missed', 'notified') AND ts.missed_notified_at IS NULL)
           )
       `, [userId]);
 
       for (const stop of deliveryStops) {
         try {
-          const isMissed = (stop.status || '').toLowerCase() === 'missed';
-          // Missed stops use a dedicated missed_notified_at guard; all others use notified_at
+          const isMissed = ['missed', 'notified'].includes((stop.status || '').toLowerCase());
+          // Missed/notified stops use a dedicated missed_notified_at guard; all others use notified_at
           const claimQuery = isMissed
-            ? 'UPDATE truck_stops SET missed_notified_at = NOW() WHERE id = ? AND LOWER(status) = ? AND missed_notified_at IS NULL'
+            ? 'UPDATE truck_stops SET missed_notified_at = NOW() WHERE id = ? AND LOWER(status) = ANY(ARRAY[\'missed\',\'notified\']) AND missed_notified_at IS NULL'
             : 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL';
-          const claimParams = isMissed ? [stop.id, 'missed'] : [stop.id];
+          const claimParams = isMissed ? [stop.id] : [stop.id];
           const [res] = await db.execute(claimQuery, claimParams);
           if (res.affectedRows === 0) continue;
 
@@ -257,7 +257,7 @@ async function autoNotifyBeneficiary(userId) {
               title = 'Partial Delivery Made';
               msg = `Some items for your request "${name}" have been delivered. Please confirm what you received in the app. More deliveries may follow until your request is fully fulfilled.`;
             }
-          } else if ((stop.status || '').toLowerCase() === 'missed') {
+          } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
             title = 'Delivery Missed';
             msg = stop.staff_message || `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;
           } else {
@@ -380,7 +380,7 @@ async function autoNotifyDonor(userId) {
               "UPDATE food_donation_records SET status = 'received', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
               [stop.donation_id]
             );
-          } else if ((stop.status || '').toLowerCase() === 'missed') {
+          } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
             const donationLabel = stop.donation_name ? `"${stop.donation_name}"` : 'your food donation';
             const missedMsg = stop.staff_message ||
               `Unfortunately, the scheduled pickup for ${donationLabel} was missed. Please consider donating again or choosing another schedule through the app.`;

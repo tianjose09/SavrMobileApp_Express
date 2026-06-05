@@ -970,7 +970,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
         drive_id: did,
         request_id: rid,
         first_stop_id: stop.stop_id,
-        status: (stop.status || '').toLowerCase(),
+        status: ['notified'].includes((stop.status || '').toLowerCase()) ? 'missed' : (stop.status || '').toLowerCase(),
         date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
         time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
         time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
