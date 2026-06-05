@@ -49,6 +49,9 @@ db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notifi
 db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP DEFAULT NULL`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS staff_message TEXT DEFAULT NULL`)
+  .catch(() => {});
+
 async function createNotification(userId, type, title, description, isCritical = false) {
   try {
     await db.execute(
@@ -120,7 +123,7 @@ async function autoNotifyBeneficiary(userId) {
     //      status to 'missed' after the initial 'pending' notification was already sent
     try {
       const [deliveryStops] = await db.execute(`
-        SELECT ts.id, ts.status, ts.notified_at, ts.date, ts.time_slot_start,
+        SELECT ts.id, ts.status, ts.notified_at, ts.staff_message, ts.date, ts.time_slot_start,
                br.request_name, br.user_id, dd.beneficiary_request_id
         FROM truck_stops ts
         JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
@@ -176,7 +179,7 @@ async function autoNotifyBeneficiary(userId) {
             }
           } else if (stop.status === 'missed') {
             title = 'Delivery Missed';
-            msg = `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;
+            msg = stop.staff_message || `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;
           } else {
             continue;
           }
@@ -271,7 +274,8 @@ async function autoNotifyDonor(userId) {
     // Sync food_donation_records status from completed/missed PICKUP truck stops
     try {
       const [pickupStops] = await db.execute(`
-        SELECT ts.id, ts.status, ts.reference_id AS donation_id
+        SELECT ts.id, ts.status, ts.staff_message, ts.reference_id AS donation_id,
+               fdr.user_id AS donor_id, fdr.donation_name
         FROM truck_stops ts
         JOIN food_donation_records fdr ON fdr.id = ts.reference_id
         WHERE fdr.user_id = ? AND ts.source = 'food_donation' AND ts.stop_type = 'PICKUP'
@@ -292,10 +296,16 @@ async function autoNotifyDonor(userId) {
               [stop.donation_id]
             );
           } else if (stop.status === 'missed') {
+            const donationLabel = stop.donation_name ? `"${stop.donation_name}"` : 'your food donation';
+            const missedMsg = stop.staff_message ||
+              `Unfortunately, the scheduled pickup for ${donationLabel} was missed. Please consider donating again or choosing another schedule through the app.`;
+            // Update record status and stamp notified_status together so the generic
+            // 'cancelled' notification loop does not fire a second time for this event.
             await db.execute(
-              "UPDATE food_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
+              "UPDATE food_donation_records SET status = 'cancelled', notified_status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
               [stop.donation_id]
             );
+            await createNotification(stop.donor_id, 'food', 'Pickup Missed', missedMsg, true);
           }
         } catch (e) {
           console.error('[autoNotifyDonor pickup sync] stop', stop.id, e.message);

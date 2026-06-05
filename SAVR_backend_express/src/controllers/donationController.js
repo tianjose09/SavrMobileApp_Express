@@ -1190,6 +1190,33 @@ exports.updateRequestStatus = async (req, res) => {
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
 
+// Staff: mark a truck stop as missed and attach a message for the beneficiary/donor
+exports.markStopMissed = async (req, res) => {
+  const user = req.user;
+  if (user.role === 'beneficiary' || user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const { stopId } = req.params;
+  const { message } = req.body;
+
+  if (!message || !message.trim()) {
+    return res.status(422).json({ success: false, message: 'A message is required when marking a stop as missed.' });
+  }
+
+  const [rows] = await db.execute('SELECT * FROM truck_stops WHERE id = ?', [stopId]);
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Stop not found.' });
+  }
+
+  await db.execute(
+    "UPDATE truck_stops SET status = 'missed', staff_message = ?, updated_at = NOW() WHERE id = ?",
+    [message.trim(), stopId]
+  );
+
+  return res.json({ success: true, message: 'Stop marked as missed.' });
+};
+
 exports.completeBeneficiaryRequest = async (req, res) => {
   const { id } = req.params;
   const { received_items, received_qty, remarks } = req.body;
