@@ -1179,12 +1179,15 @@ exports.updateRequestStatus = async (req, res) => {
   };
   const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed', 'Cancelled'];
   try {
-    await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
-    // Stamp notified_status so the auto-notify check won't create a duplicate
-    await db.execute(
-      'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ?',
-      [status, req.params.id]
+    // Stamp notified_status atomically first. If affectedRows = 0 the notification
+    // was already sent (race condition with autoNotifyBeneficiary), so skip it.
+    const [claimResult] = await db.execute(
+      'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ? AND (notified_status IS NULL OR notified_status != ?)',
+      [status, req.params.id, status]
     );
+    if (claimResult.affectedRows > 0) {
+      await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
+    }
   } catch (notifyErr) {
     console.error('[updateRequestStatus notify]', notifyErr.message);
   }
