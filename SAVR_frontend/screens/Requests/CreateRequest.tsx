@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
 
   formCard: { backgroundColor: '#00592d', borderRadius: 24, padding: 22, paddingBottom: 22, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15, elevation: 10 },
   inputLabel: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginBottom: 8, marginLeft: 2 },
-  inputBox: { height: 42, borderWidth: 1, borderColor: '#71A987', borderRadius: 6, backgroundColor: 'transparent', paddingHorizontal: 12, color: '#FFFFFF', fontSize: 13, marginBottom: 18 },
+  inputBox: { height: 42, borderWidth: 1, borderColor: '#71A987', borderRadius: 6, backgroundColor: 'transparent', paddingHorizontal: 12, color: '#FFFFFF', fontSize: 13, marginBottom: 18, textAlign: 'left' },
   rowInputs: { flexDirection: 'row', justifyContent: 'space-between' },
   rowInputsNoMargin: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
 
