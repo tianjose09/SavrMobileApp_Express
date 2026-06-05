@@ -259,7 +259,17 @@ async function autoNotifyBeneficiary(userId) {
             }
           } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
             title = 'Delivery Missed';
-            msg = stop.staff_message || `Unfortunately, the delivery for your request "${name}" was missed. Our team will be in touch to reschedule.`;
+            msg = stop.staff_message ||
+`Dear Beneficiary,
+
+We sincerely apologize for not being able to meet the scheduled delivery date for your request "${name}". If possible, we kindly ask you to reschedule your preferred date and time.
+
+How to reschedule:
+1. Log in to your account
+2. Click Create Request
+3. Fill up to make another new request
+
+Thank you for your understanding and cooperation.`;
           } else {
             continue;
           }
