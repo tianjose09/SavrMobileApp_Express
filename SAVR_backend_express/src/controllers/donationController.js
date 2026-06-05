@@ -1118,7 +1118,7 @@ exports.updateRequestStatus = async (req, res) => {
   }
 
   const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed', 'Cancelled'];
-  const { delivery_date_time, dispatched_quantity, dispatched_items } = req.body;
+  const { delivery_date_time, dispatched_quantity, dispatched_items, request_date, submitted_date } = req.body;
   // Normalize to Title Case so 'approved', 'APPROVED', 'Approved' all work
   const rawStatus = req.body.status || '';
   const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
@@ -1132,14 +1132,27 @@ exports.updateRequestStatus = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Request not found.' });
   }
 
-  // If approving / accepting / allocating, optionally save delivery_date_time and dispatched info
+  // Build update query — always update status; optionally update dates and dispatched info
+  let query = 'UPDATE beneficiary_requests SET status = ?, updated_at = NOW()';
+  const params = [status];
+
+  // Date Needed (request_date)
+  if (request_date !== undefined) {
+    query += ', request_date = ?';
+    params.push(request_date ? new Date(request_date) : null);
+  }
+
+  // Date Submitted (created_at) — staff can correct the submission timestamp
+  if (submitted_date !== undefined) {
+    query += ', created_at = ?';
+    params.push(submitted_date ? new Date(submitted_date) : null);
+  }
+
+  // Approval-specific fields
   const approvalStatuses = ['Approved', 'Accepted', 'Allocated'];
   if (approvalStatuses.includes(status)) {
     const dispQty = dispatched_quantity !== undefined ? (dispatched_quantity !== null ? parseFloat(dispatched_quantity) : null) : undefined;
     const dispItems = dispatched_items !== undefined ? (dispatched_items !== null ? (typeof dispatched_items === 'string' ? dispatched_items : JSON.stringify(dispatched_items)) : null) : undefined;
-
-    let query = 'UPDATE beneficiary_requests SET status = ?, updated_at = NOW()';
-    const params = [status];
 
     if (delivery_date_time !== undefined) {
       query += ', delivery_date_time = ?';
@@ -1153,14 +1166,12 @@ exports.updateRequestStatus = async (req, res) => {
       query += ', dispatched_items = ?';
       params.push(dispItems);
     }
-
-    query += ' WHERE id = ?';
-    params.push(req.params.id);
-
-    await db.execute(query, params);
-  } else {
-    await db.execute('UPDATE beneficiary_requests SET status = ?, updated_at = NOW() WHERE id = ?', [status, req.params.id]);
   }
+
+  query += ' WHERE id = ?';
+  params.push(req.params.id);
+
+  await db.execute(query, params);
 
   const [updated] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
 
