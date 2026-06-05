@@ -1215,6 +1215,74 @@ exports.updateRequestStatus = async (req, res) => {
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
 
+// Staff: list all beneficiary requests with full details including banking fields
+exports.getAllBeneficiaryRequests = async (req, res) => {
+  if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const [requests] = await db.execute(
+    `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
+            population, age_min, age_max, street, barangay, city, zip_code,
+            request_date, urgency, food_items, status, created_at, updated_at,
+            bank_name, account_name, account_number,
+            received_items, dispatched_quantity, dispatched_items, notified_status
+     FROM beneficiary_requests
+     ORDER BY created_at DESC`
+  );
+
+  const mapped = requests.map(r => {
+    let foodItems = [];
+    try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+
+    return {
+      ...r,
+      food_items: foodItems,
+      receiving_method: r.bank_name || null,
+      account_name:     r.account_name || null,
+      account_number:   r.account_number || null,
+    };
+  });
+
+  return res.json({ success: true, requests: mapped });
+};
+
+// Staff: get a single beneficiary request by ID with full details
+exports.getBeneficiaryRequestById = async (req, res) => {
+  if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const [rows] = await db.execute(
+    `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
+            population, age_min, age_max, street, barangay, city, zip_code,
+            request_date, urgency, food_items, status, created_at, updated_at,
+            bank_name, account_name, account_number,
+            received_items, dispatched_quantity, dispatched_items, notified_status
+     FROM beneficiary_requests WHERE id = ?`,
+    [req.params.id]
+  );
+
+  if (!rows.length) {
+    return res.status(404).json({ success: false, message: 'Request not found.' });
+  }
+
+  const r = rows[0];
+  let foodItems = [];
+  try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+
+  return res.json({
+    success: true,
+    request: {
+      ...r,
+      food_items: foodItems,
+      receiving_method: r.bank_name || null,
+      account_name:     r.account_name || null,
+      account_number:   r.account_number || null,
+    },
+  });
+};
+
 // Staff: mark a truck stop as missed and attach a message for the beneficiary/donor
 exports.markStopMissed = async (req, res) => {
   const user = req.user;
