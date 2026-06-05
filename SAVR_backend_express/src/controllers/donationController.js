@@ -999,7 +999,9 @@ exports.getBeneficiaryRequests = async (req, res) => {
       age_range_min: r.age_min ?? null,
       age_range_max: r.age_max ?? null,
       drive_id: pendingBatch?.drive_id || null,
-      drive_start_date: r.request_date ? new Date(r.request_date).toISOString().split('T')[0] : null,
+      drive_start_date: r.request_date
+        ? new Date(r.request_date).toISOString().split('T')[0]
+        : (r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : null),
       drive_end_date: (deliveryBatches[0]?.drive_end_date) || null,
       food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
       quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
