@@ -49,6 +49,9 @@ db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_na
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS account_number VARCHAR(255) DEFAULT NULL`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS notified_statuses_json JSONB DEFAULT '[]'`)
+  .catch(() => {});
+
 db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 
@@ -76,7 +79,7 @@ exports.createNotification = createNotification;
 async function autoNotifyBeneficiary(userId) {
   try {
     const [requests] = await db.execute(
-      'SELECT id, user_id, status, notified_status, request_name FROM beneficiary_requests WHERE user_id = ?',
+      'SELECT id, user_id, status, notified_status, notified_statuses_json, request_name FROM beneficiary_requests WHERE user_id = ?',
       [userId]
     );
 
@@ -107,10 +110,18 @@ async function autoNotifyBeneficiary(userId) {
         const s = (r.status || '').toLowerCase().trim();
         if (!notableStatuses.includes(s)) continue;
 
-        // Atomically claim the notification slot — only the first concurrent caller wins
+        // Skip if this exact status was already notified before (even if status bounced away and back)
+        let prevNotified = [];
+        try { prevNotified = typeof r.notified_statuses_json === 'string' ? JSON.parse(r.notified_statuses_json) : (r.notified_statuses_json || []); } catch {}
+        if (prevNotified.includes(r.status)) continue;
+
+        // Atomically claim — append to history array and update last-notified stamp
         const [result] = await db.execute(
-          'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ? AND (notified_status IS NULL OR notified_status != ?)',
-          [r.status, r.id, r.status]
+          `UPDATE beneficiary_requests
+           SET notified_status = ?,
+               notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || ?::jsonb
+           WHERE id = ? AND NOT (COALESCE(notified_statuses_json, '[]'::jsonb) @> ?::jsonb)`,
+          [r.status, JSON.stringify([r.status]), r.id, JSON.stringify([r.status])]
         );
         if (result.affectedRows === 0) continue;
 

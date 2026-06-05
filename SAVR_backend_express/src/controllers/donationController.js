@@ -1200,11 +1200,15 @@ exports.updateRequestStatus = async (req, res) => {
   };
   const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed', 'Cancelled'];
   try {
-    // Stamp notified_status atomically first. If affectedRows = 0 the notification
-    // was already sent (race condition with autoNotifyBeneficiary), so skip it.
+    // Only notify if this exact status was never notified before for this request.
+    // Uses a JSONB history array so status-bouncing (Rejected→Denied→Rejected)
+    // does not generate duplicate notifications.
     const [claimResult] = await db.execute(
-      'UPDATE beneficiary_requests SET notified_status = ? WHERE id = ? AND (notified_status IS NULL OR notified_status != ?)',
-      [status, req.params.id, status]
+      `UPDATE beneficiary_requests
+       SET notified_status = ?,
+           notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || ?::jsonb
+       WHERE id = ? AND NOT (COALESCE(notified_statuses_json, '[]'::jsonb) @> ?::jsonb)`,
+      [status, JSON.stringify([status]), req.params.id, JSON.stringify([status])]
     );
     if (claimResult.affectedRows > 0) {
       await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
