@@ -357,10 +357,39 @@ export default function TrackMyRequest({ route, navigation }: any) {
             </View>
           )}
 
-          {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${req.amount}` : null)}
+          {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${parseFloat(req.amount).toLocaleString()}` : null)}
           {!isFood && (req.receiving_method) && renderSummaryRow('Receiving Method', req.receiving_method)}
           {!isFood && req.account_name && renderSummaryRow('Account Name', req.account_name)}
           {!isFood && req.account_number && renderSummaryRow('Account No.', req.account_number)}
+
+          {/* Financial disbursements — shows each partial payment sent by staff */}
+          {!isFood && (() => {
+            const disbursements: any[] = Array.isArray(req.dispatched_items) ? req.dispatched_items : [];
+            const totalSent: number = parseFloat(req.dispatched_quantity || '0');
+            if (totalSent <= 0 && disbursements.length === 0) return null;
+            return (
+              <View style={styles.reportTableRow}>
+                <Text style={styles.reportTableCellLabel}>Amount Sent</Text>
+                <View style={{ flex: 1.8 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: disbursements.length > 0 ? 8 : 0 }}>
+                    <View style={styles.badgeReceived}>
+                      <Text style={styles.badgeReceivedText}>SENT: ₱{totalSent.toLocaleString()}</Text>
+                    </View>
+                    {req.amount && totalSent < parseFloat(req.amount) && (
+                      <View style={styles.badgeRequested}>
+                        <Text style={styles.badgeRequestedText}>REMAINING: ₱{(parseFloat(req.amount) - totalSent).toLocaleString()}</Text>
+                      </View>
+                    )}
+                  </View>
+                  {disbursements.map((d: any, i: number) => (
+                    <Text key={i} style={{ fontSize: 11, color: '#555', marginTop: 3 }}>
+                      ₱{parseFloat(d.amount || '0').toLocaleString()}{d.date ? '  ·  ' + new Date(d.date).toLocaleDateString('en-PH') : ''}{d.notes ? '  ·  ' + d.notes : ''}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            );
+          })()}
 
           {renderSummaryRow('Target Population', req.population)}
           {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years` : 'All Ages')}

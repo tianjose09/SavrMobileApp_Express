@@ -1220,6 +1220,58 @@ exports.updateRequestStatus = async (req, res) => {
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
 
+// Staff: record a financial disbursement (partial or full) for a financial request
+exports.recordDisbursement = async (req, res) => {
+  if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  const { id } = req.params;
+  const { amount, date, notes } = req.body;
+
+  if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    return res.status(422).json({ success: false, message: 'A valid amount is required.' });
+  }
+
+  const [rows] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [id]);
+  if (!rows.length) return res.status(404).json({ success: false, message: 'Request not found.' });
+
+  const request = rows[0];
+  if ((request.type || '').toLowerCase() !== 'financial') {
+    return res.status(422).json({ success: false, message: 'Disbursements only apply to financial requests.' });
+  }
+
+  const disbursedAmount = parseFloat(amount);
+  const newEntry = {
+    amount: disbursedAmount,
+    date: date || new Date().toISOString().split('T')[0],
+    notes: notes || null,
+  };
+
+  let existing = [];
+  try { existing = typeof request.dispatched_items === 'string' ? JSON.parse(request.dispatched_items) : (request.dispatched_items || []); } catch {}
+  // Keep only financial disbursement entries (arrays of {amount, date})
+  if (!Array.isArray(existing)) existing = [];
+  existing.push(newEntry);
+
+  const totalSent = (parseFloat(request.dispatched_quantity || '0')) + disbursedAmount;
+
+  await db.execute(
+    'UPDATE beneficiary_requests SET dispatched_items = ?, dispatched_quantity = ?, updated_at = NOW() WHERE id = ?',
+    [JSON.stringify(existing), totalSent, id]
+  );
+
+  const { createNotification } = require('./notificationController');
+  const requestedAmount = parseFloat(request.amount || '0');
+  const goalMet = totalSent >= requestedAmount;
+  const msg = goalMet
+    ? `Great news! The full amount of ₱${requestedAmount.toLocaleString()} for your request "${request.request_name}" has been sent.`
+    : `₱${disbursedAmount.toLocaleString()} has been sent for your request "${request.request_name}". Total sent so far: ₱${totalSent.toLocaleString()} of ₱${requestedAmount.toLocaleString()}.`;
+  await createNotification(request.user_id, 'service', goalMet ? 'Financial Request Fulfilled' : 'Partial Payment Sent', msg, true);
+
+  return res.json({ success: true, message: 'Disbursement recorded.', total_sent: totalSent, disbursements: existing });
+};
+
 // Staff: list all beneficiary requests with full details including banking fields
 exports.getAllBeneficiaryRequests = async (req, res) => {
   if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
