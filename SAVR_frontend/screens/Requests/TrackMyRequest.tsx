@@ -372,7 +372,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
               <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {}]}>
-                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start : ''}
+                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}
               </Text>
             </View>
           )}
@@ -417,7 +417,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <View style={styles.batchRow}>
               <View style={{ flex: 1 }}>
                 {allBatches.length === 1 && activeBatch.delivery_date && (
-                  <Text style={styles.batchDate}>{activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start : ''}</Text>
+                  <Text style={styles.batchDate}>{activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}</Text>
                 )}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

@@ -917,7 +917,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
   if (requestIds.length > 0) {
     const placeholders = requestIds.map(() => '?').join(',');
     [allStops] = await db.execute(`
-      SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start,
+      SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start, ts.time_slot_end,
              ts.food_name, ts.qty, ts.unit, ts.food_type,
              dd.id AS drive_id, dd.beneficiary_request_id
       FROM truck_stops ts
@@ -941,6 +941,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
         status: stop.status,
         date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
         time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
+        time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
         items: [],
       };
     }
@@ -973,6 +974,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       status: b.status,           // 'pending' | 'completed' | 'missed'
       delivery_date: b.date,
       delivery_time_start: b.time,
+      delivery_time_end: b.time_end,
       delivery_food_items: b.items,
     }));
 
