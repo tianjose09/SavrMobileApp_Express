@@ -365,9 +365,9 @@ async function autoNotifyDonor(userId) {
     try {
       const [pickupStops] = await db.execute(`
         SELECT ts.id, ts.status, ts.staff_message, ts.reference_id AS donation_id,
-               ts.missed_notified_at, fdr.user_id AS donor_id, fdr.donation_name
+               ts.missed_notified_at, fdr.user_id AS donor_id
         FROM truck_stops ts
-        JOIN food_donation_records fdr ON fdr.id = ts.reference_id
+        JOIN food_donation_records fdr ON fdr.id::text = ts.reference_id::text
         WHERE fdr.user_id = ? AND ts.source = 'food_donation' AND ts.stop_type = 'PICKUP'
           AND (
             (LOWER(ts.status) = 'completed' AND ts.notified_at IS NULL)
@@ -391,9 +391,17 @@ async function autoNotifyDonor(userId) {
               [stop.donation_id]
             );
           } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
-            const donationLabel = stop.donation_name ? `"${stop.donation_name}"` : 'your food donation';
             const missedMsg = stop.staff_message ||
-              `Unfortunately, the scheduled pickup for ${donationLabel} was missed. Please consider donating again or choosing another schedule through the app.`;
+`Dear Donor,
+
+We sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.
+
+How to reschedule:
+1. Log in to your account
+2. Click Donate on the Navigation Bar
+3. Under Upcoming Pickups, click Edit and update the date and time
+
+Thank you for your understanding and cooperation.`;
             // Update record status and stamp notified_status together so the generic
             // 'cancelled' notification loop does not fire a second time for this event.
             await db.execute(
@@ -401,6 +409,10 @@ async function autoNotifyDonor(userId) {
               [stop.donation_id]
             );
             await createNotification(stop.donor_id, 'food', 'Pickup Missed', missedMsg, true);
+            await db.execute(
+              "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'food', 'Pickup Missed', ?, 'truckicon', NOW(), NOW())",
+              [stop.donor_id, missedMsg]
+            );
           }
         } catch (e) {
           console.error('[autoNotifyDonor pickup sync] stop', stop.id, e.message);

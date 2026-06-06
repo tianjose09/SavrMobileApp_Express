@@ -171,7 +171,14 @@ export default function Activities({ navigation }: any) {
             </View>
 
             <Text style={styles.desc}>
-              {item.description || 'No description available.'}
+              {(() => {
+                const isMissedPickup = item.title?.toLowerCase().includes('missed pickup');
+                const fallbackMsg = `Dear Donor,\n\nWe sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.\n\nHow to reschedule:\n1. Log in to your account\n2. Click Donate on the Navigation Bar\n3. Under Upcoming Pickups, click Edit and update the date and time\n\nThank you for your understanding and cooperation.`;
+                if (isMissedPickup && (!item.description || item.description.trim() === '')) {
+                  return fallbackMsg;
+                }
+                return item.description || 'No description available.';
+              })()}
             </Text>
 
             <View style={styles.bottomMetaRow}>

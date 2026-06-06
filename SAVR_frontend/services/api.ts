@@ -47,7 +47,14 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.code === 'ECONNABORTED') {
+    if (error?.response?.status === 401) {
+      error.silent = true;
+      // Suppress 401 console errors for background/polling GET requests 
+      // by resolving gracefully instead of rejecting.
+      if (error.config?.method === 'get') {
+        return Promise.resolve({ data: { success: false, message: 'Unauthorized (silent)' } });
+      }
+    } else if (error.code === 'ECONNABORTED') {
       error.message = 'Request timed out. Please check your connection and try again.';
     } else if (!error.response) {
       error.message = 'Cannot reach the server. Please check if the backend is running.';
