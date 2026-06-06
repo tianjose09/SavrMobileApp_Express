@@ -830,16 +830,21 @@ exports.getActivities = async (req, res) => {
 
   return res.json({
     success: true,
-    activities: activities.map(a => ({
-      id: a.id,
-      type: a.type,
-      title: a.title,
-      description: a.description,
-      icon: a.icon,
-      status: ACTIVITY_STATUS[a.type] || 'Updated',
-      date: dayjs(a.created_at).format('MM/DD/YYYY'),
-      time_ago: dayjs(a.created_at).fromNow(),
-    })),
+    activities: activities.map(a => {
+      const titleLower = (a.title || '').toLowerCase();
+      let status = ACTIVITY_STATUS[a.type] || 'Updated';
+      if (titleLower.includes('missed')) status = 'Missed';
+      return {
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        description: a.description,
+        icon: a.icon,
+        status,
+        date: dayjs(a.created_at).format('MM/DD/YYYY'),
+        time_ago: dayjs(a.created_at).fromNow(),
+      };
+    }),
   });
 };
 

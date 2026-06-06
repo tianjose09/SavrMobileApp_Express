@@ -60,7 +60,13 @@ export default function AllUpcomingPickups({ navigation }: any) {
   const getStatusColor = (status: string) => {
     if (status === 'scheduled') return '#00592d';
     if (status === 'pending') return '#D17C31';
+    if (status === 'missed') return '#C62828';
     return '#888';
+  };
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'missed') return 'Missed';
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   return (
@@ -100,7 +106,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pickup.status) + '20' }]}>
                       <View style={[styles.statusDot, { backgroundColor: getStatusColor(pickup.status) }]} />
                       <Text style={[styles.statusText, { color: getStatusColor(pickup.status) }]}>
-                        {pickup.status.charAt(0).toUpperCase() + pickup.status.slice(1)}
+                        {getStatusLabel(pickup.status)}
                       </Text>
                     </View>
                   </View>

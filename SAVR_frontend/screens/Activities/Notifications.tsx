@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -43,12 +44,22 @@ export default function Notifications({ navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      fetchNotifications(true);
+      const interval = setInterval(() => fetchNotifications(false), 5000);
+      return () => clearInterval(interval);
     }, [])
   );
 
-  const fetchNotifications = async () => {
-    setIsLoading(true);
+  // Poll immediately when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') fetchNotifications(false);
+    });
+    return () => sub.remove();
+  }, []);
+
+  const fetchNotifications = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const res = await ApiService.getNotifications();
       if (res?.data?.success) {
@@ -57,7 +68,7 @@ export default function Notifications({ navigation }: any) {
     } catch (e) {
       console.error('Notifications fetch error', e);
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -66,7 +77,7 @@ export default function Notifications({ navigation }: any) {
     try {
       await ApiService.deleteNotification(id);
     } catch {
-      fetchNotifications();
+      fetchNotifications(false);
     }
   };
 
@@ -75,7 +86,7 @@ export default function Notifications({ navigation }: any) {
     try {
       await ApiService.deleteAllNotifications();
     } catch {
-      fetchNotifications();
+      fetchNotifications(false);
     }
   };
 

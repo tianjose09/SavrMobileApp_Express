@@ -118,7 +118,8 @@ export default function Activities({ navigation }: any) {
     if (
       lower.includes('cancelled') ||
       lower.includes('rejected') ||
-      lower.includes('failed')
+      lower.includes('failed') ||
+      lower.includes('missed')
     ) {
       return {
         bg: '#FDECEC',

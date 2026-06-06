@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { TouchableOpacity, View, Text, StyleSheet, AppState } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../services/api';
@@ -13,14 +13,33 @@ interface Props {
 
 export default function NotificationBell({ navigation, color = '#4A4A4A', size = 26, style }: Props) {
   const [count, setCount] = useState(0);
+  const isFocused = useRef(false);
+
+  const fetchCritical = useCallback(() => {
+    ApiService.getCriticalNotifications()
+      .then(res => setCount(res?.data?.notifications?.length || 0))
+      .catch(() => {});
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      ApiService.getCriticalNotifications()
-        .then(res => setCount(res?.data?.notifications?.length || 0))
-        .catch(() => {});
-    }, [])
+      isFocused.current = true;
+      fetchCritical();
+      const interval = setInterval(fetchCritical, 5000);
+      return () => {
+        isFocused.current = false;
+        clearInterval(interval);
+      };
+    }, [fetchCritical])
   );
+
+  // Poll immediately when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active' && isFocused.current) fetchCritical();
+    });
+    return () => sub.remove();
+  }, [fetchCritical]);
 
   return (
     <TouchableOpacity
