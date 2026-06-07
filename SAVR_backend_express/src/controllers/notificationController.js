@@ -352,23 +352,26 @@ async function autoNotifyDonor(userId) {
         console.error('[autoNotifyDonor service] item', r.id, e.message);
       }
     }
-    // Sync food_donation_records status from completed/missed PICKUP truck stops
+    // Sync food_donation_records status from pending/completed/missed PICKUP truck stops
     try {
       const [pickupStops] = await db.execute(`
         SELECT ts.id, ts.status, ts.staff_message, ts.reference_id AS donation_id,
-               ts.missed_notified_at, fdr.user_id AS donor_id
+               ts.missed_notified_at, ts.date, ts.time_slot_start,
+               fdr.user_id AS donor_id
         FROM truck_stops ts
         JOIN food_donation_records fdr ON fdr.id::text = ts.reference_id::text
         WHERE fdr.user_id = ? AND ts.source = 'food_donation' AND ts.stop_type = 'PICKUP'
           AND (
-            (LOWER(ts.status) = 'completed' AND ts.notified_at IS NULL)
-            OR (LOWER(ts.status) = 'missed' AND ts.missed_notified_at IS NULL)
+            (LOWER(ts.status) = 'pending'   AND ts.notified_at IS NULL)
+            OR (LOWER(ts.status) = 'completed' AND ts.notified_at IS NULL)
+            OR (LOWER(ts.status) = 'missed'    AND ts.missed_notified_at IS NULL)
           )
       `, [userId]);
 
       for (const stop of pickupStops) {
         try {
-          const isDonorMissed = (stop.status || '').toLowerCase() === 'missed';
+          const statusLower = (stop.status || '').toLowerCase();
+          const isDonorMissed = statusLower === 'missed';
           const donorClaimQuery = isDonorMissed
             ? 'UPDATE truck_stops SET missed_notified_at = NOW() WHERE id = ? AND LOWER(status) = ? AND missed_notified_at IS NULL'
             : 'UPDATE truck_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL';
@@ -376,12 +379,23 @@ async function autoNotifyDonor(userId) {
           const [res] = await db.execute(donorClaimQuery, donorClaimParams);
           if (res.affectedRows === 0) continue;
 
-          if ((stop.status || '').toLowerCase() === 'completed') {
+          if (statusLower === 'pending') {
+            const dateStr = stop.date
+              ? new Date(stop.date).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+              : 'soon';
+            const timeStr = stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : '';
+            const timeLabel = timeStr ? ` at ${timeStr}` : '';
+            await createNotification(
+              stop.donor_id, 'food', 'Pickup Incoming!',
+              `Great news! Our team is scheduled to pick up your food donation on ${dateStr}${timeLabel}. Please make sure it is ready for collection. Thank you for your generosity!`,
+              true
+            );
+          } else if (statusLower === 'completed') {
             await db.execute(
               "UPDATE food_donation_records SET status = 'received', updated_at = NOW() WHERE id = ? AND status NOT IN ('received','completed','rejected','cancelled')",
               [stop.donation_id]
             );
-          } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
+          } else if (['missed', 'notified'].includes(statusLower)) {
             const missedMsg = stop.staff_message ||
 `Dear Donor,
 
