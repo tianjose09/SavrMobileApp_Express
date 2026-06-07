@@ -113,7 +113,7 @@ db.execute(`
       ) THEN
         DELETE FROM beneficiary_requests
           WHERE id = OLD.beneficiary_request_id
-            AND LOWER(status) NOT IN ('completed','cancelled','deleted');
+            AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied');
       END IF;
     ELSIF OLD.drive_name IS NOT NULL THEN
       -- Fallback: name match — only safe when exactly one request carries that name
@@ -126,7 +126,9 @@ db.execute(`
         IF (SELECT COUNT(*) FROM beneficiary_requests
               WHERE request_name = OLD.drive_name
                 AND LOWER(status) NOT IN ('completed','cancelled','deleted')) = 1 THEN
-          DELETE FROM beneficiary_requests WHERE id = v_request_id;
+          DELETE FROM beneficiary_requests
+            WHERE id = v_request_id
+              AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied');
         END IF;
       END IF;
     END IF;
