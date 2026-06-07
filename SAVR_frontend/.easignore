@@ -1,0 +1,9 @@
+node_modules/
+.git/
+*.log
+expo.log
+expo_startup.log
+tunnel.log
+qr_code.png
+README.md
+update_icons.js
