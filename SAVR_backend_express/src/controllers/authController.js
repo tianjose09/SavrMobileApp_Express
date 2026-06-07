@@ -160,8 +160,8 @@ db.execute(`
           TRUE, NOW());
       ELSIF v_status IN ('rejected', 'denied', 'deny', 'reject', 'declined', 'disapproved', 'refused') OR v_status LIKE '%reject%' OR v_status LIKE '%den%' OR v_status LIKE '%declin%' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'service', 'Request Denied',
-          'We regret to inform you that your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been denied. Please contact our team if you have any questions.',
+        VALUES (NEW.user_id, 'service', 'Request Rejected',
+          'We regret to inform you that your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been rejected. Please contact our team if you have any questions.',
           TRUE, NOW());
       ELSIF v_status = 'allocated' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
