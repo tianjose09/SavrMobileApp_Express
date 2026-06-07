@@ -1252,38 +1252,6 @@ exports.updateRequestStatus = async (req, res) => {
 
   const [updated] = await db.execute('SELECT * FROM beneficiary_requests WHERE id = ?', [req.params.id]);
 
-  // Notify the beneficiary (not the admin) about their request status change
-  const beneficiaryUserId = rows[0].user_id;
-  const statusMessages = {
-    Pending:   'Your request is being reviewed by our team.',
-    Allocated: 'Great news! Your request has been allocated and will be processed soon.',
-    Urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
-    Approved:  'Your request has been approved! We will be in touch with the next steps.',
-    Accepted:  'Your request has been accepted and is now being prepared for fulfillment.',
-    Rejected:  'We regret to inform you that your request has been rejected. Please contact us for more details.',
-    Denied:    'Your request has been denied. Please contact our team if you have any questions.',
-    Completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
-    Cancelled: 'Your request has been cancelled by our team. Please contact us if you have any questions.',
-  };
-  const criticalStatuses = ['Allocated', 'Urgent', 'Approved', 'Accepted', 'Rejected', 'Denied', 'Completed', 'Cancelled'];
-  try {
-    // Only notify if this exact status was never notified before for this request.
-    // Uses a JSONB history array so status-bouncing (Rejected→Denied→Rejected)
-    // does not generate duplicate notifications.
-    const [claimResult] = await db.execute(
-      `UPDATE beneficiary_requests
-       SET notified_status = ?,
-           notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || ?::jsonb
-       WHERE id = ? AND NOT (COALESCE(notified_statuses_json, '[]'::jsonb) @> ?::jsonb)`,
-      [status, JSON.stringify([status]), req.params.id, JSON.stringify([status])]
-    );
-    if (claimResult.affectedRows > 0) {
-      await createNotification(beneficiaryUserId, 'service', `Request ${status}`, statusMessages[status] || `Your request status has been updated to "${status}".`, criticalStatuses.includes(status));
-    }
-  } catch (notifyErr) {
-    console.error('[updateRequestStatus notify]', notifyErr.message);
-  }
-
   return res.json({ success: true, message: `Request status updated to "${status}".`, request: updated[0] });
 };
 
