@@ -913,39 +913,11 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
 exports.getBeneficiaryRequests = async (req, res) => {
   const [requests] = await db.execute(
-    "SELECT * FROM beneficiary_requests WHERE user_id = ? AND status != 'Deleted' ORDER BY created_at DESC",
+    'SELECT * FROM beneficiary_requests WHERE user_id = ? ORDER BY created_at DESC',
     [req.user.id]
   );
 
-  // If a request was in an active state but its donation drive was deleted,
-  // mark it as Deleted and notify the beneficiary so the card disappears.
-  const activeStatuses = ['approved','accepted','allocated','urgent'];
-  for (const r of requests) {
-    if (!activeStatuses.includes((r.status || '').toLowerCase())) continue;
-    const [driveRows] = await db.execute(
-      `SELECT 1 FROM donation_drives
-       WHERE beneficiary_request_id = ?
-          OR (drive_name = ? AND beneficiary_request_id IS NULL)
-       LIMIT 1`,
-      [r.id, r.request_name]
-    );
-    if (driveRows.length === 0) {
-      const [claim] = await db.execute(
-        `UPDATE beneficiary_requests SET status = 'Deleted', updated_at = NOW()
-         WHERE id = ? AND LOWER(status) = ANY(ARRAY[${activeStatuses.map(() => '?').join(',')}])`,
-        [r.id, ...activeStatuses]
-      );
-      if (claim.affectedRows > 0) {
-        await createNotification(r.user_id, 'service', 'Request Removed',
-          `Your request "${r.request_name || 'Unnamed'}" has been removed by our team. Please contact us if you have any questions.`,
-          true
-        );
-        r.status = 'Deleted';
-      }
-    }
-  }
-
-  const requestIds = requests.filter(r => r.status !== 'Deleted').map(r => r.id);
+  const requestIds = requests.map(r => r.id);
 
   // Bulk-fetch financial disbursements from donation_deliveries
   const disbursementsByRequest = {};
@@ -1028,7 +1000,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
     batchesByRequest[rid].push(batch);
   }
 
-  const mapped = requests.filter(r => r.status !== 'Deleted').map(r => {
+  const mapped = requests.map(r => {
     let foodItems = [];
     try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
     let receivedItems = [];

@@ -64,20 +64,16 @@ db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS notified_s
 // Delivery date/time set by staff when approving a request
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS delivery_date_time TIMESTAMP DEFAULT NULL`).catch(() => {});
 
-// Trigger: intercept admin DELETE on beneficiary_requests → convert to Deleted + notify
+// Trigger: intercept admin DELETE on beneficiary_requests → convert to Rejected so the
+// card stays visible in the beneficiary's Cancelled tab instead of vanishing.
+// Notification is handled by notify_beneficiary_request_status firing on the UPDATE.
 db.execute(`
   CREATE OR REPLACE FUNCTION prevent_beneficiary_request_delete()
   RETURNS TRIGGER AS $$
   BEGIN
     UPDATE beneficiary_requests
-      SET status = 'Deleted', updated_at = NOW()
+      SET status = 'Rejected', updated_at = NOW()
       WHERE id = OLD.id;
-    INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-    VALUES (
-      OLD.user_id, 'service', 'Request Removed',
-      'Your request "' || COALESCE(OLD.request_name, 'Unnamed') || '" has been removed by our team. Please contact us if you have any questions.',
-      TRUE, NOW()
-    );
     RETURN NULL;
   END;
   $$ LANGUAGE plpgsql;
@@ -88,63 +84,10 @@ db.execute(`
     CREATE TRIGGER trg_prevent_request_delete
       BEFORE DELETE ON beneficiary_requests
       FOR EACH ROW
-      WHEN (OLD.status NOT IN ('Cancelled', 'Deleted'))
+      WHEN (OLD.status IS DISTINCT FROM 'Cancelled')
       EXECUTE FUNCTION prevent_beneficiary_request_delete()
   `)
 ).catch(err => console.error('[request delete trigger]', err.message));
-
-// Trigger: when a donation_drive is deleted and no other drives remain for the linked
-// beneficiary_request, delete the request too. The trg_prevent_request_delete trigger
-// intercepts that delete, sets status='Deleted', and notifies the beneficiary.
-// Match strategy: use beneficiary_request_id (FK) when set — precise 1-to-1.
-// Fall back to drive_name = request_name only when FK is NULL, to avoid accidentally
-// deleting multiple requests that happen to share the same name.
-db.execute(`
-  CREATE OR REPLACE FUNCTION on_donation_drive_delete()
-  RETURNS TRIGGER AS $$
-  DECLARE
-    v_request_id INTEGER;
-  BEGIN
-    IF OLD.beneficiary_request_id IS NOT NULL THEN
-      -- Precise match via FK
-      IF NOT EXISTS (
-        SELECT 1 FROM donation_drives
-        WHERE beneficiary_request_id = OLD.beneficiary_request_id AND id != OLD.id
-      ) THEN
-        DELETE FROM beneficiary_requests
-          WHERE id = OLD.beneficiary_request_id
-            AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied');
-      END IF;
-    ELSIF OLD.drive_name IS NOT NULL THEN
-      -- Fallback: name match — only safe when exactly one request carries that name
-      SELECT id INTO v_request_id
-        FROM beneficiary_requests
-        WHERE request_name = OLD.drive_name
-          AND LOWER(status) NOT IN ('completed','cancelled','deleted')
-        LIMIT 1;
-      IF v_request_id IS NOT NULL THEN
-        IF (SELECT COUNT(*) FROM beneficiary_requests
-              WHERE request_name = OLD.drive_name
-                AND LOWER(status) NOT IN ('completed','cancelled','deleted')) = 1 THEN
-          DELETE FROM beneficiary_requests
-            WHERE id = v_request_id
-              AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied');
-        END IF;
-      END IF;
-    END IF;
-    RETURN OLD;
-  END;
-  $$ LANGUAGE plpgsql;
-`).then(() =>
-  db.execute(`DROP TRIGGER IF EXISTS trg_donation_drive_delete ON donation_drives`)
-).then(() =>
-  db.execute(`
-    CREATE TRIGGER trg_donation_drive_delete
-      AFTER DELETE ON donation_drives
-      FOR EACH ROW
-      EXECUTE FUNCTION on_donation_drive_delete()
-  `)
-).catch(err => console.error('[donation drive delete trigger]', err.message));
 
 // Trigger: notify beneficiary when admin changes request status
 db.execute(`
