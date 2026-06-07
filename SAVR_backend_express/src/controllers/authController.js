@@ -89,6 +89,69 @@ db.execute(`
   `)
 ).catch(err => console.error('[request delete trigger]', err.message));
 
+// Trigger: when a donation_drive is deleted, mark the linked beneficiary_request as
+// 'Deleted' (via UPDATE, not DELETE — so trg_prevent_request_delete doesn't interfere)
+// and notify the beneficiary. The card then disappears from the mobile list.
+db.execute(`
+  CREATE OR REPLACE FUNCTION on_donation_drive_delete()
+  RETURNS TRIGGER AS $$
+  DECLARE
+    v_request_id INTEGER;
+  BEGIN
+    IF OLD.beneficiary_request_id IS NOT NULL THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM donation_drives
+        WHERE beneficiary_request_id = OLD.beneficiary_request_id AND id != OLD.id
+      ) THEN
+        UPDATE beneficiary_requests
+          SET status = 'Deleted', updated_at = NOW()
+          WHERE id = OLD.beneficiary_request_id
+            AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied');
+        IF FOUND THEN
+          INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+          SELECT user_id, 'service', 'Request Removed',
+            'Your request "' || COALESCE(request_name, 'Unnamed') || '" has been removed by our team. Please contact us if you have any questions.',
+            TRUE, NOW()
+          FROM beneficiary_requests WHERE id = OLD.beneficiary_request_id;
+        END IF;
+      END IF;
+    ELSIF OLD.drive_name IS NOT NULL THEN
+      SELECT id INTO v_request_id
+        FROM beneficiary_requests
+        WHERE request_name = OLD.drive_name
+          AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied')
+        LIMIT 1;
+      IF v_request_id IS NOT NULL AND (
+        SELECT COUNT(*) FROM beneficiary_requests
+          WHERE request_name = OLD.drive_name
+            AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied')
+      ) = 1 THEN
+        UPDATE beneficiary_requests
+          SET status = 'Deleted', updated_at = NOW()
+          WHERE id = v_request_id;
+        IF FOUND THEN
+          INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
+          SELECT user_id, 'service', 'Request Removed',
+            'Your request "' || COALESCE(request_name, 'Unnamed') || '" has been removed by our team. Please contact us if you have any questions.',
+            TRUE, NOW()
+          FROM beneficiary_requests WHERE id = v_request_id;
+        END IF;
+      END IF;
+    END IF;
+    RETURN OLD;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`DROP TRIGGER IF EXISTS trg_donation_drive_delete ON donation_drives`)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_donation_drive_delete
+      AFTER DELETE ON donation_drives
+      FOR EACH ROW
+      EXECUTE FUNCTION on_donation_drive_delete()
+  `)
+).catch(err => console.error('[donation drive delete trigger]', err.message));
+
 // Trigger: notify beneficiary when admin changes request status
 db.execute(`
   CREATE OR REPLACE FUNCTION notify_beneficiary_request_status()

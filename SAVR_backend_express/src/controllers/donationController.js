@@ -913,7 +913,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
 exports.getBeneficiaryRequests = async (req, res) => {
   const [requests] = await db.execute(
-    'SELECT * FROM beneficiary_requests WHERE user_id = ? ORDER BY created_at DESC',
+    "SELECT * FROM beneficiary_requests WHERE user_id = ? AND status != 'Deleted' ORDER BY created_at DESC",
     [req.user.id]
   );
 
