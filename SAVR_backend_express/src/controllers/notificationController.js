@@ -89,25 +89,16 @@ async function autoNotifyBeneficiary(userId) {
       [userId]
     );
 
-    const notableStatuses = ['rejected', 'denied', 'cancelled', 'approved', 'accepted', 'allocated', 'urgent', 'completed'];
+    // Only handle statuses NOT covered by the DB trigger (notify_beneficiary_request_status).
+    // The trigger fires for approved/accepted/allocated/urgent/rejected/denied with the correct
+    // request name. Handling them here too causes duplicates (one with name, one without).
+    const notableStatuses = ['cancelled', 'completed'];
     const statusMessages = {
-      rejected:  'We regret to inform you that your request has been rejected. Please contact our team if you have any questions.',
-      denied:    'We regret to inform you that your request has been denied. Please contact our team if you have any questions.',
-      cancelled: 'Your request has been cancelled by our team. Please contact us if you have any questions.',
-      approved:  'Great news! Your request has been approved and is now being prepared for fulfillment.',
-      accepted:  'Great news! Your request has been accepted and is now being prepared for fulfillment.',
-      allocated: 'Your request has been allocated and will be processed soon. Thank you for your patience.',
-      urgent:    'Your request has been marked as urgent and will be prioritized immediately.',
-      completed: 'Your request has been completed and fulfilled. Thank you for reaching out to us!',
+      cancelled: 'Your request "[name]" has been cancelled by our team. Please contact us if you have any questions.',
+      completed: 'Your request "[name]" has been completed and fulfilled. Thank you for reaching out to us!',
     };
     const statusTitles = {
-      rejected:  'Request Rejected',
-      denied:    'Request Denied',
       cancelled: 'Request Cancelled',
-      approved:  'Request Approved',
-      accepted:  'Request Accepted',
-      allocated: 'Request Allocated',
-      urgent:    'Request Marked Urgent',
       completed: 'Request Completed',
     };
 
@@ -132,8 +123,8 @@ async function autoNotifyBeneficiary(userId) {
         if (result.affectedRows === 0) continue;
 
         const name = r.request_name || 'Unnamed';
-        const msg = (statusMessages[s] || `Your request status has been updated to "${r.status}".`)
-          .replace('your request', `your request "${name}"`);
+        const msg = (statusMessages[s] || `Your request "${name}" status has been updated to "${r.status}".`)
+          .replace('[name]', name);
         await createNotification(r.user_id, 'service', statusTitles[s] || `Request ${r.status}`, msg, true);
       } catch (e) {
         console.error('[autoNotifyBeneficiary] item', r.id, e.message);
