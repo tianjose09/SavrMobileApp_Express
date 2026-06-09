@@ -240,38 +240,36 @@ export default function Profile({ navigation }: any) {
           </View>
         </View>
 
-        {/* Dynamic Pills */}
+        {/* Dynamic Pills — only render a field when it has a value */}
 
         {isPartnerKitchen ? (
           <>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Kitchen Name</Text><Text style={styles.pillValue}>{profile?.kitchen_name || 'Not Specified'}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Person</Text><Text style={styles.pillValue}>{profile?.contact_person || 'Not Specified'}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile?.position_role || 'Not Specified'}</Text></View>
+            {!!profile?.kitchen_name && <View style={styles.pillBox}><Text style={styles.pillLabel}>Kitchen Name</Text><Text style={styles.pillValue}>{profile.kitchen_name}</Text></View>}
+            {!!profile?.contact_person && <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Person</Text><Text style={styles.pillValue}>{profile.contact_person}</Text></View>}
+            {!!profile?.position_role && <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile.position_role}</Text></View>}
             {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
-        ) : isDonor ? (
+        ) : isOrganization ? (
           <>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>First Name</Text><Text style={styles.pillValue}>{fName}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Last Name</Text><Text style={styles.pillValue}>{lName}</Text></View>
-            {!!mInit && <View style={styles.pillBox}><Text style={styles.pillLabel}>Middle Initial</Text><Text style={styles.pillValue}>{mInit}</Text></View>}
-            {!!suff && <View style={styles.pillBox}><Text style={styles.pillLabel}>Suffix</Text><Text style={styles.pillValue}>{suff}</Text></View>}
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Date of Birth</Text><Text style={styles.pillValue}>{dob}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Gender</Text><Text style={styles.pillValue}>{gender}</Text></View>
-            {!!houseNo && <View style={styles.pillBox}><Text style={styles.pillLabel}>House #</Text><Text style={styles.pillValue}>{houseNo}</Text></View>}
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Street</Text><Text style={styles.pillValue}>{street}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Brgy.</Text><Text style={styles.pillValue}>{brgy}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>Province / Region</Text><Text style={styles.pillValue}>{prov}</Text></View>
-            {!!zip && <View style={styles.pillBox}><Text style={styles.pillLabel}>Postal / ZIP Code</Text><Text style={styles.pillValue}>{zip}</Text></View>}
+            {!!profile?.name && <View style={styles.pillBox}><Text style={styles.pillLabel}>Organization Name</Text><Text style={styles.pillValue}>{profile.name}</Text></View>}
+            {!!city && city !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>}
+            {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
         ) : (
+          /* Donor and Beneficiary share the same personal info fields */
           <>
-            <View style={styles.pillBox}>
-              <Text style={styles.pillLabel}>Organization Name</Text>
-              <Text style={styles.pillValue}>{profile?.name}</Text>
-            </View>
-            <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>
-            {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
+            {!!fName && <View style={styles.pillBox}><Text style={styles.pillLabel}>First Name</Text><Text style={styles.pillValue}>{fName}</Text></View>}
+            {!!lName && <View style={styles.pillBox}><Text style={styles.pillLabel}>Last Name</Text><Text style={styles.pillValue}>{lName}</Text></View>}
+            {!!mInit && <View style={styles.pillBox}><Text style={styles.pillLabel}>Middle Initial</Text><Text style={styles.pillValue}>{mInit}</Text></View>}
+            {!!suff && <View style={styles.pillBox}><Text style={styles.pillLabel}>Suffix</Text><Text style={styles.pillValue}>{suff}</Text></View>}
+            {!!dob && dob !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Date of Birth</Text><Text style={styles.pillValue}>{dob}</Text></View>}
+            {!!gender && gender !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Gender</Text><Text style={styles.pillValue}>{gender}</Text></View>}
+            {!!houseNo && <View style={styles.pillBox}><Text style={styles.pillLabel}>House #</Text><Text style={styles.pillValue}>{houseNo}</Text></View>}
+            {!!street && street !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Street</Text><Text style={styles.pillValue}>{street}</Text></View>}
+            {!!brgy && brgy !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Brgy.</Text><Text style={styles.pillValue}>{brgy}</Text></View>}
+            {!!city && city !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>}
+            {!!prov && prov !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Province / Region</Text><Text style={styles.pillValue}>{prov}</Text></View>}
+            {!!zip && <View style={styles.pillBox}><Text style={styles.pillLabel}>Postal / ZIP Code</Text><Text style={styles.pillValue}>{zip}</Text></View>}
           </>
         )}
 
