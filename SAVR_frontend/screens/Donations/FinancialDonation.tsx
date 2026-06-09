@@ -168,7 +168,12 @@ export default function FinancialDonation({ navigation }: any) {
 
         {/* TOP BAR HEADER */}
         <View style={styles.topHeader}>
-          <Image source={require('../../assets/images/logo/logobrown.png')} style={styles.logoImage} resizeMode="contain" />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="chevron-back" size={28} color="#544434" />
+            </TouchableOpacity>
+            <Image source={require('../../assets/images/logo/logobrown.png')} style={styles.logoImage} resizeMode="contain" />
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
             <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>

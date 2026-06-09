@@ -192,11 +192,13 @@ export default function ServiceDonation({ navigation }: any) {
 
       {/* TOP BAR HEADER */}
       <View style={styles.topHeader}>
-        <Image
-          source={require('../../assets/images/logo/logobrown.png')}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.8}>
+          <Image
+            source={require('../../assets/images/logo/logobrown.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
           <TouchableOpacity
