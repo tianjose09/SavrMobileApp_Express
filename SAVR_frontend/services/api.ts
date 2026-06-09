@@ -79,7 +79,7 @@ export const ApiService = {
   getDashboard: () => api.get('api/dashboard'),
 
   // Email Verification
-  sendVerificationEmail: (data: any) => api.post('api/verify/send', data),
+  sendVerificationEmail: (data: any) => api.post('api/verify/send', data, { timeout: 30000 }),
   verifyCode: (data: any) => api.post('api/verify/code', data),
   resendCode: (data: any) => api.post('api/verify/resend', data),
 
