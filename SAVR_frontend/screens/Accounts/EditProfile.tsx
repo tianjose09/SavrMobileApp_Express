@@ -7,7 +7,13 @@ import { StorageUtils, StorageKeys } from '../../utils/storage';
 export default function EditProfile({ route, navigation }: any) {
   const profile = route.params?.profile || {};
 
+  const role = profile.role || 'donor';
+  const isPartnerKitchen = role === 'partner_kitchen';
+  const isOrgType = role === 'organization' ||
+    (role === 'beneficiary' && (profile.beneficiary_type === 'organization' || !!profile.organization_name));
+
   const [formData, setFormData] = useState({
+    // Individual fields
     first_name: profile.first_name || profile.name?.split(' ')[0] || '',
     last_name: profile.last_name || profile.name?.split(' ').slice(1).join(' ') || '',
     middle_initial: profile.middle_initial || '',
@@ -20,6 +26,14 @@ export default function EditProfile({ route, navigation }: any) {
     city_municipality: profile.city_municipality || '',
     province_region: profile.province_region || '',
     postal_zip_code: profile.postal_zip_code || '',
+    // Organization fields
+    organization_name: profile.organization_name || profile.name || '',
+    website_url: profile.website_url || '',
+    // Partner kitchen fields
+    kitchen_name: profile.kitchen_name || '',
+    contact_person: profile.contact_person || '',
+    position_role: profile.position_role || '',
+    // Shared
     contact_number: (profile.contact_number || '').replace(/^\+63/, ''),
   });
 
@@ -30,18 +44,30 @@ export default function EditProfile({ route, navigation }: any) {
   };
 
   const handleSave = async () => {
-    if (!formData.first_name || !formData.last_name) {
+    if (isPartnerKitchen && !formData.kitchen_name) {
+      Alert.alert('Error', 'Kitchen name is required.');
+      return;
+    }
+    if (isOrgType && !formData.organization_name) {
+      Alert.alert('Error', 'Organization name is required.');
+      return;
+    }
+    if (!isPartnerKitchen && !isOrgType && (!formData.first_name || !formData.last_name)) {
       Alert.alert('Error', 'First and Last name are required.');
       return;
     }
 
     setIsLoading(true);
     try {
-      // Reconstitute 'name' field combining parts for standard legacy backend
+      const displayName = isPartnerKitchen
+        ? formData.kitchen_name
+        : isOrgType
+          ? formData.organization_name
+          : `${formData.first_name} ${formData.last_name}`.trim();
+
       const payload = {
         ...formData,
-        name: `${formData.first_name} ${formData.last_name}`.trim(),
-        // Always store with +63 prefix
+        name: displayName,
         contact_number: formData.contact_number
           ? `+63${formData.contact_number.replace(/^\+63/, '').replace(/^0/, '')}`
           : '',
@@ -49,7 +75,7 @@ export default function EditProfile({ route, navigation }: any) {
 
       const response = await ApiService.updateProfile(payload);
       if (response.data.success) {
-        await StorageUtils.setItem(StorageKeys.DISPLAY_NAME, payload.name);
+        await StorageUtils.setItem(StorageKeys.DISPLAY_NAME, displayName);
         Alert.alert('Success', 'Profile updated successfully.');
         if (navigation.canGoBack()) navigation.goBack(); else navigation.navigate('HomeTabs', { screen: 'Home' });
       } else {
@@ -65,11 +91,23 @@ export default function EditProfile({ route, navigation }: any) {
     }
   };
 
+  const Field = ({ label, field, keyboardType = 'default', maxLength }: { label: string; field: string; keyboardType?: any; maxLength?: number }) => (
+    <View style={styles.pillBox}>
+      <Text style={styles.pillLabel}>{label}</Text>
+      <TextInput
+        style={styles.pillInput}
+        value={(formData as any)[field]}
+        onChangeText={(t) => handleChange(field, t)}
+        keyboardType={keyboardType}
+        maxLength={maxLength}
+      />
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
 
-        {/* Top Navigation Bar */}
         <View style={styles.topNav}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('HomeTabs', { screen: 'Home' })}>
             <Ionicons name="close" size={30} color="#1B5B39" />
@@ -86,118 +124,37 @@ export default function EditProfile({ route, navigation }: any) {
             <Text style={styles.sectionTitle}>Update Information</Text>
           </View>
 
-          {/* Dynamic Input Pills */}
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>First Name</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.first_name}
-              onChangeText={(t) => handleChange('first_name', t)}
-            />
-          </View>
+          {isPartnerKitchen ? (
+            <>
+              <Field label="Kitchen Name" field="kitchen_name" />
+              <Field label="Contact Person" field="contact_person" />
+              <Field label="Position / Role" field="position_role" />
+              <Field label="Website URL" field="website_url" keyboardType="url" />
+            </>
+          ) : isOrgType ? (
+            <>
+              <Field label="Organization Name" field="organization_name" />
+              <Field label="City / Municipality" field="city_municipality" />
+              <Field label="Website URL" field="website_url" keyboardType="url" />
+            </>
+          ) : (
+            <>
+              <Field label="First Name" field="first_name" />
+              <Field label="Last Name" field="last_name" />
+              <Field label="Middle Initial" field="middle_initial" maxLength={5} />
+              <Field label="Suffix" field="suffix" />
+              <Field label="Date of Birth (YYYY-MM-DD)" field="date_of_birth" />
+              <Field label="Gender" field="gender" />
+              <Field label="House #" field="house_no" keyboardType="number-pad" />
+              <Field label="Street" field="street" />
+              <Field label="Brgy." field="barangay" />
+              <Field label="City / Municipality" field="city_municipality" />
+              <Field label="Province / Region" field="province_region" />
+              <Field label="Postal / ZIP Code" field="postal_zip_code" keyboardType="number-pad" />
+            </>
+          )}
 
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Last Name</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.last_name}
-              onChangeText={(t) => handleChange('last_name', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Middle Initial</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.middle_initial}
-              onChangeText={(t) => handleChange('middle_initial', t)}
-              maxLength={5}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Suffix</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.suffix}
-              onChangeText={(t) => handleChange('suffix', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Date of Birth (YYYY-MM-DD)</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.date_of_birth}
-              onChangeText={(t) => handleChange('date_of_birth', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Gender</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.gender}
-              onChangeText={(t) => handleChange('gender', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>House #</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.house_no}
-              keyboardType="number-pad"
-              onChangeText={(t) => handleChange('house_no', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Street</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.street}
-              onChangeText={(t) => handleChange('street', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Brgy.</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.barangay}
-              onChangeText={(t) => handleChange('barangay', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>City / Municipality</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.city_municipality}
-              onChangeText={(t) => handleChange('city_municipality', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Province / Region</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.province_region}
-              onChangeText={(t) => handleChange('province_region', t)}
-            />
-          </View>
-
-          <View style={styles.pillBox}>
-            <Text style={styles.pillLabel}>Postal / ZIP Code</Text>
-            <TextInput
-              style={styles.pillInput}
-              value={formData.postal_zip_code}
-              keyboardType="number-pad"
-              onChangeText={(t) => handleChange('postal_zip_code', t)}
-            />
-          </View>
-
+          {/* Contact number — shared by all roles */}
           <View style={styles.pillBox}>
             <Text style={styles.pillLabel}>Contact Number</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -210,7 +167,6 @@ export default function EditProfile({ route, navigation }: any) {
                 placeholder="9XXXXXXXXX"
                 placeholderTextColor="#ccc"
                 onChangeText={(t) => {
-                  // Strip leading 0 or +63 if user pastes full number
                   const cleaned = t.replace(/^\+63/, '').replace(/^0/, '').replace(/[^0-9]/g, '');
                   handleChange('contact_number', cleaned);
                 }}
@@ -218,7 +174,6 @@ export default function EditProfile({ route, navigation }: any) {
             </View>
           </View>
 
-          {/* Removed bottom tab spacer */}
           <View style={{ height: 40 }} />
 
         </ScrollView>
@@ -244,8 +199,6 @@ const styles = StyleSheet.create({
 
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, marginTop: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '800', color: '#685D52', letterSpacing: -0.5 },
-  infoBadge: { backgroundColor: '#E4F1EB', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  infoBadgeText: { color: '#00592d', fontWeight: 'bold', fontSize: 11 },
 
   pillBox: {
     backgroundColor: '#FFF', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 12,
@@ -253,7 +206,5 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 3, elevation: 1
   },
   pillLabel: { fontSize: 11, fontWeight: '800', color: '#999', marginBottom: 6 },
-  pillInput: {
-    fontSize: 16, fontWeight: '700', color: '#00592d', padding: 0,
-  },
+  pillInput: { fontSize: 16, fontWeight: '700', color: '#00592d', padding: 0 },
 });
