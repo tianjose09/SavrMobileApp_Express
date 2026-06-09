@@ -35,8 +35,7 @@ app.use((err, _req, res, _next) => {
   }
 });
 
-// Railway injects PORT; fall back to APP_PORT for local dev, then 8000
-const PORT = process.env.PORT || process.env.APP_PORT || 8000;
+const PORT = process.env.APP_PORT || process.env.PORT || 8000;
 const HOST = process.env.APP_HOST || '::';
 app.listen(PORT, HOST, () => {
   console.log(`SAVR API running on http://localhost:${PORT}`);
