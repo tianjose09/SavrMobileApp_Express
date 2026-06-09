@@ -2,6 +2,9 @@ const db = require('../db');
 const dayjs = require('dayjs');
 const { createNotification } = require('./notificationController');
 
+db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal', category = 'Prep Meal' WHERE meal_type = 'Prepared Meals'")
+  .catch(err => console.error('[migration] meal_type fix failed:', err.message));
+
 exports.index = async (req, res) => {
   const [items] = await db.execute(
     "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) ORDER BY food_name"
