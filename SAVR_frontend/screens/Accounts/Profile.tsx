@@ -273,21 +273,23 @@ export default function Profile({ navigation }: any) {
           </>
         )}
 
-        <View style={styles.pillBox}>
-          <Text style={styles.pillLabel}>Email Address</Text>
-          <Text style={styles.pillValue}>{profile?.email}</Text>
-        </View>
+        {!!profile?.email && (
+          <View style={styles.pillBox}>
+            <Text style={styles.pillLabel}>Email Address</Text>
+            <Text style={styles.pillValue}>{profile.email}</Text>
+          </View>
+        )}
 
-        <View style={styles.pillBox}>
-          <Text style={styles.pillLabel}>Contact Number</Text>
-          <Text style={styles.pillValue}>
-            {profile?.contact_number
-              ? (profile.contact_number.startsWith('+63')
-                  ? profile.contact_number.replace(/\s/g, '')
-                  : `+63${profile.contact_number.replace(/^0/, '')}`)
-              : 'N/A'}
-          </Text>
-        </View>
+        {!!profile?.contact_number && (
+          <View style={styles.pillBox}>
+            <Text style={styles.pillLabel}>Contact Number</Text>
+            <Text style={styles.pillValue}>
+              {profile.contact_number.startsWith('+63')
+                ? profile.contact_number.replace(/\s/g, '')
+                : `+63${profile.contact_number.replace(/^0/, '')}`}
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity style={styles.deactivateWrapper} onPress={handleDeactivate}>
           <Text style={styles.deactivateText}>Deactivate My Account</Text>
