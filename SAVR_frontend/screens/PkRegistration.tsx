@@ -33,8 +33,8 @@ export default function PkRegistration({ navigation }: any) {
       return;
     }
 
-    if (formData.password.length < 12) {
-      Alert.alert('Error', 'Password must be at least 12 characters long.');
+    if (formData.password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long.');
       return;
     }
     if (formData.password !== formData.password_confirmation) {
