@@ -443,18 +443,10 @@ exports.paymentSuccess = async (req, res) => {
 
 exports.paymentCancel = async (req, res) => {
   if (req.query.donation_id) {
-    // Atomic claim — skip if already failed (expired payments also hit cancel URL)
-    const [claim] = await db.execute(
+    await db.execute(
       "UPDATE financial_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
       [req.query.donation_id]
     );
-    if (claim.affectedRows > 0) {
-      const [rows] = await db.execute('SELECT * FROM financial_donation_records WHERE id = ?', [req.query.donation_id]);
-      const donation = rows[0];
-      if (donation) {
-        await createNotification(donation.user_id, 'financial', 'Payment Cancelled', `Your financial donation of ₱${formatAmount(donation.amount)} was cancelled. You can try again anytime from the app.`, true);
-      }
-    }
   }
   return res.send(`<!DOCTYPE html>
 <html lang="en">
