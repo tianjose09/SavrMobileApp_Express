@@ -117,8 +117,9 @@ export default function ServiceDonation({ navigation }: any) {
     try {
       const timeString = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+      const serviceTypeLabel = activeTab === 'TRANSPORTATION' ? 'Transportation' : 'Volunteer Work';
       const payload: any = {
-        service_type: activeTab,
+        service_type: serviceTypeLabel,
         frequency: frequency || 'One-time',
         service_date: date.toISOString().split('T')[0],
         service_time: timeString,
