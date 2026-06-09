@@ -115,7 +115,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
     visible: boolean;
     requestName: string;
     requestStatus: string;
-    foodItems: { food_name: string; food_type: string; qty: number; unit: string }[];
+    foodItems: { food_name: string; food_type: string; qty: number; unit: string; name?: string; category?: string }[];
     deliveryFoodItems: { food_name: string; qty: number; unit: string; category: string }[];
     allBatches: any[];
   }>({ visible: false, requestName: '', requestStatus: '', foodItems: [], deliveryFoodItems: [], allBatches: [] });
