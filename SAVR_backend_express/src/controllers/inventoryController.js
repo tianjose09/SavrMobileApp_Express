@@ -2,8 +2,11 @@ const db = require('../db');
 const dayjs = require('dayjs');
 const { createNotification } = require('./notificationController');
 
-db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal', category = 'Prep Meal' WHERE meal_type = 'Prepared Meals'")
+// Ensure all prep meal rows use meal_type='Prep Meal' and category='Prepared Meals'
+db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal' WHERE meal_type = 'Prepared Meals'")
   .catch(err => console.error('[migration] meal_type fix failed:', err.message));
+db.execute("UPDATE food_inventory SET category = 'Prepared Meals' WHERE category = 'Prep Meal'")
+  .catch(err => console.error('[migration] category fix failed:', err.message));
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
