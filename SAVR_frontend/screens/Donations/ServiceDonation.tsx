@@ -117,26 +117,28 @@ export default function ServiceDonation({ navigation }: any) {
     try {
       const timeString = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Build payload matching backend schema expectations
-      const payload = {
-        service_type: activeTab,
-        quantity: activeTab === 'TRANSPORTATION' ? parseInt(quantity) || 1 : parseInt(headcount) || 1,
+      const serviceTypeLabel = activeTab === 'TRANSPORTATION' ? 'Transportation' : 'Volunteer Work';
+      const payload: any = {
+        service_type: serviceTypeLabel,
         frequency: frequency || 'One-time',
         service_date: date.toISOString().split('T')[0],
         service_time: timeString,
-        address: address,
+        address,
         contact_first_name: firstName,
         contact_last_name: lastName,
         contact_email: email,
-        description: description,
-        // Additional metadata could be stored in description if backend doesn't support them explicitly
-        extra_details: JSON.stringify({
-          vehicleType: activeTab === 'TRANSPORTATION' ? vehicleType : undefined,
-          capacity: activeTab === 'TRANSPORTATION' ? capacity : undefined,
-          maxDistance: activeTab === 'TRANSPORTATION' ? maxDistance : undefined,
-          preferredWork: activeTab === 'VOLUNTEER' ? preferredWork : undefined,
-          categoriesOrSkills: activeTab === 'TRANSPORTATION' ? selectedCategories : selectedSkills,
-        })
+        description,
+        ...(activeTab === 'TRANSPORTATION' ? {
+          quantity: parseInt(quantity) || 1,
+          vehicle_type: vehicleType || null,
+          capacity: capacity || null,
+          max_distance: maxDistance || null,
+          transport_categories: selectedCategories.length > 0 ? selectedCategories : null,
+        } : {
+          headcount: parseInt(headcount) || 1,
+          preferred_work: preferredWork || null,
+          skill_categories: selectedSkills.length > 0 ? selectedSkills : null,
+        }),
       };
 
       const response = await ApiService.submitServiceDonation(payload);

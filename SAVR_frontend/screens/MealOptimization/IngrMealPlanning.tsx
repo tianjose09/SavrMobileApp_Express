@@ -98,6 +98,9 @@ export default function IngrMealPlanning({ navigation }: any) {
 
   useFocusEffect(
     React.useCallback(() => {
+      setTargetPax('0');
+      setSearchQuery('');
+      setSelectedCategory(null);
       fetchInventory();
     }, [])
   );

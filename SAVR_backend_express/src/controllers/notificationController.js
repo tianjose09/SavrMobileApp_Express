@@ -318,22 +318,26 @@ async function autoNotifyDonor(userId) {
       }
     }
 
-    const serviceNotable = ['confirmed', 'rejected', 'completed', 'cancelled'];
+    const serviceNotable = ['accepted', 'confirmed', 'declined', 'rejected', 'completed', 'cancelled'];
     const serviceMessages = {
-      confirmed: 'Your service donation has been confirmed. Thank you for volunteering!',
-      rejected:  'We regret to inform you that your service donation has been rejected. Please contact our team for more details.',
-      completed: 'Your service donation has been completed. Thank you for your contribution!',
-      cancelled: 'Your service donation has been cancelled. Please contact our team if you have any questions.',
+      accepted:  'Great news! Your service donation "[name]" has been accepted. Thank you for volunteering!',
+      confirmed: 'Great news! Your service donation "[name]" has been confirmed. Thank you for volunteering!',
+      declined:  'We regret to inform you that your service donation "[name]" has been declined. Please contact our team for more details.',
+      rejected:  'We regret to inform you that your service donation "[name]" has been rejected. Please contact our team for more details.',
+      completed: 'Your service donation "[name]" has been completed. Thank you for your contribution!',
+      cancelled: 'Your service donation "[name]" has been cancelled. Please contact our team if you have any questions.',
     };
     const serviceTitles = {
+      accepted:  'Service Donation Accepted',
       confirmed: 'Service Donation Confirmed',
+      declined:  'Service Donation Declined',
       rejected:  'Service Donation Rejected',
       completed: 'Service Donation Completed',
       cancelled: 'Service Donation Cancelled',
     };
 
     const [serviceRows] = await db.execute(
-      'SELECT id, user_id, status, notified_status FROM service_donation_records WHERE user_id = ?',
+      'SELECT id, user_id, status, notified_status, service_tab FROM service_donation_records WHERE user_id = ?',
       [userId]
     );
     for (const r of serviceRows) {
@@ -347,7 +351,9 @@ async function autoNotifyDonor(userId) {
         );
         if (result.affectedRows === 0) continue;
 
-        await createNotification(r.user_id, 'service', serviceTitles[s] || `Service Donation ${r.status}`, serviceMessages[s] || `Your service donation status has been updated to "${r.status}".`, true);
+        const svcName = r.service_tab || 'service';
+        const svcMsg = (serviceMessages[s] || `Your service donation "[name]" status has been updated to "${r.status}".`).replace('[name]', svcName);
+        await createNotification(r.user_id, 'service', serviceTitles[s] || `Service Donation ${r.status}`, svcMsg, true);
       } catch (e) {
         console.error('[autoNotifyDonor service] item', r.id, e.message);
       }

@@ -132,7 +132,7 @@ exports.createPaymongoCheckout = async (req, res) => {
             }],
             payment_method_types: ['gcash', 'paymaya', 'card'],
             success_url: `${baseUrl}/api/payment/success?donation_id=${donationId}`,
-            cancel_url: `${baseUrl}/api/payment/cancel`,
+            cancel_url: `${baseUrl}/api/payment/cancel?donation_id=${donationId}`,
             description: 'SAVR Food Bank Donation',
           },
         },
@@ -181,6 +181,23 @@ exports.paymongoWebhook = async (req, res) => {
     }
   }
 
+  if (event === 'payment.failed' || event === 'checkout_session.payment.failed') {
+    const checkoutId = data?.id || data?.attributes?.checkout_session_id;
+    if (checkoutId) {
+      const [claim] = await db.execute(
+        "UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE paymongo_payment_id = ? AND status NOT IN ('paid','failed','cancelled')",
+        [checkoutId]
+      );
+      if (claim.affectedRows > 0) {
+        const [rows] = await db.execute('SELECT * FROM financial_donation_records WHERE paymongo_payment_id = ?', [checkoutId]);
+        const donation = rows[0];
+        if (donation) {
+          await createNotification(donation.user_id, 'financial', 'Payment Failed', `Your financial donation of ₱${formatAmount(donation.amount)} could not be processed. Please try again.`, true);
+        }
+      }
+    }
+  }
+
   return res.json({ received: true });
 };
 
@@ -223,6 +240,21 @@ exports.checkPaymentStatus = async (req, res) => {
         await recalculateBadges(donation.user_id);
         return res.json({ success: true, status: 'paid', amount: donation.amount });
       }
+
+      const sessionFailed = attrs?.status === 'expired' || attrs?.status === 'failed';
+      const paymentFailed = Array.isArray(attrs?.payments)
+        && attrs.payments.some(p => p?.attributes?.status === 'failed');
+      if (sessionFailed || paymentFailed) {
+        // Atomic claim — only the first update fires the notification, prevents race condition duplicates
+        const [claim] = await db.execute(
+          "UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
+          [donation.id]
+        );
+        if (claim.affectedRows > 0) {
+          await createNotification(donation.user_id, 'financial', 'Payment Failed', `Your financial donation of ₱${formatAmount(donation.amount)} could not be processed. Please try again from the app.`, true);
+        }
+        return res.json({ success: true, status: 'failed', amount: donation.amount });
+      }
     } catch (err) {
       console.error('[checkPaymentStatus ERROR]', err?.response?.status, err?.response?.data || err.message);
     }
@@ -261,19 +293,15 @@ exports.paymentSuccess = async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Successful – SAVR</title>
   <script>
-    window.onload = function () {
-      // Try all known schemes in sequence
-      var schemes = ['savrmobile://', 'exp+savr-mobile://'];
-      var i = 0;
-      function tryNext() {
-        if (i >= schemes.length) return;
-        window.location.href = schemes[i++];
-        setTimeout(tryNext, 1200);
-      }
-      tryNext();
-      // Auto-close tab after 4s as last resort (works on Android)
-      setTimeout(function () { window.close(); }, 4000);
-    };
+    function returnToApp() {
+      // Try Expo Go scheme first (no error popup), then standalone APK scheme
+      window.location.href = 'exp+savr-mobile://';
+      setTimeout(function () {
+        window.location.href = 'savrmobile://';
+      }, 1200);
+      setTimeout(function () { window.close(); }, 2500);
+    }
+    window.onload = returnToApp;
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -404,8 +432,8 @@ exports.paymentSuccess = async (req, res) => {
 
     <div class="divider"></div>
 
-    <a class="btn" href="savrmobile://">Return to App</a>
-    <a class="btn-outline" href="savrmobile://">Go to Dashboard</a>
+    <a class="btn" onclick="returnToApp(); return false;" href="#">Return to App</a>
+    <a class="btn-outline" onclick="returnToApp(); return false;" href="#">Go to Dashboard</a>
 
     <p class="footer-note">Powered by PayMongo &nbsp;·&nbsp; SAVR Philippine FoodBank</p>
   </div>
@@ -413,7 +441,13 @@ exports.paymentSuccess = async (req, res) => {
 </html>`);
 };
 
-exports.paymentCancel = (req, res) => {
+exports.paymentCancel = async (req, res) => {
+  if (req.query.donation_id) {
+    await db.execute(
+      "UPDATE financial_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
+      [req.query.donation_id]
+    );
+  }
   return res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -421,12 +455,12 @@ exports.paymentCancel = (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Cancelled – SAVR</title>
   <script>
-    window.onload = function () {
-      window.location.href = 'savrmobile://';
-      setTimeout(function () {
-        window.location.href = 'exp+savr-mobile://';
-      }, 1500);
-    };
+    function returnToApp() {
+      window.location.href = 'exp+savr-mobile://';
+      setTimeout(function () { window.location.href = 'savrmobile://'; }, 1200);
+      setTimeout(function () { window.close(); }, 2500);
+    }
+    window.onload = returnToApp;
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -538,8 +572,8 @@ exports.paymentCancel = (req, res) => {
 
     <div class="divider"></div>
 
-    <a class="btn" href="savrmobile://">Return to App</a>
-    <a class="btn-outline" href="savrmobile://">Try Again</a>
+    <a class="btn" onclick="returnToApp(); return false;" href="#">Return to App</a>
+    <a class="btn-outline" onclick="returnToApp(); return false;" href="#">Try Again</a>
 
     <p class="footer-note">Powered by PayMongo &nbsp;·&nbsp; SAVR Philippine FoodBank</p>
   </div>
@@ -645,9 +679,14 @@ exports.submitSchedule = async (req, res) => {
 // ─── Service Donation ─────────────────────────────────────────────────────────
 
 exports.submitService = async (req, res) => {
-  const { service_type, quantity, frequency, service_date, service_time, address, contact_first_name, contact_last_name, contact_email, description } = req.body;
+  const {
+    service_type, quantity, frequency, service_date, service_time, address,
+    contact_first_name, contact_last_name, contact_email, description,
+    vehicle_type, capacity, max_distance, transport_categories,
+    headcount, preferred_work, skill_categories,
+  } = req.body;
 
-  if (!service_type || !quantity || !frequency || !service_date || !service_time || !address || !contact_first_name || !contact_last_name || !contact_email) {
+  if (!service_type || !frequency || !service_date || !service_time || !address || !contact_first_name || !contact_last_name || !contact_email) {
     return res.status(422).json({ success: false, message: 'Required fields missing.' });
   }
 
@@ -655,16 +694,43 @@ exports.submitService = async (req, res) => {
   let startsAt = null;
   try { startsAt = dayjs(`1970-01-01 ${cleanTime(service_time)}`).format('HH:mm:ss'); } catch {}
 
+  const transportCatsJson = transport_categories
+    ? (typeof transport_categories === 'string' ? transport_categories : JSON.stringify(transport_categories))
+    : null;
+  const skillCatsJson = skill_categories
+    ? (typeof skill_categories === 'string' ? skill_categories : JSON.stringify(skill_categories))
+    : null;
+
+  // Ensure extra columns exist (safe to run repeatedly)
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(255) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS capacity VARCHAR(100) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS max_distance VARCHAR(100) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS transport_categories JSON DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS headcount INTEGER DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS preferred_work VARCHAR(255) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS skill_categories JSON DEFAULT NULL`).catch(() => {});
+
   const [result] = await db.execute(
-    `INSERT INTO service_donation_records (user_id, service_tab, quantity, frequency, date, starts_at, address, first_name, last_name, email, notes, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
-    [req.user.id, service_type, quantity, frequency, service_date, startsAt, address, contact_first_name, contact_last_name, contact_email, description || null]
+    `INSERT INTO service_donation_records
+       (user_id, service_tab, quantity, frequency, date, starts_at, address,
+        first_name, last_name, email, notes,
+        vehicle_type, capacity, max_distance, transport_categories,
+        headcount, preferred_work, skill_categories,
+        status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+    [
+      req.user.id, service_type, parseInt(quantity) || null, frequency,
+      service_date, startsAt, address,
+      contact_first_name, contact_last_name, contact_email, description || null,
+      vehicle_type || null, capacity || null, max_distance || null, transportCatsJson,
+      parseInt(headcount) || null, preferred_work || null, skillCatsJson,
+    ]
   );
 
   const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
 
   await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${quantity} unit(s)`, 'truckicon');
-  await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been logged and is being processed. Thank you for volunteering!`);
+  await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been submitted and is now awaiting approval from our team. We will notify you once it has been reviewed. Thank you for volunteering!`);
   await recalculateBadges(req.user.id);
 
   return res.status(201).json({ success: true, message: 'Service donation submitted.', donation: donation[0] });

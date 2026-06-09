@@ -110,9 +110,31 @@ exports.deduct = async (req, res) => {
   }
 
   if (meal_name && req.user) {
+    // Build ingredient summary from deductions
+    const ingredientLines = [];
+    for (const deduction of deductions) {
+      const [rows] = await db.execute('SELECT food_name, unit FROM food_inventory WHERE id = ?', [deduction.id]);
+      if (rows[0]) {
+        ingredientLines.push(`• ${rows[0].food_name}: ${deduction.qty_used} ${rows[0].unit}`);
+      }
+    }
+    const ingredientSummary = ingredientLines.length > 0
+      ? `\n\nIngredients used:\n${ingredientLines.join('\n')}`
+      : '';
+
+    const description = `Prepared meal: ${meal_name}${ingredientSummary}`;
+
     await db.execute(
       "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'inventory', 'Meal Prepared', ?, 'foodicon', NOW(), NOW())",
-      [req.user.id, `Prepared meal: ${meal_name}`]
+      [req.user.id, description]
+    );
+
+    await createNotification(
+      req.user.id,
+      'food',
+      `Meal Done: ${meal_name}`,
+      `You have successfully prepared ${meal_name}.${ingredientSummary}`,
+      true
     );
   }
 
