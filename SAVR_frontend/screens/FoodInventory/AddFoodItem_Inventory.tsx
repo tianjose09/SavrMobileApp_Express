@@ -178,6 +178,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                   { label: "L", value: "L" }
                 ]}
                 style={styles.input}
+                disableSort={true}
               />
             </View>
           </View>

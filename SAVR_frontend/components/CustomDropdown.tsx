@@ -14,6 +14,7 @@ interface CustomDropdownProps {
   placeholder?: string;
   style?: any;
   placeholderTextColor?: string;
+  disableSort?: boolean;
 }
 
 export default function CustomDropdown({
@@ -22,11 +23,14 @@ export default function CustomDropdown({
   items,
   placeholder = "Select...",
   style,
-  placeholderTextColor
+  placeholderTextColor,
+  disableSort = false
 }: CustomDropdownProps) {
   const [modalVisible, setModalVisible] = useState(false);
-  const sortedItems = [...(items || [])].sort((a, b) => a.label.localeCompare(b.label));
-  const selectedItem = sortedItems.find(i => i.value === selectedValue);
+  const sortedItems = disableSort
+    ? (items || [])
+    : [...(items || [])].sort((a, b) => a.label.localeCompare(b.label));
+  const selectedItem = (items || []).find(i => i.value === selectedValue);
 
   const getPlaceholderColor = () => {
     if (placeholderTextColor) return placeholderTextColor;

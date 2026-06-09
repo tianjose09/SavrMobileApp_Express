@@ -111,7 +111,7 @@ export default function DonorRegistration({ navigation }: any) {
   const handleRegister = async () => {
     // Required fields check
     const requiredFields = donorType === 'individual'
-      ? ['first_name', 'last_name', 'date_of_birth', 'gender', 'province_region', 'city_municipality', 'barangay', 'street', 'postal_zip_code', 'email', 'contact_number', 'password', 'password_confirmation']
+      ? ['first_name', 'last_name', 'date_of_birth', 'gender', 'province_region', 'city_municipality', 'barangay', 'house_no', 'street', 'postal_zip_code', 'email', 'contact_number', 'password', 'password_confirmation']
       : ['organization_name', 'website_url', 'industry_sector', 'organization_type', 'first_name', 'last_name', 'email', 'contact_number', 'password', 'password_confirmation'];
 
     const missingFields = [];
@@ -435,7 +435,7 @@ export default function DonorRegistration({ navigation }: any) {
 
                   <View style={styles.addressRow}>
                     <View style={[styles.addressCol, { flex: 0.9 }]}>
-                      {renderLineInput('House #', 'house_no', { keyboardType: 'numeric' })}
+                      {renderLineInput('House #', 'house_no', { keyboardType: 'numeric', isRequired: true })}
                     </View>
                     <View style={[styles.addressCol, { flex: 1.5 }]}>
                       {renderLineInput('Street', 'street', { isRequired: true })}

@@ -233,6 +233,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                       { label: "L", value: "L" }
                     ]}
                     style={styles.input}
+                    disableSort={true}
                   />
                 </View>
               </View>
