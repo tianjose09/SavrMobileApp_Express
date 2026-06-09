@@ -168,12 +168,13 @@ export default function FinancialDonation({ navigation }: any) {
 
         {/* TOP BAR HEADER */}
         <View style={styles.topHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="chevron-back" size={28} color="#544434" />
-            </TouchableOpacity>
-            <Image source={require('../../assets/images/logo/logobrown.png')} style={styles.logoImage} resizeMode="contain" />
-          </View>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={30} color="#00592d" />
+          </TouchableOpacity>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
             <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -290,6 +291,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
     elevation: 5,
+  },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoImage: {
     width: 170,
