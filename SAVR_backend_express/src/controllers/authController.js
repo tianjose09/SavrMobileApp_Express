@@ -7,6 +7,16 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 dayjs.extend(relativeTime);
 
+// Log service_donations_inventory columns so we can write the sync trigger correctly
+db.execute(`
+  SELECT column_name, data_type
+  FROM information_schema.columns
+  WHERE table_name = 'service_donations_inventory'
+  ORDER BY ordinal_position
+`).then(([cols]) => {
+  console.log('[service_donations_inventory columns]', cols.map(c => `${c.column_name}:${c.data_type}`).join(', '));
+}).catch(err => console.error('[service_donations_inventory inspect]', err.message));
+
 // Add is_active column to users table if it doesn't exist yet
 db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
   .catch(() => {});
