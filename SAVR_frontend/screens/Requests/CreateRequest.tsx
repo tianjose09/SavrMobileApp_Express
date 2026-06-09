@@ -107,13 +107,20 @@ export default function CreateRequest({ navigation }: any) {
         const res = await ApiService.getInventory();
         if (res.data?.success) {
           const raw = res.data.items || [];
-          const parsed: FoodItem[] = raw.map((i: any) => ({
-            id: i.id,
-            name: i.name,
-            category: i.category || 'Other',
-            qty: i.qty,
-            unit: i.unit || 'pcs',
-          }));
+          const parsed: FoodItem[] = raw.map((i: any) => {
+            let u = i.unit || 'pcs';
+            const norm = u.trim().toLowerCase();
+            if (norm === 'cans' || norm === 'can') {
+              u = 'pcs';
+            }
+            return {
+              id: i.id,
+              name: i.name,
+              category: i.category || 'Other',
+              qty: i.qty,
+              unit: u,
+            };
+          });
           setInventoryItems(parsed);
         }
       } catch (err) {
@@ -131,13 +138,20 @@ export default function CreateRequest({ navigation }: any) {
       .then(res => {
         if (res.data?.success) {
           const raw = res.data.items || [];
-          const parsed: FoodItem[] = raw.map((i: any) => ({
-            id: i.id,
-            name: i.name,
-            category: i.category || 'Other',
-            qty: i.qty,
-            unit: i.unit || 'pcs',
-          }));
+          const parsed: FoodItem[] = raw.map((i: any) => {
+            let u = i.unit || 'pcs';
+            const norm = u.trim().toLowerCase();
+            if (norm === 'cans' || norm === 'can') {
+              u = 'pcs';
+            }
+            return {
+              id: i.id,
+              name: i.name,
+              category: i.category || 'Other',
+              qty: i.qty,
+              unit: u,
+            };
+          });
           setInventoryItems(parsed);
         }
       })
@@ -530,7 +544,12 @@ export default function CreateRequest({ navigation }: any) {
                           onPress={() => {
                             setSelectedItem(isSel ? null : item);
                             setItemQty('');
-                            setItemUnit(item.category === 'Canned Goods' ? 'pcs' : (item.unit || 'kg'));
+                            const normUnit = (item.unit || '').trim().toLowerCase();
+                            setItemUnit(
+                              item.category === 'Canned Goods' || normUnit === 'cans' || normUnit === 'can'
+                                ? 'pcs'
+                                : (item.unit || 'kg')
+                            );
                           }}
                           activeOpacity={0.8}
                         >
@@ -641,7 +660,7 @@ export default function CreateRequest({ navigation }: any) {
               {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Submit</Text>}
             </TouchableOpacity>
           </View>
-          <View style={{ height: 50 }} />
+          <View style={{ height: 140 }} />
         </ScrollView>
       </SafeAreaView>
     </>
