@@ -1,24 +1,34 @@
-const axios = require('axios');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-async function sendMail({ to, subject, html }) {
-  const from = `${process.env.MAIL_FROM_NAME || 'SAVR FoodBank'} <${process.env.MAIL_FROM_ADDRESS || 'onboarding@resend.dev'}>`;
+const mailPort = parseInt(process.env.MAIL_PORT) || 587;
 
+const transporter = nodemailer.createTransport({
+  host: process.env.MAIL_HOST || 'smtp.gmail.com',
+  port: mailPort,
+  secure: mailPort === 465,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+async function sendMail({ to, subject, html }) {
   try {
-    await axios.post(
-      'https://api.resend.com/emails',
-      { from, to: [to], subject, html },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.MAIL_PASS}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 15000,
-      }
-    );
+    return await transporter.sendMail({
+      from: `"${process.env.MAIL_FROM_NAME || 'SAVR FoodBank'}" <${process.env.MAIL_FROM_ADDRESS || process.env.MAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
   } catch (err) {
-    const detail = err.response?.data?.message || err.response?.data?.name || err.message;
-    throw new Error(`Resend API error: ${detail}`);
+    throw new Error(`SMTP error: ${err.message}`);
   }
 }
 
