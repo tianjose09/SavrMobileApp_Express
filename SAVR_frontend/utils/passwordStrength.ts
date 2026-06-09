@@ -4,11 +4,11 @@ export const evaluatePasswordStrength = (password: string) => {
   let score = 0;
   const missing = [];
 
-  if (password.length >= 12) {
+  if (password.length >= 8) {
     score += 1;
-    if (password.length <= 16) score += 1;
+    if (password.length >= 12) score += 1;
   } else {
-    missing.push('12-16 characters');
+    missing.push('at least 8 characters');
   }
 
   if (/[A-Z]/.test(password)) {
