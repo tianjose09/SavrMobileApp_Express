@@ -664,7 +664,7 @@ exports.submitService = async (req, res) => {
   const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
 
   await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${quantity} unit(s)`, 'truckicon');
-  await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been logged and is being processed. Thank you for volunteering!`);
+  await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been submitted and is now awaiting approval from our team. We will notify you once it has been reviewed. Thank you for volunteering!`);
   await recalculateBadges(req.user.id);
 
   return res.status(201).json({ success: true, message: 'Service donation submitted.', donation: donation[0] });
