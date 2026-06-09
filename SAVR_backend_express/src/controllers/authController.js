@@ -7,15 +7,73 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 dayjs.extend(relativeTime);
 
-// Log service_donations_inventory columns so we can write the sync trigger correctly
+// Trigger 1: Block inserts into service_donations_inventory unless the linked
+// service_donation_record has status = 'accepted'. Prevents bypassing approval.
 db.execute(`
-  SELECT column_name, data_type
-  FROM information_schema.columns
-  WHERE table_name = 'service_donations_inventory'
-  ORDER BY ordinal_position
-`).then(([cols]) => {
-  console.log('[service_donations_inventory columns]', cols.map(c => `${c.column_name}:${c.data_type}`).join(', '));
-}).catch(err => console.error('[service_donations_inventory inspect]', err.message));
+  CREATE OR REPLACE FUNCTION prevent_inventory_without_approval()
+  RETURNS TRIGGER AS $$
+  DECLARE v_status TEXT;
+  BEGIN
+    SELECT status INTO v_status
+      FROM service_donation_records
+      WHERE id = NEW.service_donation_record_id;
+    IF LOWER(COALESCE(v_status,'')) != 'accepted' THEN
+      RAISE EXCEPTION 'Service donation must be accepted before adding to inventory.';
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`DROP TRIGGER IF EXISTS trg_prevent_inventory_without_approval ON service_donations_inventory`)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_prevent_inventory_without_approval
+      BEFORE INSERT ON service_donations_inventory
+      FOR EACH ROW
+      EXECUTE FUNCTION prevent_inventory_without_approval()
+  `)
+).catch(err => console.error('[service inventory approval guard]', err.message));
+
+// Trigger 2: When service_donation_records.status changes to 'accepted',
+// auto-insert into service_donations_inventory. When un-accepted, remove it.
+db.execute(`
+  CREATE OR REPLACE FUNCTION sync_service_donation_inventory()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    IF LOWER(NEW.status) = 'accepted' AND LOWER(COALESCE(OLD.status,'')) != 'accepted' THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM service_donations_inventory
+        WHERE service_donation_record_id = NEW.id
+      ) THEN
+        INSERT INTO service_donations_inventory (
+          service_donation_record_id, user_id, service_tab, frequency,
+          date, starts_at, address, quantity,
+          first_name, last_name, email, notes,
+          status, created_at, updated_at
+        ) VALUES (
+          NEW.id, NEW.user_id, NEW.service_tab, NEW.frequency,
+          NEW.date, NEW.starts_at, NEW.address, NEW.quantity,
+          NEW.first_name, NEW.last_name, NEW.email, NEW.notes,
+          'Active', NOW(), NOW()
+        );
+      END IF;
+    ELSIF LOWER(NEW.status) != 'accepted' AND LOWER(COALESCE(OLD.status,'')) = 'accepted' THEN
+      DELETE FROM service_donations_inventory
+        WHERE service_donation_record_id = NEW.id;
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`).then(() =>
+  db.execute(`DROP TRIGGER IF EXISTS trg_sync_service_donation_inventory ON service_donation_records`)
+).then(() =>
+  db.execute(`
+    CREATE TRIGGER trg_sync_service_donation_inventory
+      AFTER UPDATE ON service_donation_records
+      FOR EACH ROW
+      EXECUTE FUNCTION sync_service_donation_inventory()
+  `)
+).catch(err => console.error('[service donation inventory sync]', err.message));
 
 // Add is_active column to users table if it doesn't exist yet
 db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
