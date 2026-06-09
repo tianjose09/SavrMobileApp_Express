@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { ApiService } from '../services/api';
 
 export default function PkRegistration({ navigation }: any) {
   const [formData, setFormData] = useState({
@@ -11,18 +12,29 @@ export default function PkRegistration({ navigation }: any) {
     password: '',
     password_confirmation: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleNext = () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.contact_number) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+  const handleNext = async () => {
+    const requiredFields = ['name', 'email', 'contact_number', 'password', 'password_confirmation'];
+    const missingFields = [];
+    for (const key of requiredFields) {
+      if (!formData[key as keyof typeof formData]?.trim()) {
+        const readable = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        missingFields.push(readable);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      Alert.alert('Missing Fields', `Please fill out the following required fields:\n• ${missingFields.join('\n• ')}`);
       return;
     }
-    if (formData.password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long.');
+
+    if (formData.password.length < 12) {
+      Alert.alert('Error', 'Password must be at least 12 characters long.');
       return;
     }
     if (formData.password !== formData.password_confirmation) {
@@ -30,12 +42,24 @@ export default function PkRegistration({ navigation }: any) {
       return;
     }
 
-    navigation.navigate('VerifyEmail', {
-      ...formData,
-      role: 'partner_kitchen',
-      registrationType: 'partner_kitchen',
-      targetDashboard: 'PkDashboard'
-    });
+    setIsLoading(true);
+    try {
+      // Send verification code, which also checks for duplicate email
+      await ApiService.sendVerificationEmail({ email: formData.email, name: formData.name });
+
+      Alert.alert('Success', 'Verification code sent! Please check your email.');
+      navigation.navigate('VerifyEmail', {
+        ...formData,
+        contact_number: formData.contact_number ? `+63${formData.contact_number}` : '',
+        role: 'partner_kitchen',
+        registrationType: 'partner_kitchen',
+        targetDashboard: 'PkDashboard'
+      });
+    } catch (error: any) {
+      Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -117,8 +141,8 @@ export default function PkRegistration({ navigation }: any) {
               onChangeText={(text) => handleChange('password_confirmation', text)}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleNext}>
-              <Text style={styles.buttonText}>Next Step →</Text>
+            <TouchableOpacity style={styles.button} onPress={handleNext} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Next Step →</Text>}
             </TouchableOpacity>
           </View>
         </ScrollView>

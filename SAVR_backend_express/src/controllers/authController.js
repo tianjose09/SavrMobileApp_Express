@@ -570,8 +570,8 @@ exports.resetPassword = async (req, res) => {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(422).json({ success: false, message: 'Invalid email address.' });
   }
-  if (!password || password.length < 8) {
-    return res.status(422).json({ success: false, message: 'Password must be at least 8 characters.' });
+  if (!password || password.length < 12) {
+    return res.status(422).json({ success: false, message: 'Password must be at least 12 characters.' });
   }
   if (password !== password_confirmation) {
     return res.status(422).json({ success: false, message: 'Passwords do not match.' });
@@ -633,7 +633,7 @@ exports.registerDonor = async (req, res) => {
   if (!postal_zip_code) errors.postal_zip_code = ['Postal/zip code is required.'];
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = ['Invalid email address.'];
   if (!contact_number || !/^[0-9]{10}$/.test(contact_number)) errors.contact_number = ['Contact number must be exactly 10 digits.'];
-  if (!password || password.length < 8) errors.password = ['Password must be at least 8 characters.'];
+  if (!password || password.length < 12) errors.password = ['Password must be at least 12 characters.'];
   else if (password !== password_confirmation) errors.password = ['Passwords do not match.'];
   else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(password)) errors.password = ['Password must contain uppercase, lowercase, a number, and a special character.'];
 
@@ -697,7 +697,7 @@ exports.registerOrganization = async (req, res) => {
   if (!last_name) errors.last_name = ['Last name is required.'];
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = ['Invalid email address.'];
   if (!contact_number || !/^[0-9]{10}$/.test(contact_number)) errors.contact_number = ['Contact number must be exactly 10 digits.'];
-  if (!password || password.length < 8) errors.password = ['Password must be at least 8 characters.'];
+  if (!password || password.length < 12) errors.password = ['Password must be at least 12 characters.'];
   else if (password !== password_confirmation) errors.password = ['Passwords do not match.'];
   else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(password)) errors.password = ['Password must contain uppercase, lowercase, a number, and a special character.'];
 
@@ -757,7 +757,7 @@ exports.registerPartnerKitchen = async (req, res) => {
   if (!position_role) errors.position_role = ['Position/role is required.'];
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = ['Invalid email address.'];
   if (!contact_number || !/^[0-9]{10}$/.test(contact_number)) errors.contact_number = ['Contact number must be exactly 10 digits.'];
-  if (!password || password.length < 8) errors.password = ['Password must be at least 8 characters.'];
+  if (!password || password.length < 12) errors.password = ['Password must be at least 12 characters.'];
   else if (password !== password_confirmation) errors.password = ['Passwords do not match.'];
   else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(password)) errors.password = ['Password must contain uppercase, lowercase, a number, and a special character.'];
 
@@ -814,7 +814,7 @@ exports.registerBeneficiary = async (req, res) => {
   if (!['individual', 'organization'].includes(beneficiary_type)) errors.beneficiary_type = ['Beneficiary type must be individual or organization.'];
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = ['Invalid email address.'];
   if (!contact_number || !/^[0-9]{10}$/.test(contact_number)) errors.contact_number = ['Contact number must be exactly 10 digits.'];
-  if (!password || password.length < 8) errors.password = ['Password must be at least 8 characters.'];
+  if (!password || password.length < 12) errors.password = ['Password must be at least 12 characters.'];
   else if (password !== password_confirmation) errors.password = ['Passwords do not match.'];
   else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(password)) errors.password = ['Password must contain uppercase, lowercase, a number, and a special character.'];
   if (!house_no || !/^[0-9]+$/.test(house_no)) errors.house_no = ['House number must contain numbers only.'];

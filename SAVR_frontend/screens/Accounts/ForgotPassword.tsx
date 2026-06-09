@@ -109,8 +109,8 @@ export default function ForgotPassword({ navigation }: any) {
   };
 
   const handleResetPassword = async () => {
-    if (newPassword.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters.');
+    if (newPassword.length < 12) {
+      Alert.alert('Error', 'Password must be at least 12 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -234,7 +234,7 @@ export default function ForgotPassword({ navigation }: any) {
 
             {step === 3 && (
               <View>
-                <Text style={styles.subtitle}>Create a new secure password. (min 8 chars)</Text>
+                <Text style={styles.subtitle}>Create a new secure password. (min 12 chars)</Text>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>New Password</Text>

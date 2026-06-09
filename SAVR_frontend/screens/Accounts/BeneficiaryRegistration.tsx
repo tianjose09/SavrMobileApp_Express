@@ -146,19 +146,29 @@ export default function BeneficiaryRegistration({ navigation }: any) {
   };
 
   const handleRegister = async () => {
-    // Basic validations
-    if (!form.email) {
-      Alert.alert('Error', 'Please enter your email address.');
+    // Required fields check
+    const requiredFields = selectedRole === 'individual'
+      ? ['first_name', 'last_name', 'date_of_birth', 'gender', 'province_region', 'city_municipality', 'barangay', 'street', 'postal_zip_code', 'email', 'contact_number', 'password', 'password_confirmation']
+      : ['organization_name', 'website_url', 'industry_sector', 'organization_type', 'contact_person', 'position_role', 'email', 'contact_number', 'password', 'password_confirmation'];
+
+    const missingFields = [];
+    for (const key of requiredFields) {
+      if (!form[key as keyof typeof form]?.trim()) {
+        const readable = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        missingFields.push(readable);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      Alert.alert('Missing Fields', `Please fill out the following required fields:\n• ${missingFields.join('\n• ')}`);
       return;
     }
-    if (!form.password || !form.contact_number) {
-      Alert.alert('Error', 'Please fill out all required fields.');
+
+    if (form.password.length < 12) {
+      Alert.alert('Error', 'Password must be at least 12 characters long.');
       return;
     }
-    if (selectedRole === 'organization' && !form.website_url) {
-      Alert.alert('Error', 'Please enter your Website URL.');
-      return;
-    }
+
     if (form.password !== form.password_confirmation) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
