@@ -14,6 +14,7 @@ import {
   Image,
   SafeAreaView,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -50,14 +51,39 @@ const VOLUNTEER_SKILLS = [
   'Grant Writing / Reporting',
 ];
 
+const formatTimeWithAMPM = (date: Date | null) => {
+  if (!date) return '-- : --';
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+  const strHours = hours;
+  return `${strHours}:${strMinutes} ${ampm}`;
+};
+
+const formatDateMMDDYYYY = (date: Date | null) => {
+  if (!date) return 'mm/dd/yyyy';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = date.getFullYear();
+  const strMonth = month < 10 ? '0' + month : month;
+  const strDay = day < 10 ? '0' + day : day;
+  return `${strMonth}/${strDay}/${year}`;
+};
+
 export default function ServiceDonation({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'TRANSPORTATION' | 'VOLUNTEER'>('TRANSPORTATION');
 
   // Shared Form Fields
   const [address, setAddress] = useState('');
   const [frequency, setFrequency] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
-  const [time, setTime] = useState<Date>(new Date());
+  const [dayOfWeek, setDayOfWeek] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
+  const [startsAt, setStartsAt] = useState<Date | null>(null);
+  const [endsAt, setEndsAt] = useState<Date | null>(null);
+  const [allDay, setAllDay] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -76,13 +102,52 @@ export default function ServiceDonation({ navigation }: any) {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
   // UI States
-  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'starts_at' | 'ends_at' | null>(null);
   const [showIOSDate, setShowIOSDate] = useState(false);
-  const [showIOSTime, setShowIOSTime] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date());
-  const [tempTime, setTempTime] = useState(new Date());
+  const [tempDate, setTempDate] = useState(() => new Date());
+  const [showIOSStartsAt, setShowIOSStartsAt] = useState(false);
+  const [showIOSEndsAt, setShowIOSEndsAt] = useState(false);
+  const [tempStartsAt, setTempStartsAt] = useState(() => {
+    const d = new Date();
+    d.setHours(8, 0, 0, 0);
+    return d;
+  });
+  const [tempEndsAt, setTempEndsAt] = useState(() => {
+    const d = new Date();
+    d.setHours(17, 0, 0, 0);
+    return d;
+  });
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
+
+  const resetForm = () => {
+    setAddress('');
+    setFrequency('');
+    setDayOfWeek('');
+    setDate(null);
+    setStartsAt(null);
+    setEndsAt(null);
+    setAllDay(false);
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setDescription('');
+    setQuantity('');
+    setVehicleType('');
+    setCapacity('');
+    setMaxDistance('');
+    setSelectedCategories([]);
+    setHeadcount('');
+    setPreferredWork('');
+    setSelectedSkills([]);
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    resetForm();
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
@@ -102,27 +167,52 @@ export default function ServiceDonation({ navigation }: any) {
 
   const handleSubmit = async () => {
     // Basic validation
-    if (!address || !firstName || !lastName || !email) {
-      Alert.alert('Error', 'Please fill in required fields (Address, Contact details).');
+    const hasContactDetails = address && firstName && lastName && email;
+    const hasFrequencyDate = (frequency !== 'Monthly' && frequency !== 'One-Time') || date;
+    const hasTabInfo = (activeTab === 'VOLUNTEER' && headcount.trim() && parseInt(headcount) > 0) ||
+                       (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0);
+
+    if (!hasContactDetails || !hasFrequencyDate || !hasTabInfo) {
+      Alert.alert('Error', 'Please fill out all fields to submit donation.');
       return;
     }
 
-    const hours = time.getHours();
-    if (hours < 8 || hours >= 17) {
-      Alert.alert('Invalid Time', 'Please select a time within working hours (8:00 AM to 5:00 PM).');
-      return;
+    if (!allDay) {
+      if (!startsAt || !endsAt) {
+        Alert.alert('Error', 'Please fill out all fields to submit donation.');
+        return;
+      }
+      const startsHours = startsAt.getHours();
+      const endsHours = endsAt.getHours();
+      if (startsHours < 8 || startsHours >= 17) {
+        Alert.alert('Invalid Start Time', 'Please select a start time within working hours (8:00 AM to 5:00 PM).');
+        return;
+      }
+      if (endsHours < 8 || endsHours > 17 || (endsHours === 17 && endsAt.getMinutes() > 0)) {
+        Alert.alert('Invalid End Time', 'Please select an end time within working hours (8:00 AM to 5:00 PM).');
+        return;
+      }
+      if (startsAt >= endsAt) {
+        Alert.alert('Invalid Time Range', 'End time must be after start time.');
+        return;
+      }
     }
 
     setIsLoading(true);
     try {
-      const timeString = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const startsAtStr = allDay || !startsAt ? null : formatTimeWithAMPM(startsAt);
+      const endsAtStr = allDay || !endsAt ? null : formatTimeWithAMPM(endsAt);
 
       const serviceTypeLabel = activeTab === 'TRANSPORTATION' ? 'Transportation' : 'Volunteer Work';
       const payload: any = {
         service_type: serviceTypeLabel,
-        frequency: frequency || 'One-time',
-        service_date: date.toISOString().split('T')[0],
-        service_time: timeString,
+        frequency: frequency || 'One-Time',
+        day_of_week: frequency === 'Weekly' ? (dayOfWeek || null) : null,
+        service_date: date ? date.toISOString().split('T')[0] : null,
+        service_time: startsAtStr || 'All Day',
+        all_day: allDay,
+        starts_at: startsAtStr,
+        ends_at: endsAtStr,
         address,
         contact_first_name: firstName,
         contact_last_name: lastName,
@@ -145,7 +235,7 @@ export default function ServiceDonation({ navigation }: any) {
 
       if (response.data.success) {
         const serviceLabel = activeTab === 'VOLUNTEER' ? 'Volunteer Work' : 'Transportation Service';
-        const dateLabel = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        const dateLabel = date ? date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'recurring schedule';
         setToast({
           visible: true,
           title: `${serviceLabel} Submitted!`,
@@ -154,8 +244,11 @@ export default function ServiceDonation({ navigation }: any) {
         // Reset form fields
         setAddress('');
         setFrequency('');
-        setDate(new Date());
-        setTime(new Date());
+        setDayOfWeek('');
+        setDate(null);
+        setStartsAt(null);
+        setEndsAt(null);
+        setAllDay(false);
         setFirstName('');
         setLastName('');
         setEmail('');
@@ -221,7 +314,18 @@ export default function ServiceDonation({ navigation }: any) {
 
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00592d"
+              colors={['#00592d']}
+            />
+          }
+        >
 
           {/* TABS */}
           <View style={styles.tabsRow}>
@@ -297,11 +401,11 @@ export default function ServiceDonation({ navigation }: any) {
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.label}>{activeTab === 'TRANSPORTATION' ? 'Quantity' : 'Headcount'}</Text>
-                <View style={[styles.inputBox, { justifyContent: 'center' }]}>
+                <View style={styles.inputBox}>
                   <TextInput
-                    style={[styles.inputInner, { textAlign: 'center' }]}
-                    placeholder="##"
-                    placeholderTextColor="#FFF"
+                    style={styles.inputInner}
+                    placeholder="#"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     keyboardType="numeric"
                     value={activeTab === 'TRANSPORTATION' ? quantity : headcount}
                     onChangeText={activeTab === 'TRANSPORTATION' ? setQuantity : setHeadcount}
@@ -310,92 +414,210 @@ export default function ServiceDonation({ navigation }: any) {
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { width: '100%' }]}>
+            {/* Row 1: Frequency + Date (if Monthly) */}
+            <View style={[styles.row, { marginBottom: 10 }]}>
+              <View style={[styles.inputGroup, (frequency === 'Monthly' || frequency === 'Weekly' || frequency === 'Daily' || frequency === 'One-Time') ? { flex: 1.5, marginRight: 10 } : { flex: 1 }]}>
                 <Text style={styles.label}>Frequency</Text>
                 <CustomDropdown
                   selectedValue={frequency}
-                  onValueChange={setFrequency}
+                  onValueChange={(val) => {
+                    setFrequency(val);
+                    if (val === 'Monthly') {
+                      setDate(null);
+                      setDayOfWeek('');
+                    } else if (val === 'Weekly') {
+                      setDate(null);
+                      setDayOfWeek('');
+                    } else if (val === 'One-Time') {
+                      setDate(null);
+                      setDayOfWeek('');
+                    } else {
+                      setDate(null);
+                      setDayOfWeek('');
+                    }
+                  }}
                   placeholder="Select Frequency"
+                  disableSort={true}
                   items={[
-                    { label: "One-time", value: "One-time" },
-                    { label: "Weekly", value: "Weekly" },
                     { label: "Monthly", value: "Monthly" },
-                    { label: "Yearly", value: "Yearly" }
+                    { label: "Weekly", value: "Weekly" },
+                    { label: "Daily", value: "Daily" },
+                    { label: "One-Time", value: "One-Time" }
                   ]}
                   style={styles.inputBox}
                 />
               </View>
+
+              {(frequency === 'Monthly' || frequency === 'One-Time') && (
+                <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                  <Text style={styles.label}>Date</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.inputBox,
+                      { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
+                    ]}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') {
+                        setTempDate(date || new Date());
+                        setShowIOSDate(true);
+                      } else {
+                        setDatePickerMode('date');
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                      {formatDateMMDDYYYY(date)}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {frequency === 'Weekly' && (
+                <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                  <Text style={styles.label}>Day of Week</Text>
+                  <CustomDropdown
+                    selectedValue={dayOfWeek}
+                    onValueChange={setDayOfWeek}
+                    placeholder="Select Day"
+                    disableSort={true}
+                    items={[
+                      { label: "Monday", value: "Monday" },
+                      { label: "Tuesday", value: "Tuesday" },
+                      { label: "Wednesday", value: "Wednesday" },
+                      { label: "Thursday", value: "Thursday" },
+                      { label: "Friday", value: "Friday" },
+                      { label: "Saturday", value: "Saturday" },
+                      { label: "Sunday", value: "Sunday" }
+                    ]}
+                    style={styles.inputBox}
+                  />
+                </View>
+              )}
+
+              {frequency === 'Daily' && (
+                <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                  <Text style={styles.label}>Schedule</Text>
+                  <View style={[styles.inputBox, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ flex: 0, textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: 'rgba(255,255,255,0.9)' }}>
+                      Repeats Every Day
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
 
-            <View style={styles.row}>
+            {/* All Day checkbox */}
+            <TouchableOpacity
+              style={[styles.checkboxRow, { marginBottom: 15 }]}
+              onPress={() => setAllDay(!allDay)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.checkbox}>
+                {allDay && <Ionicons name="checkmark" size={16} color="#00592d" />}
+              </View>
+              <Text style={styles.checkboxLabel}>All Day</Text>
+            </TouchableOpacity>
+
+            {/* Row 2: Starts At + Ends At */}
+            <View style={[styles.row, { marginBottom: 20 }]}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
-                <Text style={styles.label}>Date</Text>
+                <Text style={styles.label}>Starts At</Text>
                 <TouchableOpacity
-                  style={[styles.inputBox, { justifyContent: 'center' }]}
+                  style={[
+                    styles.inputBox,
+                    { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
+                    allDay && { opacity: 0.5 }
+                  ]}
                   onPress={() => {
-                    if (Platform.OS === 'ios') { setTempDate(date); setShowIOSDate(true); }
-                    else setDatePickerMode('date');
+                    if (allDay) return;
+                    if (Platform.OS === 'ios') {
+                      const d = startsAt || new Date();
+                      if (!startsAt) d.setHours(8, 0, 0, 0);
+                      setTempStartsAt(d);
+                      setShowIOSStartsAt(true);
+                    } else {
+                      setDatePickerMode('starts_at');
+                    }
                   }}
+                  disabled={allDay}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.inputInner, { textAlign: 'center', lineHeight: 38 }]}>{date.toLocaleDateString()}</Text>
+                  <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                    {allDay ? '-- : --' : formatTimeWithAMPM(startsAt)}
+                  </Text>
+                  {!allDay && <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />}
                 </TouchableOpacity>
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Time</Text>
+                <Text style={styles.label}>Ends At</Text>
                 <TouchableOpacity
-                  style={[styles.inputBox, { justifyContent: 'center' }]}
+                  style={[
+                    styles.inputBox,
+                    { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
+                    allDay && { opacity: 0.5 }
+                  ]}
                   onPress={() => {
-                    if (Platform.OS === 'ios') { setTempTime(time); setShowIOSTime(true); }
-                    else setDatePickerMode('time');
+                    if (allDay) return;
+                    if (Platform.OS === 'ios') {
+                      const d = endsAt || new Date();
+                      if (!endsAt) d.setHours(17, 0, 0, 0);
+                      setTempEndsAt(d);
+                      setShowIOSEndsAt(true);
+                    } else {
+                      setDatePickerMode('ends_at');
+                    }
                   }}
+                  disabled={allDay}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.inputInner, { textAlign: 'center', lineHeight: 38 }]}>
-                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                    {allDay ? '-- : --' : formatTimeWithAMPM(endsAt)}
                   </Text>
+                  {!allDay && <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />}
                 </TouchableOpacity>
               </View>
             </View>
 
             {activeTab === 'TRANSPORTATION' ? (
               <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 1.8, marginRight: 15 }]}>
+                <View style={[styles.inputGroup, { flex: 2.2, marginRight: 15 }]}>
                   <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Type of Vehicle</Text>
                   <CustomDropdown
                     selectedValue={vehicleType}
                     onValueChange={setVehicleType}
-                    placeholder="Select Vehicle"
+                    placeholder="Select Vehicle Type"
+                    disableSort={true}
                     items={[
                       { label: "Sedan", value: "Sedan" },
                       { label: "Hatchback", value: "Hatchback" },
                       { label: "SUV (Sport Utility Vehicle)", value: "SUV (Sport Utility Vehicle)" },
                       { label: "Crossover", value: "Crossover" },
-                      { label: "Pickup truck", value: "Pickup truck" },
+                      { label: "Pickup Truck", value: "Pickup Truck" },
                       { label: "Van / Minivan", value: "Van / Minivan" },
-                      { label: "Cargo van", value: "Cargo van" },
-                      { label: "Box truck", value: "Box truck" },
+                      { label: "Cargo Van", value: "Cargo Van" },
+                      { label: "Box Truck", value: "Box Truck" },
                       { label: "Wagon", value: "Wagon" },
                       { label: "Coupe", value: "Coupe" },
                       { label: "Convertible", value: "Convertible" },
                       { label: "Hybrid", value: "Hybrid" },
-                      { label: "Electric vehicle (EV)", value: "Electric vehicle (EV)" },
-                      { label: "Diesel vehicle", value: "Diesel vehicle" },
-                      { label: "Refrigerated truck", value: "Refrigerated truck" },
+                      { label: "Electric Vehicle (EV)", value: "Electric Vehicle (EV)" },
+                      { label: "Diesel Vehicle", value: "Diesel Vehicle" },
+                      { label: "Refrigerated Truck", value: "Refrigerated Truck" },
                       { label: "Motorcycle", value: "Motorcycle" }
                     ]}
                     style={styles.inputBox}
                   />
                 </View>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
+                <View style={[styles.inputGroup, { flex: 0.8, marginRight: 15 }]}>
                   <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Capacity</Text>
-                  <View style={[styles.inputBox, { justifyContent: 'center' }]}>
+                  <View style={styles.inputBox}>
                     <TextInput
-                      style={[styles.inputInner, { textAlign: 'center' }]}
+                      style={styles.inputInner}
                       placeholder="##"
-                      placeholderTextColor="#FFF"
+                      placeholderTextColor="rgba(255,255,255,0.5)"
                       keyboardType="numeric"
                       value={capacity}
                       onChangeText={setCapacity}
@@ -404,11 +626,11 @@ export default function ServiceDonation({ navigation }: any) {
                 </View>
                 <View style={[styles.inputGroup, { flex: 1.2 }]}>
                   <Text style={[styles.label, { fontSize: 11 }]} numberOfLines={1} adjustsFontSizeToFit>Max Distance</Text>
-                  <View style={[styles.inputBox, { justifyContent: 'center' }]}>
+                  <View style={styles.inputBox}>
                     <TextInput
-                      style={[styles.inputInner, { textAlign: 'center' }]}
-                      placeholder="## km"
-                      placeholderTextColor="#FFF"
+                      style={styles.inputInner}
+                      placeholder="### km"
+                      placeholderTextColor="rgba(255,255,255,0.5)"
                       keyboardType="numeric"
                       value={maxDistance}
                       onChangeText={setMaxDistance}
@@ -423,6 +645,7 @@ export default function ServiceDonation({ navigation }: any) {
                   selectedValue={preferredWork}
                   onValueChange={setPreferredWork}
                   placeholder="Select Work Type"
+                  disableSort={true}
                   items={[
                     { label: "Cook / Food Prep", value: "Cook / Food Prep" },
                     { label: "Packing / Sorting", value: "Packing / Sorting" },
@@ -498,11 +721,15 @@ export default function ServiceDonation({ navigation }: any) {
 
             {/* EXTRA NOTES */}
             <Text style={[styles.boldSectionTitle, { marginTop: 20 }]}>
-              {activeTab === 'TRANSPORTATION' ? 'Service Description / Extra Notes' : 'Extra Notes'}
+              Extra Notes <Text style={styles.subtextWeight}>(optional)</Text>
             </Text>
             <View style={[styles.inputBox, { height: 100, alignItems: 'flex-start' }]}>
               <TextInput
-                style={[styles.inputInner, styles.textArea]}
+                style={[
+                  styles.inputInner,
+                  styles.textArea,
+                  !description && { fontStyle: 'italic' }
+                ]}
                 placeholder="Input Address / Coverage"
                 placeholderTextColor="#FFF"
                 multiline
@@ -512,15 +739,30 @@ export default function ServiceDonation({ navigation }: any) {
               />
             </View>
 
-            {/* SUBMIT BUTTON - Native extension of the screen to give submission support */}
+          </View>
+
+          {/* BUTTONS ROW (OUTSIDE GREEN CARD) */}
+          <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={[styles.submitButton, isLoading && { opacity: 0.7 }]}
-              onPress={handleSubmit}
-              disabled={isLoading}
+              style={styles.cancelBtn}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
             >
-              {isLoading ? <ActivityIndicator color="#00592d" /> : <Text style={styles.submitBtnText}>Submit Donation</Text>}
+              <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={[styles.orangeSubmitBtn, isLoading && { opacity: 0.7 }]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.orangeSubmitBtnText}>Submit</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -528,16 +770,22 @@ export default function ServiceDonation({ navigation }: any) {
       {/* Shared Absolute OS Date/Time Picker */}
       {Platform.OS === 'android' && datePickerMode && (
         <DateTimePicker
-          value={datePickerMode === 'date' ? date : time}
+          value={
+            datePickerMode === 'date'
+              ? (date || new Date())
+              : datePickerMode === 'starts_at'
+                ? (startsAt || (() => { const d = new Date(); d.setHours(8, 0, 0, 0); return d; })())
+                : (endsAt || (() => { const d = new Date(); d.setHours(17, 0, 0, 0); return d; })())
+          }
           mode={datePickerMode === 'date' ? 'date' : 'time'}
-          minimumDate={datePickerMode === 'date' ? new Date() : undefined}
           display="default"
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
             setDatePickerMode(null);
             if (event.type === 'set' && selectedDate) {
               if (currentMode === 'date') setDate(selectedDate);
-              else if (currentMode === 'time') setTime(selectedDate);
+              else if (currentMode === 'starts_at') setStartsAt(selectedDate);
+              else if (currentMode === 'ends_at') setEndsAt(selectedDate);
             }
           }}
         />
@@ -553,23 +801,39 @@ export default function ServiceDonation({ navigation }: any) {
               <TouchableOpacity onPress={() => { setDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-              <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker value={tempDate} mode="date" display="spinner" onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* iOS Time Modal */}
-      <Modal visible={showIOSTime} transparent animationType="slide">
+      {/* iOS Starts At Modal */}
+      <Modal visible={showIOSStartsAt} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
-              <Text style={styles.modalTitle}>Select Time</Text>
-              <TouchableOpacity onPress={() => { setTime(tempTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowIOSStartsAt(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+              <Text style={styles.modalTitle}>Select Start Time</Text>
+              <TouchableOpacity onPress={() => { setStartsAt(tempStartsAt); setShowIOSStartsAt(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-              <DateTimePicker value={tempTime} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker value={tempStartsAt} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempStartsAt(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* iOS Ends At Modal */}
+      <Modal visible={showIOSEndsAt} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowIOSEndsAt(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+              <Text style={styles.modalTitle}>Select End Time</Text>
+              <TouchableOpacity onPress={() => { setEndsAt(tempEndsAt); setShowIOSEndsAt(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+            </View>
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+              <DateTimePicker value={tempEndsAt} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempEndsAt(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </View>
@@ -624,11 +888,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     marginRight: 10,
+    tintColor: '#000000',
   },
   mainTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#00592d',
+    color: '#000000',
     letterSpacing: -0.5
   },
 
@@ -742,23 +1007,71 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
 
-  submitButton: {
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 25,
+    marginBottom: 10,
+    width: '100%',
+  },
+  cancelBtn: {
+    width: 90,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#CCCCCC',
     backgroundColor: '#FFF',
-    height: 52,
-    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginRight: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  submitBtnText: {
-    color: '#00592d',
+  cancelBtnText: {
+    color: '#777777',
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5
+    fontWeight: '700',
+  },
+  orangeSubmitBtn: {
+    width: 130,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#CA6F2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#CA6F2E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  orangeSubmitBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 5,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxLabel: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
   }
 });

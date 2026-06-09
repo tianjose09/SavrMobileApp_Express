@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 11.5,
     paddingBottom: 2,
+    textAlign: 'left',
   },
   placeholderText: {
     color: 'rgba(255,255,255,0.45)',

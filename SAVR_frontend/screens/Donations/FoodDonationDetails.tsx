@@ -125,6 +125,19 @@ export default function FoodDonationDetails({ navigation }: any) {
   };
 
   const handleNext = (method: 'pickup' | 'delivery') => {
+    if (items.length === 0) {
+      Alert.alert('Error', 'Please add at least one food item.');
+      return;
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item.name.trim() || !item.quantity.trim() || !item.category) {
+        Alert.alert('Error', 'Please fill out all fields to submit donation.');
+        return;
+      }
+    }
+
     navigation.navigate('FoodDonationPickup', {
       initialScheduleType: method,
       foodItems: items.map((item) => ({
@@ -192,7 +205,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="trash-outline" size={20} color="#FFF" />
+                  <Ionicons name="close" size={20} color="#FFF" />
                 </TouchableOpacity>
               </View>
 
@@ -273,7 +286,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                       >
                         {item.expiryDate
                           ? item.expiryDate.toLocaleDateString()
-                          : 'DD / MM / YYYY'}
+                          : 'mm/dd/yyyy'}
                       </Text>
                       <Ionicons name="calendar-outline" size={20} color={item.expiryDate ? "#FFF" : "rgba(255,255,255,0.65)"} />
                     </View>
@@ -312,41 +325,19 @@ export default function FoodDonationDetails({ navigation }: any) {
             </View>
           ))}
 
-          <View style={styles.logisticsContainer}>
-            <Text style={styles.logisticsHeader}>How will we receive this?</Text>
+          {/* Button Row */}
+          <View style={styles.buttonRow}>
 
             <TouchableOpacity
-              style={styles.logisticOption}
+              style={styles.submitBtn}
               onPress={() => handleNext('pickup')}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <View style={styles.logisticIconBg}>
-                <Ionicons name="location" size={24} color="#00592d" />
-              </View>
-              <View style={styles.logisticContent}>
-                <Text style={styles.logisticTitle}>Request Pickup</Text>
-                <Text style={styles.logisticDesc}>We'll route a SAVR transport.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.logisticOption}
-              onPress={() => handleNext('delivery')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.logisticIconBg, { backgroundColor: '#E1EDCD' }]}>
-                <Ionicons name="cube" size={24} color="#00592d" />
-              </View>
-              <View style={styles.logisticContent}>
-                <Text style={styles.logisticTitle}>I'll Deliver It Directly</Text>
-                <Text style={styles.logisticDesc}>Bring it safely to our warehouse.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              <Text style={styles.submitBtnText}>Next</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 200 }} />
+          <View style={{ height: 100 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -441,12 +432,13 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     marginRight: 12,
+    tintColor: '#000000',
   },
 
   heroTitle: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#00592d',
+    color: '#000000',
     letterSpacing: - 0.5,
   },
 
@@ -597,26 +589,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
 
-  submitWrap: {
-    alignItems: 'flex-end',
-    marginTop: 12,
-    marginBottom: 24,
-  },
 
-  submitBtn: {
-    backgroundColor: '#e3ae10ff',
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 10,
-    minWidth: 124,
-    alignItems: 'center',
-  },
-
-  submitText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '800',
-  },
 
   logisticsContainer: {
     marginTop: 10,
@@ -693,6 +666,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+
+  logisticOptionActive: {
+    borderColor: '#00592d',
+    borderWidth: 2,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    marginTop: 25,
+    marginBottom: 10,
+  },
+  cancelBtn: {
+    width: 90,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  cancelBtnText: {
+    color: '#777777',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  submitBtn: {
+    backgroundColor: '#CA6F2E',
+    width: 130,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#CA6F2E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  submitBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },

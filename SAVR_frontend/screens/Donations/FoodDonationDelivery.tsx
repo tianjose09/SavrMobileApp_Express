@@ -1,40 +1,91 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, SafeAreaView, Modal } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 
 export default function FoodDonationDelivery({ route, navigation }: any) {
+  // Exact coordinates for Room 300, DHI Building, No. 2 Lapu Lapu Ave, Magallanes, Makati City
   const warehouseLocation = {
-    latitude: 14.5547,
-    longitude: 121.0244,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.02,
+    latitude: 14.5332,
+    longitude: 121.0189,
+    latitudeDelta: 0.008,
+    longitudeDelta: 0.008,
   };
 
-  const [deliveryDate, setDeliveryDate] = useState<Date>(new Date());
-  const [deliveryTime, setDeliveryTime] = useState<Date>(new Date());
-  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time' | null>(null);
+  const [deliveryDate, setDeliveryDate] = useState<Date | null>(null);
+  const [deliveryTimeFrom, setDeliveryTimeFrom] = useState<Date | null>(null);
+  const [deliveryTimeTo, setDeliveryTimeTo] = useState<Date | null>(null);
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time_from' | 'time_to' | null>(null);
   const [showIOSDate, setShowIOSDate] = useState(false);
-  const [showIOSTime, setShowIOSTime] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date());
-  const [tempTime, setTempTime] = useState(new Date());
+  const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
+  const [showIOSDateTo, setShowIOSDateTo] = useState(false);
+  const [tempDate, setTempDate] = useState(() => new Date());
+  const [tempTimeFrom, setTempTimeFrom] = useState(() => {
+    const d = new Date();
+    d.setHours(7, 0, 0, 0);
+    return d;
+  });
+  const [tempTimeTo, setTempTimeTo] = useState(() => {
+    const d = new Date();
+    d.setHours(9, 0, 0, 0);
+    return d;
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const { foodItems } = route.params || { foodItems: [] };
 
+  const formatTimeWithAMPM = (date: Date | null) => {
+    if (!date) return '--:-- --';
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${strMinutes} ${ampm}`;
+  };
+
   const handleSubmit = async () => {
+    if (!deliveryDate) {
+      Alert.alert('Error', 'Please select a preferred date.');
+      return;
+    }
+    if (!deliveryTimeFrom || !deliveryTimeTo) {
+      Alert.alert('Error', 'Please select both start and end times for the slot.');
+      return;
+    }
+    const fromHours = deliveryTimeFrom.getHours();
+    const fromMinutes = deliveryTimeFrom.getMinutes();
+    const toHours = deliveryTimeTo.getHours();
+    const toMinutes = deliveryTimeTo.getMinutes();
+
+    if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
+      return;
+    }
+    if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
+      return;
+    }
+    if (deliveryTimeFrom >= deliveryTimeTo) {
+      Alert.alert('Invalid Time Slot', 'End time must be after the start time.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const formData = new FormData();
       formData.append('schedule_type', 'delivery');
       formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232, Metro Manila, Philippines');
-      formData.append('pickup_latitude', '14.5547');
-      formData.append('pickup_longitude', '121.0244');
+      formData.append('pickup_latitude', '14.5332');
+      formData.append('pickup_longitude', '121.0189');
 
       const dateStr = deliveryDate.toISOString().split('T')[0];
-      const timeStr = deliveryTime.toTimeString().split(' ')[0].substring(0, 5);
+      const fromStr = deliveryTimeFrom.toTimeString().split(' ')[0].substring(0, 5);
+      const toStr = deliveryTimeTo.toTimeString().split(' ')[0].substring(0, 5);
+      const timeStr = `${fromStr} - ${toStr}`;
       formData.append('preferred_date', dateStr);
       formData.append('time_slot', timeStr);
 
@@ -83,7 +134,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.heroBackground}>
           <View style={styles.topNav}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('FoodDonationDetails')}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={28} color="#FFF" />
             </TouchableOpacity>
           </View>
@@ -97,56 +148,103 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
 
         <View style={styles.mapContainer}>
           <MapView
-            provider={PROVIDER_GOOGLE}
             style={styles.map}
             initialRegion={warehouseLocation}
             zoomEnabled={false}
             scrollEnabled={false}
             pitchEnabled={false}
             rotateEnabled={false}
-          >
-            <Marker
-              coordinate={{ latitude: warehouseLocation.latitude, longitude: warehouseLocation.longitude }}
-            >
-              <Ionicons name="business" size={40} color="#1E583A" />
-            </Marker>
-          </MapView>
-          <View style={styles.addressOverlay}>
-            <Text style={styles.addressTitle}>HQ Drop-off Point</Text>
-            <Text style={[styles.addressText, { textAlign: 'center' }]}>Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines.</Text>
+          />
+          <View pointerEvents="none" style={styles.markerFixed}>
+            <Ionicons name="location" size={44} color="red" />
           </View>
         </View>
 
         <View style={styles.bottomPanel}>
-          <Text style={styles.sectionTitle}>Expected Arrival Time</Text>
+          {/* Drop-off Address Card */}
+          <View style={styles.addressOverlay}>
+            <Ionicons name="location" size={20} color="#00592d" style={{ marginRight: 6, marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.addressTitle}>HQ Drop-off Point</Text>
+              <Text style={styles.addressText}>Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232, Metro Manila, Philippines.</Text>
+            </View>
+          </View>
+          <Text style={styles.deliveryHintText}>
+            Please bring your donation to this address on your selected date and time.
+          </Text>
 
-          <View style={styles.dateRow}>
-            <TouchableOpacity
-              style={styles.dateBtn}
-              onPress={() => {
-                if (Platform.OS === 'ios') { setTempDate(deliveryDate); setShowIOSDate(true); }
-                else setDatePickerMode('date');
-              }}
-            >
-              <Text style={styles.dateLabel}>Date: </Text>
-              <Text style={styles.dateValue}>{deliveryDate.toLocaleDateString()}</Text>
-            </TouchableOpacity>
+          {/* DATE & TIME FIELDS */}
+          <View style={styles.dateTimeSectionWrap}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.inputLabel}>Preferred Date</Text>
+              <TouchableOpacity
+                style={styles.pickerInputWrapper}
+                onPress={() => {
+                  if (Platform.OS === 'ios') { setTempDate(deliveryDate || new Date()); setShowIOSDate(true); }
+                  else setDatePickerMode('date');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.pickerTextInput, !deliveryDate && { color: 'rgba(0,89,45,0.45)' }]}>
+                  {deliveryDate ? deliveryDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                </Text>
+                <View style={styles.pickerIconBtn}>
+                  <Ionicons name="calendar-outline" size={20} color="#8CA697" />
+                </View>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={styles.dateBtn}
-              onPress={() => {
-                if (Platform.OS === 'ios') { setTempTime(deliveryTime); setShowIOSTime(true); }
-                else setDatePickerMode('time');
-              }}
-            >
-              <Text style={styles.dateLabel}>Time: </Text>
-              <Text style={styles.dateValue}>
-                {deliveryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.inputLabel}>Time Slot</Text>
+              <View style={styles.timeSlotRow}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.timeLabel}>From</Text>
+                  <TouchableOpacity
+                    style={styles.pickerInputWrapper}
+                    onPress={() => {
+                      const d = deliveryTimeFrom || new Date();
+                      d.setHours(7, 0, 0, 0);
+                      setTempTimeFrom(d);
+                      if (Platform.OS === 'ios') { setShowIOSDateFrom(true); }
+                      else setDatePickerMode('time_from');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.pickerTextInput, !deliveryTimeFrom && { color: 'rgba(0,89,45,0.45)' }]}>
+                      {deliveryTimeFrom ? formatTimeWithAMPM(deliveryTimeFrom) : '--:-- --'}
+                    </Text>
+                    <View style={styles.pickerIconBtn}>
+                      <Ionicons name="time-outline" size={20} color="#8CA697" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.halfInput}>
+                  <Text style={styles.timeLabel}>To</Text>
+                  <TouchableOpacity
+                    style={styles.pickerInputWrapper}
+                    onPress={() => {
+                      const d = deliveryTimeTo || new Date();
+                      d.setHours(9, 0, 0, 0);
+                      setTempTimeTo(d);
+                      if (Platform.OS === 'ios') { setShowIOSDateTo(true); }
+                      else setDatePickerMode('time_to');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.pickerTextInput, !deliveryTimeTo && { color: 'rgba(0,89,45,0.45)' }]}>
+                      {deliveryTimeTo ? formatTimeWithAMPM(deliveryTimeTo) : '--:-- --'}
+                    </Text>
+                    <View style={styles.pickerIconBtn}>
+                      <Ionicons name="time-outline" size={20} color="#8CA697" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
 
-          {/* iOS Date Modal */}
+          {/* iOS Date Picker Modal */}
           <Modal visible={showIOSDate} transparent animationType="slide">
             <View style={styles.modalOverlay}>
               <View style={styles.modalSheet}>
@@ -155,26 +253,38 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
                   <Text style={styles.modalTitle}>Select Date</Text>
                   <TouchableOpacity onPress={() => { setDeliveryDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
                 </View>
-                <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(e, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
               </View>
             </View>
           </Modal>
 
-          {/* iOS Time Modal */}
-          <Modal visible={showIOSTime} transparent animationType="slide">
+          {/* iOS Time From Modal */}
+          <Modal visible={showIOSDateFrom} transparent animationType="slide">
             <View style={styles.modalOverlay}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
-                  <TouchableOpacity onPress={() => setShowIOSTime(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
-                  <Text style={styles.modalTitle}>Select Time</Text>
-                  <TouchableOpacity onPress={() => { setDeliveryTime(tempTime); setShowIOSTime(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setShowIOSDateFrom(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+                  <Text style={styles.modalTitle}>Select Start Time</Text>
+                  <TouchableOpacity onPress={() => { setDeliveryTimeFrom(tempTimeFrom); setShowIOSDateFrom(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
                 </View>
-                <DateTimePicker value={tempTime} mode="time" display="spinner" onChange={(e, d) => { if (d) setTempTime(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                <DateTimePicker value={tempTimeFrom} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempTimeFrom(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
               </View>
             </View>
           </Modal>
 
-
+          {/* iOS Time To Modal */}
+          <Modal visible={showIOSDateTo} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowIOSDateTo(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
+                  <Text style={styles.modalTitle}>Select End Time</Text>
+                  <TouchableOpacity onPress={() => { setDeliveryTimeTo(tempTimeTo); setShowIOSDateTo(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                </View>
+                <DateTimePicker value={tempTimeTo} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempTimeTo(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              </View>
+            </View>
+          </Modal>
 
           <TouchableOpacity
             style={[styles.confirmBtn, isLoading && { backgroundColor: '#A7C2B2' }]}
@@ -189,8 +299,14 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
       {/* Shared Absolute OS Date/Time Picker */}
       {Platform.OS !== 'ios' && datePickerMode && (
         <DateTimePicker
-          value={datePickerMode === 'date' ? deliveryDate : deliveryTime}
-          mode={datePickerMode}
+          value={
+            datePickerMode === 'date'
+              ? (deliveryDate || new Date())
+              : datePickerMode === 'time_from'
+              ? (deliveryTimeFrom || (() => { const d = new Date(); d.setHours(7, 0, 0, 0); return d; })())
+              : (deliveryTimeTo || (() => { const d = new Date(); d.setHours(9, 0, 0, 0); return d; })())
+          }
+          mode={datePickerMode === 'date' ? 'date' : 'time'}
           minimumDate={datePickerMode === 'date' ? new Date() : undefined}
           display="default"
           onChange={(event, selectedDate) => {
@@ -199,7 +315,8 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
 
             if (event.type === 'set' && selectedDate) {
               if (currentMode === 'date') setDeliveryDate(selectedDate);
-              else if (currentMode === 'time') setDeliveryTime(selectedDate);
+              else if (currentMode === 'time_from') setDeliveryTimeFrom(selectedDate);
+              else if (currentMode === 'time_to') setDeliveryTimeTo(selectedDate);
             }
           }}
         />
@@ -230,29 +347,89 @@ const styles = StyleSheet.create({
   heroTitleMain: { fontSize: 24, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
   heroTitleHighlight: { color: '#FACC15' },
 
-  mapContainer: { height: 250, position: 'relative', marginTop: -25 },
+  mapContainer: { height: 250, position: 'relative', marginTop: -25, zIndex: 1, overflow: 'visible' },
   map: { flex: 1 },
+  markerFixed: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    marginLeft: -22,
+    marginTop: -44,
+    zIndex: 999,
+    elevation: 999,
+  },
   addressOverlay: {
-    position: 'absolute', top: 40, alignSelf: 'center', left: '10%', right: '10%',
-    backgroundColor: 'rgba(255,255,255,0.95)', padding: 15, borderRadius: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3, alignItems: 'center'
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F0FAF4',
+    borderWidth: 1.5,
+    borderColor: '#00592d',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
   },
   addressTitle: { fontSize: 15, fontWeight: '800', color: '#00592d', marginBottom: 2 },
-  addressText: { fontSize: 13, color: '#666', fontWeight: '600' },
+  addressText: { fontSize: 13, color: '#00592d', fontWeight: '600' },
 
   bottomPanel: {
     backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
     padding: 25, shadowColor: '#000', shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.1, shadowRadius: 10, elevation: 15, marginTop: -20,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#CA6F2E', marginBottom: 15 },
-  dateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
-  dateBtn: {
-    width: '48%', backgroundColor: '#F0F6F3', height: 50, borderRadius: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#226E45'
+  inputLabel: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#00592d',
+    marginBottom: 10,
+    letterSpacing: -0.5,
   },
-  dateLabel: { fontSize: 13, color: '#00592d', fontWeight: '800' },
-  dateValue: { fontSize: 13, fontWeight: '800', color: '#111' },
+  dateTimeSectionWrap: {
+    marginBottom: 30,
+  },
+  fieldContainer: {
+    marginBottom: 20,
+  },
+  timeSlotRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  timeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#777777',
+    marginBottom: 6,
+  },
+  halfInput: {
+    width: '48%',
+  },
+  deliveryHintText: {
+    fontSize: 13,
+    color: '#777777',
+    marginTop: -10,
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+  pickerInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#8CA697',
+    borderRadius: 12,
+    height: 48,
+    paddingHorizontal: 15,
+    backgroundColor: '#F5F7F5',
+  },
+  pickerTextInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#00592d',
+    fontWeight: '600',
+    lineHeight: 48,
+  },
+  pickerIconBtn: {
+    padding: 5,
+    overflow: 'hidden',
+  },
 
   confirmBtn: {
     backgroundColor: '#CA6F2E', height: 60, borderRadius: 16,

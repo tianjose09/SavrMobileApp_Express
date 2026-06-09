@@ -684,15 +684,29 @@ exports.submitService = async (req, res) => {
     contact_first_name, contact_last_name, contact_email, description,
     vehicle_type, capacity, max_distance, transport_categories,
     headcount, preferred_work, skill_categories,
+    all_day, starts_at, ends_at,
   } = req.body;
 
-  if (!service_type || !frequency || !service_date || !service_time || !address || !contact_first_name || !contact_last_name || !contact_email) {
+  if (!service_type || !frequency || !address || !contact_first_name || !contact_last_name || !contact_email) {
     return res.status(422).json({ success: false, message: 'Required fields missing.' });
+  }
+
+  const isAllDay = all_day === true || all_day === 'true';
+
+  if (!isAllDay && (!starts_at || !ends_at)) {
+    return res.status(422).json({ success: false, message: 'Start and end times are required for non-all day services.' });
   }
 
   const cleanTime = (str) => (str || '').replace(/[^\x20-\x7E]/g, ' ').trim();
   let startsAt = null;
-  try { startsAt = dayjs(`1970-01-01 ${cleanTime(service_time)}`).format('HH:mm:ss'); } catch {}
+  let endsAt = null;
+
+  if (!isAllDay) {
+    try { startsAt = dayjs(`1970-01-01 ${cleanTime(starts_at)}`).format('HH:mm:ss'); } catch {}
+    try { endsAt = dayjs(`1970-01-01 ${cleanTime(ends_at)}`).format('HH:mm:ss'); } catch {}
+  }
+
+  const finalDate = service_date || null;
 
   const transportCatsJson = transport_categories
     ? (typeof transport_categories === 'string' ? transport_categories : JSON.stringify(transport_categories))
@@ -712,15 +726,15 @@ exports.submitService = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO service_donation_records
-       (user_id, service_tab, quantity, frequency, date, starts_at, address,
+       (user_id, service_tab, quantity, frequency, date, starts_at, ends_at, all_day, address,
         first_name, last_name, email, notes,
         vehicle_type, capacity, max_distance, transport_categories,
         headcount, preferred_work, skill_categories,
         status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
     [
       req.user.id, service_type, parseInt(quantity) || null, frequency,
-      service_date, startsAt, address,
+      finalDate, startsAt, endsAt, isAllDay ? 1 : 0, address,
       contact_first_name, contact_last_name, contact_email, description || null,
       vehicle_type || null, capacity || null, max_distance || null, transportCatsJson,
       parseInt(headcount) || null, preferred_work || null, skillCatsJson,

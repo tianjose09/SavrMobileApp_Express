@@ -189,85 +189,113 @@ export default function FinancialDonation({ navigation }: any) {
           <View style={styles.titleRow}>
             <Image
               source={require('../../assets/images/cards/financialdonationicongreen.png')}
-              style={{ width: 40, height: 40, marginRight: 10 }}
+              style={{ width: 55, height: 55, marginRight: 10, tintColor: '#000000' }}
               resizeMode="contain"
             />
             <Text style={styles.pageTitle}>Financial Donation</Text>
           </View>
 
-          {/* Amount Card */}
+          {/* Green Card */}
           <View style={styles.greenCard}>
-            <View style={styles.amountInputWrapper}>
-              <Text style={styles.currencySymbol}>₱</Text>
+
+            {/* Select Amount */}
+            <Text style={styles.sectionLabel}>Select Amount</Text>
+            <View style={styles.amountGrid}>
+              {[500, 1000, 2000, 5000].map((preset) => (
+                <TouchableOpacity
+                  key={preset}
+                  style={[
+                    styles.presetBtn,
+                    amount === preset.toLocaleString('en-US') && styles.presetBtnActive
+                  ]}
+                  onPress={() => setAmount(preset.toLocaleString('en-US'))}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.presetBtnText,
+                    amount === preset.toLocaleString('en-US') && styles.presetBtnTextActive
+                  ]}>
+                    ₱ {preset.toLocaleString('en-US')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Custom Amount */}
+            <Text style={styles.sectionLabel}>Or enter custom amount (₱)</Text>
+            <View style={styles.customAmountBox}>
+              <Text style={styles.pesoPrefix}>₱</Text>
               <TextInput
-                style={[styles.amountInput, { fontSize: amount ? 48 : 20, textAlign: 'center' }]}
+                style={styles.customAmountInput}
                 value={amount}
                 onChangeText={handleAmountChange}
                 keyboardType="decimal-pad"
                 selectionColor="#FFF"
-                placeholder="Enter amount to donate"
-                placeholderTextColor="rgba(255,255,255,0.7)"
+                placeholder="0.00"
+                placeholderTextColor="rgba(255,255,255,0.5)"
               />
             </View>
 
-            <View style={styles.cardDivider} />
-
-            <View style={styles.dateTimeRow}>
-              <Text style={styles.dateTimeText}>Date : {getTodayDate()}</Text>
-              <Text style={styles.dateTimeText}>Time : {getCurrentTime()}</Text>
+            {/* Payment Method */}
+            <Text style={styles.sectionLabel}>Payment Method</Text>
+            <View style={styles.paymentMethodCard}>
+              <View style={styles.paymentMethodLeft}>
+                <View style={styles.paymentMethodIcon}>
+                  <Ionicons name="card-outline" size={24} color="#FFF" />
+                </View>
+                <View>
+                  <Text style={styles.paymentMethodName}>PayMongo</Text>
+                  <Text style={styles.paymentMethodSub}>GCash, Maya, Cards</Text>
+                </View>
+              </View>
+              <Ionicons name="checkmark-circle-outline" size={24} color="#FFF" />
             </View>
 
-            <Text style={styles.messageLabel}>Extra Note</Text>
-            <TextInput
-              style={styles.messageInput}
-              placeholder="e.g. Kapatiran Fire Tondo Relief"
-              placeholderTextColor="#B0CFBC"
-              value={message}
-              onChangeText={setMessage}
-              multiline
-            />
-          </View>
-
-          {/* Payment Method */}
-          <Text style={styles.paymentMethodTitle}>Payment Method</Text>
-          <View style={styles.secureMethodCard}>
-            <Ionicons name="shield-checkmark" size={28} color="#A75D20" style={{ marginBottom: 8 }} />
-            <Text style={styles.secureMethodTitle}>Secured via PayMongo</Text>
-            <Text style={styles.secureMethodDesc}>Accepts GCash, Maya, Credit & Debit Cards</Text>
-            <View style={styles.badgesRow}>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>GCash</Text></View>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Maya</Text></View>
-              <View style={styles.miniBadge}><Text style={styles.miniBadgeText}>Visa/MC</Text></View>
+            {/* Description / Extra Notes */}
+            <Text style={styles.sectionLabel}>
+              Service Description / Extra Notes <Text style={{ fontWeight: '400' }}>(optional)</Text>
+            </Text>
+            <View style={{ position: 'relative' }}>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Leave a message for the food bank..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                numberOfLines={4}
+              />
+              <View style={styles.resizeGrip}>
+                <View style={styles.gripLine1} />
+                <View style={styles.gripLine2} />
+              </View>
             </View>
           </View>
 
           <View style={styles.spacer} />
 
-          {/* Proceed Button */}
-          <TouchableOpacity
-            style={[styles.donateButton, isLoading && { backgroundColor: '#A7C2B2' }]}
-            onPress={handleDonate}
-            disabled={isLoading}
-          >
-            {isLoading ? <ActivityIndicator color="#fff" /> : (
-              <Text style={styles.donateBtnText}>Proceed details via PayMongo</Text>
-            )}
-          </TouchableOpacity>
-
-          {paymentLinkOpened && pendingDonationId ? (
+          {/* Button Row */}
+          <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={[styles.checkPaymentButton, isCheckingPayment && { opacity: 0.6 }]}
-              onPress={handleManualCheck}
-              disabled={isCheckingPayment}
+              style={styles.cancelBtn}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
             >
-              {isCheckingPayment ? <ActivityIndicator color="#00592d" size="small" /> : (
-                <>
-                  <Ionicons name="refresh-circle-outline" size={18} color="#00592d" style={{ marginRight: 6 }} />
-                  <Text style={styles.checkPaymentText}>Check Payment Status</Text>
-                </>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.donateButton, isLoading && { backgroundColor: '#A7C2B2' }]}
+              onPress={handleDonate}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              {isLoading ? <ActivityIndicator color="#fff" /> : (
+                <Text style={styles.donateBtnText}>Submit</Text>
               )}
             </TouchableOpacity>
-          ) : null}
+          </View>
+
 
           <View style={{ height: 50 }} />
         </ScrollView>
@@ -308,74 +336,197 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 22, paddingTop: 15 },
 
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, marginTop: 20 },
-  pageTitle: { fontSize: 27, fontWeight: '800', color: '#00592d', letterSpacing: -0.5 },
+  pageTitle: { fontSize: 27, fontWeight: '800', color: '#000000', letterSpacing: -0.5 },
 
   greenCard: {
     backgroundColor: '#00592d',
     borderRadius: 24,
-    paddingHorizontal: 25,
-    paddingTop: 35,
-    paddingBottom: 35,
-    marginBottom: 35,
+    paddingHorizontal: 22,
+    paddingTop: 25,
+    paddingBottom: 30,
+    marginBottom: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 8,
   },
-  amountInputWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  currencySymbol: { fontSize: 42, fontWeight: '700', color: '#FFFFFF', marginRight: 8, marginTop: -5 },
-  amountInput: { fontSize: 48, fontWeight: '700', color: '#FFFFFF', minWidth: 50 },
-  cardDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.5)', marginHorizontal: 15, marginBottom: 20 },
-  dateTimeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25, paddingHorizontal: 5 },
-  dateTimeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '400' },
-  messageLabel: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  messageInput: {
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    borderRadius: 16,
-    height: 80,
-    paddingHorizontal: 15,
-    paddingTop: 15,
-    color: '#FFFFFF',
-    fontSize: 13,
-    textAlignVertical: 'top',
+
+  sectionLabel: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 15,
   },
 
-  paymentMethodTitle: { fontSize: 26, fontWeight: '700', color: '#00592d', marginBottom: 20, paddingHorizontal: 8 },
+  amountGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+    gap: 10,
+  },
+  presetBtn: {
+    width: '48%',
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  presetBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.38)',
+    borderColor: '#FFFFFF',
+  },
+  presetBtnText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  presetBtnTextActive: {
+    color: '#FFF',
+  },
 
-  secureMethodCard: {
-    backgroundColor: '#Faf6F2',
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 10,
+  customAmountBox: {
+    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#A75D20',
-    marginHorizontal: 5,
-    marginBottom: 35,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    borderColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    height: 52,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
-  secureMethodTitle: { fontSize: 16, fontWeight: '700', color: '#A75D20', marginBottom: 2 },
-  secureMethodDesc: { fontSize: 12, color: '#6A6A6A', textAlign: 'center', fontWeight: '700', marginBottom: 15 },
-  badgesRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
-  miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#E1E9E4', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  miniBadgeText: { fontSize: 10, fontWeight: '700', color: '#222' },
+  pesoPrefix: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 8,
+  },
+  customAmountInput: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+
+  paymentMethodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  paymentMethodLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paymentMethodIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  paymentMethodName: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  paymentMethodSub: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+
+  notesInput: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    minHeight: 120,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlignVertical: 'top',
+  },
+  resizeGrip: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 12,
+    height: 12,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    opacity: 0.5,
+  },
+  gripLine1: {
+    width: 10,
+    height: 1.5,
+    backgroundColor: '#FFF',
+    transform: [{ rotate: '-45deg' }],
+    marginBottom: 2,
+  },
+  gripLine2: {
+    width: 6,
+    height: 1.5,
+    backgroundColor: '#FFF',
+    transform: [{ rotate: '-45deg' }],
+  },
 
   spacer: { flex: 1, minHeight: 10 },
 
-  donateButton: {
-    backgroundColor: '#00592d',
-    height: 55,
-    borderRadius: 25,
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  cancelBtn: {
+    width: 90,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 15,
+    marginRight: 15,
     shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  cancelBtnText: {
+    color: '#777777',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  donateButton: {
+    backgroundColor: '#CA6F2E',
+    width: 130,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#CA6F2E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 5,
