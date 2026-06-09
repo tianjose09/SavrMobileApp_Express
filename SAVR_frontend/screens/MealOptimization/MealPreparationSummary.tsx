@@ -49,7 +49,7 @@ export default function MealPreparationSummary({ navigation }: any) {
                   category: 'Prepared Meals',
                   quantity: meal.pax || 1,
                   unit: 'meal',
-                  meal_type: 'Prepared Meals',
+                  meal_type: 'Prep Meal',
                   expiration_date: expiryDate,
                 });
                 await MealPrepService.updateStatus(meal.id, 'Done');
