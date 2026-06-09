@@ -645,9 +645,14 @@ exports.submitSchedule = async (req, res) => {
 // ─── Service Donation ─────────────────────────────────────────────────────────
 
 exports.submitService = async (req, res) => {
-  const { service_type, quantity, frequency, service_date, service_time, address, contact_first_name, contact_last_name, contact_email, description } = req.body;
+  const {
+    service_type, quantity, frequency, service_date, service_time, address,
+    contact_first_name, contact_last_name, contact_email, description,
+    vehicle_type, capacity, max_distance, transport_categories,
+    headcount, preferred_work, skill_categories,
+  } = req.body;
 
-  if (!service_type || !quantity || !frequency || !service_date || !service_time || !address || !contact_first_name || !contact_last_name || !contact_email) {
+  if (!service_type || !frequency || !service_date || !service_time || !address || !contact_first_name || !contact_last_name || !contact_email) {
     return res.status(422).json({ success: false, message: 'Required fields missing.' });
   }
 
@@ -655,10 +660,37 @@ exports.submitService = async (req, res) => {
   let startsAt = null;
   try { startsAt = dayjs(`1970-01-01 ${cleanTime(service_time)}`).format('HH:mm:ss'); } catch {}
 
+  const transportCatsJson = transport_categories
+    ? (typeof transport_categories === 'string' ? transport_categories : JSON.stringify(transport_categories))
+    : null;
+  const skillCatsJson = skill_categories
+    ? (typeof skill_categories === 'string' ? skill_categories : JSON.stringify(skill_categories))
+    : null;
+
+  // Ensure extra columns exist (safe to run repeatedly)
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(255) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS capacity VARCHAR(100) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS max_distance VARCHAR(100) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS transport_categories JSON DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS headcount INTEGER DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS preferred_work VARCHAR(255) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS skill_categories JSON DEFAULT NULL`).catch(() => {});
+
   const [result] = await db.execute(
-    `INSERT INTO service_donation_records (user_id, service_tab, quantity, frequency, date, starts_at, address, first_name, last_name, email, notes, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
-    [req.user.id, service_type, quantity, frequency, service_date, startsAt, address, contact_first_name, contact_last_name, contact_email, description || null]
+    `INSERT INTO service_donation_records
+       (user_id, service_tab, quantity, frequency, date, starts_at, address,
+        first_name, last_name, email, notes,
+        vehicle_type, capacity, max_distance, transport_categories,
+        headcount, preferred_work, skill_categories,
+        status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+    [
+      req.user.id, service_type, parseInt(quantity) || null, frequency,
+      service_date, startsAt, address,
+      contact_first_name, contact_last_name, contact_email, description || null,
+      vehicle_type || null, capacity || null, max_distance || null, transportCatsJson,
+      parseInt(headcount) || null, preferred_work || null, skillCatsJson,
+    ]
   );
 
   const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
