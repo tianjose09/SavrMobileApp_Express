@@ -16,11 +16,19 @@ import { ApiService } from '../../services/api';
 import { MealPrepService } from '../../services/mealPrepService';
 
 
+const DESCRIPTORS = new Set([
+  'canned', 'fresh', 'dried', 'frozen', 'raw', 'cooked', 'whole', 'sliced',
+  'chopped', 'diced', 'minced', 'ground', 'peeled', 'smoked', 'salted',
+  'unsalted', 'boiled', 'fried', 'roasted', 'baked', 'powdered', 'shredded',
+  'grated', 'crushed', 'steamed', 'organic', 'plain', 'large', 'small',
+  'medium', 'hot', 'cold', 'sweet', 'sour', 'spicy', 'thick', 'thin',
+]);
+
 const isMatch = (selectedName: string, ingToken: string): boolean => {
   if (ingToken.includes(selectedName)) return true;
-  const words = selectedName.split(/\s+/).filter(w => w.length > 2);
+  const words = selectedName.split(/\s+/).filter(w => w.length > 2 && !DESCRIPTORS.has(w));
   if (words.length === 0) return false;
-  // Anchor on the rightmost word (main noun) so "brown rice" never matches "brown sugar"
+  // Anchor on the rightmost meaningful noun so "brown rice" never matches "brown sugar"
   const mainNoun = words[words.length - 1];
   return ingToken.includes(mainNoun);
 };
@@ -64,23 +72,6 @@ export default function PrepareMeal({ route, navigation }: any) {
       if (deductions.length > 0) {
         await ApiService.deductInventory({ deductions, meal_name: meal.name });
       }
-
-      if (prepMealId) {
-        await MealPrepService.updateStatus(prepMealId, 'Done');
-      }
-
-      // Add cooked meal to food_inventory as a Prepared Meal (expires in 1 day)
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const expiryDate = tomorrow.toISOString().split('T')[0];
-      await ApiService.addInventory({
-        food_name: meal.name,
-        category: 'Prepared Meals',
-        quantity: mealPax || 1,
-        unit: 'meal',
-        meal_type: 'Prepared Meals',
-        expiration_date: expiryDate,
-      });
 
       navigation.navigate('MealPreparationSummary');
     } catch (e: any) {

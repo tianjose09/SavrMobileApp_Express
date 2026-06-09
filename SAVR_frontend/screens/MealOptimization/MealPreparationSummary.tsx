@@ -41,14 +41,6 @@ export default function MealPreparationSummary({ navigation }: any) {
           onPress: async () => {
             if (meal.status !== 'Done') {
               try {
-                if (meal.deductions && meal.deductions.length > 0) {
-                  await ApiService.deductInventory({
-                    deductions: meal.deductions,
-                    meal_name: meal.mealName
-                  });
-                }
-
-                // Add cooked meal to food_inventory as a Prepared Meal (expires in 1 day)
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 const expiryDate = tomorrow.toISOString().split('T')[0];
@@ -60,7 +52,6 @@ export default function MealPreparationSummary({ navigation }: any) {
                   meal_type: 'Prepared Meals',
                   expiration_date: expiryDate,
                 });
-
                 await MealPrepService.updateStatus(meal.id, 'Done');
                 Alert.alert('Success', 'Meal marked as done and added to prepared meals inventory!');
                 loadMeals();

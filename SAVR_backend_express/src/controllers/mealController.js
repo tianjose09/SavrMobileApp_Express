@@ -68,19 +68,32 @@ exports.optimizeMeals = async (req, res) => {
             break;
           }
 
-          const ingWords = ingKey.split(' ').filter(w => w.length > 2);
-          const selWords = selName.split(' ').filter(w => w.length > 2);
+          // Strip descriptors so only the actual ingredient noun is compared.
+          // Matching on descriptor words alone links unrelated items
+          // (e.g. "canned tuna" ↔ "canned sardines" via "canned").
+          const DESCRIPTORS = new Set([
+            'canned', 'fresh', 'dried', 'frozen', 'raw', 'cooked', 'whole', 'sliced',
+            'chopped', 'diced', 'minced', 'ground', 'peeled', 'smoked', 'salted',
+            'unsalted', 'boiled', 'fried', 'roasted', 'baked', 'powdered', 'shredded',
+            'grated', 'crushed', 'steamed', 'organic', 'plain', 'large', 'small',
+            'medium', 'hot', 'cold', 'sweet', 'sour', 'spicy', 'thick', 'thin',
+            'mixed', 'assorted', 'regular', 'extra', 'lean', 'skinless', 'boneless',
+          ]);
 
-          let found = false;
-          for (const sw of selWords) {
-            if (ingKey.includes(sw)) { matchKey = selName; found = true; break; }
-          }
-          if (found) break;
+          const ingNouns = ingKey.split(' ').filter(w => w.length > 2 && !DESCRIPTORS.has(w));
+          const selNouns = selName.split(' ').filter(w => w.length > 2 && !DESCRIPTORS.has(w));
 
-          for (const iw of ingWords) {
-            if (selName.includes(iw)) { matchKey = selName; found = true; break; }
+          if (!ingNouns.length || !selNouns.length) continue;
+
+          // Anchor on the rightmost noun (the main ingredient word) to avoid
+          // false positives from shared modifiers.
+          const ingMainNoun = ingNouns[ingNouns.length - 1];
+          const selMainNoun = selNouns[selNouns.length - 1];
+
+          if (ingKey.includes(selMainNoun) || selName.includes(ingMainNoun)) {
+            matchKey = selName;
           }
-          if (found) break;
+          if (matchKey) break;
         }
       }
 

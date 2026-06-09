@@ -4,7 +4,7 @@ const { createNotification } = require('./notificationController');
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
-    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' ORDER BY food_name"
+    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR category != 'Prepared Meals') ORDER BY food_name"
   );
 
   return res.json({
@@ -49,10 +49,6 @@ exports.store = async (req, res) => {
 
   const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [result.insertId]);
   const item = rows[0];
-
-  if (req.user?.id) {
-    await createNotification(req.user.id, 'food', 'Inventory Updated', `${food_name} (${quantity} ${unit}) has been added to your kitchen inventory.`);
-  }
 
   return res.status(201).json({
     success: true,
