@@ -13,6 +13,7 @@ interface CustomDropdownProps {
   items: DropdownItem[];
   placeholder?: string;
   style?: any;
+  placeholderTextColor?: string;
 }
 
 export default function CustomDropdown({
@@ -20,11 +21,24 @@ export default function CustomDropdown({
   onValueChange,
   items,
   placeholder = "Select...",
-  style
+  style,
+  placeholderTextColor
 }: CustomDropdownProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const sortedItems = [...(items || [])].sort((a, b) => a.label.localeCompare(b.label));
   const selectedItem = sortedItems.find(i => i.value === selectedValue);
+
+  const getPlaceholderColor = () => {
+    if (placeholderTextColor) return placeholderTextColor;
+    if (style?.color) {
+      const c = String(style.color).toLowerCase().trim();
+      if (c === '#fff' || c === '#ffffff' || c === 'white' || c.startsWith('rgba(255')) {
+        return 'rgba(255, 255, 255, 0.65)';
+      }
+      return 'rgba(0, 0, 0, 0.35)';
+    }
+    return 'rgba(255, 255, 255, 0.45)';
+  };
 
   return (
     <>
@@ -38,7 +52,7 @@ export default function CustomDropdown({
             styles.text,
             !selectedValue && styles.placeholderText,
             { flex: 1, paddingRight: 5 },
-            style?.color ? { color: selectedValue ? style.color : 'rgba(0,0,0,0.35)' } : null,
+            style?.color ? { color: selectedValue ? style.color : getPlaceholderColor() } : null,
           ]}
           numberOfLines={1}
           adjustsFontSizeToFit
