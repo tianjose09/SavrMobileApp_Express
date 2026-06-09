@@ -6,10 +6,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import NotificationBell from '../../components/NotificationBell';
 
 export default function FoodInventory({ route, navigation }: any) {
-    const [activeTab, setActiveTab] = useState<'raw' | 'prepared'>('raw');
     const [searchQuery, setSearchQuery] = useState('');
     const [inventoryItems, setInventoryItems] = useState<any[]>([]);
-    const [preparedMeals, setPreparedMeals] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -19,15 +17,17 @@ export default function FoodInventory({ route, navigation }: any) {
         setIsLoading(true);
         setFetchError(null);
         try {
-            const [rawRes, prepRes] = await Promise.all([
-                ApiService.getInventory(),
-                ApiService.getPreparedMeals(),
-            ]);
-            if (rawRes.data?.success) setInventoryItems(rawRes.data.items || []);
-            if (prepRes.data?.success) setPreparedMeals(prepRes.data.items || []);
+            const res = await ApiService.getInventory();
+            if (res.data && res.data.success) {
+                setInventoryItems(res.data.items || []);
+            } else {
+                setFetchError('Failed to load inventory. Please try again.');
+                setInventoryItems([]);
+            }
         } catch (e: any) {
             const msg = e?.response?.data?.message || 'Failed to load inventory. Please try again.';
             setFetchError(msg);
+            setInventoryItems([]);
         } finally {
             setIsLoading(false);
         }
@@ -39,9 +39,8 @@ export default function FoodInventory({ route, navigation }: any) {
         }, [])
     );
 
-    const activeItems = activeTab === 'raw' ? inventoryItems : preparedMeals;
     const categories = [...new Set(inventoryItems.map((i: any) => i.category).filter(Boolean))].sort() as string[];
-    const filteredItems = activeItems.filter(item => {
+    const filteredItems = inventoryItems.filter(item => {
         const matchesSearch =
             (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
             (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -98,24 +97,8 @@ export default function FoodInventory({ route, navigation }: any) {
                     </TouchableOpacity>
                 </View>
 
-                {/* TAB SWITCHER */}
-                <View style={{ flexDirection: 'row', marginBottom: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 1.5, borderColor: '#106037' }}>
-                    <TouchableOpacity
-                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: activeTab === 'raw' ? '#106037' : '#FFF' }}
-                        onPress={() => { setActiveTab('raw'); setSelectedCategory(null); setSearchQuery(''); }}
-                    >
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: activeTab === 'raw' ? '#FFF' : '#106037' }}>Raw Ingredients</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: activeTab === 'prepared' ? '#106037' : '#FFF' }}
-                        onPress={() => { setActiveTab('prepared'); setSelectedCategory(null); setSearchQuery(''); }}
-                    >
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: activeTab === 'prepared' ? '#FFF' : '#106037' }}>Prepared Meals</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* CATEGORY FILTER DROPDOWN — raw ingredients only */}
-                <View style={{ width: '100%', marginBottom: 16, display: activeTab === 'raw' ? 'flex' : 'none' }}>
+                {/* CATEGORY FILTER DROPDOWN */}
+                <View style={{ width: '100%', marginBottom: 16 }}>
                     <TouchableOpacity
                         onPress={() => setShowCategoryDropdown(v => !v)}
                         style={{
