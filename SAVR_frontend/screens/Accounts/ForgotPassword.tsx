@@ -109,8 +109,8 @@ export default function ForgotPassword({ navigation }: any) {
   };
 
   const handleResetPassword = async () => {
-    if (newPassword.length < 12) {
-      Alert.alert('Error', 'Password must be at least 12 characters.');
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {

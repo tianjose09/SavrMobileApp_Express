@@ -165,6 +165,7 @@ export default function Profile({ navigation }: any) {
   const isOrganization = role === 'organization';
   const isBeneficiary = role === 'beneficiary';
   const isDonor = !isPartnerKitchen && !isOrganization && !isBeneficiary;
+  const isOrgType = isOrganization || (isBeneficiary && (profile?.beneficiary_type === 'organization' || !!profile?.organization_name));
   const roleDisplay = isPartnerKitchen ? 'PARTNER KITCHEN DETAILS' : isOrganization ? 'ORGANIZATION DETAILS' : isBeneficiary ? 'BENEFICIARY DETAILS' : 'DONOR DETAILS';
 
   const heroName = isPartnerKitchen
@@ -249,14 +250,15 @@ export default function Profile({ navigation }: any) {
             {!!profile?.position_role && <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile.position_role}</Text></View>}
             {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
-        ) : isOrganization ? (
+        ) : isOrgType ? (
+          /* Donor Organization or Beneficiary Organization */
           <>
-            {!!profile?.name && <View style={styles.pillBox}><Text style={styles.pillLabel}>Organization Name</Text><Text style={styles.pillValue}>{profile.name}</Text></View>}
+            {!!(profile?.name || profile?.organization_name) && <View style={styles.pillBox}><Text style={styles.pillLabel}>Organization Name</Text><Text style={styles.pillValue}>{profile.organization_name || profile.name}</Text></View>}
             {!!city && city !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>}
             {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
         ) : (
-          /* Donor and Beneficiary share the same personal info fields */
+          /* Individual — Donor or Beneficiary */
           <>
             {!!fName && <View style={styles.pillBox}><Text style={styles.pillLabel}>First Name</Text><Text style={styles.pillValue}>{fName}</Text></View>}
             {!!lName && <View style={styles.pillBox}><Text style={styles.pillLabel}>Last Name</Text><Text style={styles.pillValue}>{lName}</Text></View>}
