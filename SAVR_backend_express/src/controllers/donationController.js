@@ -184,14 +184,16 @@ exports.paymongoWebhook = async (req, res) => {
   if (event === 'payment.failed' || event === 'checkout_session.payment.failed') {
     const checkoutId = data?.id || data?.attributes?.checkout_session_id;
     if (checkoutId) {
-      const [rows] = await db.execute(
-        "SELECT * FROM financial_donation_records WHERE paymongo_payment_id = ? AND status NOT IN ('paid','failed')",
+      const [claim] = await db.execute(
+        "UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE paymongo_payment_id = ? AND status NOT IN ('paid','failed','cancelled')",
         [checkoutId]
       );
-      const donation = rows[0];
-      if (donation) {
-        await db.execute("UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE id = ?", [donation.id]);
-        await createNotification(donation.user_id, 'financial', 'Payment Failed', `Your financial donation of ₱${formatAmount(donation.amount)} could not be processed. Please try again.`, true);
+      if (claim.affectedRows > 0) {
+        const [rows] = await db.execute('SELECT * FROM financial_donation_records WHERE paymongo_payment_id = ?', [checkoutId]);
+        const donation = rows[0];
+        if (donation) {
+          await createNotification(donation.user_id, 'financial', 'Payment Failed', `Your financial donation of ₱${formatAmount(donation.amount)} could not be processed. Please try again.`, true);
+        }
       }
     }
   }
@@ -243,9 +245,12 @@ exports.checkPaymentStatus = async (req, res) => {
       const paymentFailed = Array.isArray(attrs?.payments)
         && attrs.payments.some(p => p?.attributes?.status === 'failed');
       if (sessionFailed || paymentFailed) {
-        const alreadyNotified = donation.status === 'failed';
-        await db.execute("UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE id = ?", [donation.id]);
-        if (!alreadyNotified) {
+        // Atomic claim — only the first update fires the notification, prevents race condition duplicates
+        const [claim] = await db.execute(
+          "UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
+          [donation.id]
+        );
+        if (claim.affectedRows > 0) {
           await createNotification(donation.user_id, 'financial', 'Payment Failed', `Your financial donation of ₱${formatAmount(donation.amount)} could not be processed. Please try again from the app.`, true);
         }
         return res.json({ success: true, status: 'failed', amount: donation.amount });
@@ -438,14 +443,17 @@ exports.paymentSuccess = async (req, res) => {
 
 exports.paymentCancel = async (req, res) => {
   if (req.query.donation_id) {
-    const [rows] = await db.execute(
-      "SELECT * FROM financial_donation_records WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
+    // Atomic claim — skip if already failed (expired payments also hit cancel URL)
+    const [claim] = await db.execute(
+      "UPDATE financial_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
       [req.query.donation_id]
     );
-    const donation = rows[0];
-    if (donation) {
-      await db.execute("UPDATE financial_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [donation.id]);
-      await createNotification(donation.user_id, 'financial', 'Payment Cancelled', `Your financial donation of ₱${formatAmount(donation.amount)} was cancelled. You can try again anytime from the app.`, true);
+    if (claim.affectedRows > 0) {
+      const [rows] = await db.execute('SELECT * FROM financial_donation_records WHERE id = ?', [req.query.donation_id]);
+      const donation = rows[0];
+      if (donation) {
+        await createNotification(donation.user_id, 'financial', 'Payment Cancelled', `Your financial donation of ₱${formatAmount(donation.amount)} was cancelled. You can try again anytime from the app.`, true);
+      }
     }
   }
   return res.send(`<!DOCTYPE html>
