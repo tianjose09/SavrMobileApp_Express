@@ -4,7 +4,7 @@ const { createNotification } = require('./notificationController');
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
-    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR category != 'Prepared Meals') ORDER BY food_name"
+    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) ORDER BY food_name"
   );
 
   return res.json({
@@ -62,7 +62,7 @@ exports.store = async (req, res) => {
 
 exports.preparedMeals = async (req, res) => {
   const [items] = await db.execute(
-    "SELECT * FROM food_inventory WHERE meal_type = 'Prepared Meals' ORDER BY created_at DESC"
+    "SELECT * FROM food_inventory WHERE meal_type = 'Prep Meal' ORDER BY created_at DESC"
   );
 
   return res.json({

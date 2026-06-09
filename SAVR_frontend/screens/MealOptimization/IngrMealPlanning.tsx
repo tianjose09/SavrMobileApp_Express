@@ -41,7 +41,7 @@ export default function IngrMealPlanning({ navigation }: any) {
       const res = await ApiService.getInventory();
       let items = [];
       if (res.data && res.data.success) {
-        items = (res.data.items || []).filter((item: any) => item.category !== 'Prepared Meals');
+        items = (res.data.items || []).filter((item: any) => item.category !== 'Prepared Meals' && item.category !== 'Prep Meal');
       } else {
         throw new Error('API not available yet');
       }

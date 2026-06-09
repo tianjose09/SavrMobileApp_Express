@@ -46,10 +46,10 @@ export default function MealPreparationSummary({ navigation }: any) {
                 const expiryDate = tomorrow.toISOString().split('T')[0];
                 await ApiService.addInventory({
                   food_name: meal.mealName,
-                  category: 'Prepared Meals',
+                  category: 'Prep Meal',
                   quantity: meal.pax || 1,
                   unit: 'meal',
-                  meal_type: 'Prepared Meals',
+                  meal_type: 'Prep Meal',
                   expiration_date: expiryDate,
                 });
                 await MealPrepService.updateStatus(meal.id, 'Done');
