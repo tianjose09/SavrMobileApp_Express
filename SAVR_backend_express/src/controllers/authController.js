@@ -436,7 +436,7 @@ exports.sendVerificationEmail = async (req, res) => {
     return res.json({ success: true, message: `Verification code sent to ${email}` });
   } catch (err) {
     console.error('[sendVerificationCodeMail error]', err);
-    return res.status(500).json({ success: false, message: 'Failed to send verification email. Please check your email address or try again later.', error: err.message });
+    return res.status(500).json({ success: false, message: `Email error: ${err.message}` });
   }
 };
 
