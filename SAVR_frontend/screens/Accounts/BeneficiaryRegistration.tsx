@@ -164,11 +164,6 @@ export default function BeneficiaryRegistration({ navigation }: any) {
       return;
     }
 
-    if (form.password.length < 12) {
-      Alert.alert('Error', 'Password must be at least 12 characters long.');
-      return;
-    }
-
     if (form.password !== form.password_confirmation) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
