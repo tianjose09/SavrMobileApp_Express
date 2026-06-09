@@ -211,7 +211,7 @@ export default function FinancialDonation({ navigation }: any) {
               <Text style={styles.dateTimeText}>Time : {getCurrentTime()}</Text>
             </View>
 
-            <Text style={styles.messageLabel}>Name of Drive</Text>
+            <Text style={styles.messageLabel}>Extra Note</Text>
             <TextInput
               style={styles.messageInput}
               placeholder="e.g. Kapatiran Fire Tondo Relief"

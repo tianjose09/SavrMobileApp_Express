@@ -163,8 +163,9 @@ export default function Profile({ navigation }: any) {
   const role = profile?.role || 'donor';
   const isPartnerKitchen = role === 'partner_kitchen';
   const isOrganization = role === 'organization';
-  const isDonor = !isPartnerKitchen && !isOrganization;
-  const roleDisplay = isPartnerKitchen ? 'PARTNER KITCHEN DETAILS' : isOrganization ? 'ORGANIZATION DETAILS' : 'DONOR DETAILS';
+  const isBeneficiary = role === 'beneficiary';
+  const isDonor = !isPartnerKitchen && !isOrganization && !isBeneficiary;
+  const roleDisplay = isPartnerKitchen ? 'PARTNER KITCHEN DETAILS' : isOrganization ? 'ORGANIZATION DETAILS' : isBeneficiary ? 'BENEFICIARY DETAILS' : 'DONOR DETAILS';
 
   const heroName = isPartnerKitchen
     ? (profile?.kitchen_name || profile?.display_name || profile?.username || profile?.contact_person || displayName || 'Kitchen')

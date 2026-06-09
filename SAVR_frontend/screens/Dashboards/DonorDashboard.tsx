@@ -761,11 +761,13 @@ const styles = StyleSheet.create({
 
   badgesRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 8,
   },
 
   badgeCard: {
-    width: '31.5%',
+    flex: 1,
+    maxWidth: '32%',
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     paddingTop: 14,

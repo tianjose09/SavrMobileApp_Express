@@ -1572,6 +1572,28 @@ exports.updateProfile = async (req, res) => {
       `UPDATE donor_organizations SET org_name=?, website=?, industry=?, type=?, first_name=?, last_name=?, contact=?, updated_at=NOW() WHERE user_id=?`,
       [organization_name, website_url || null, industry_sector || null, organization_type || null, contact_person || null, position_role || null, contact_number || null, user.id]
     );
+  } else if (user.role === 'beneficiary') {
+    const { first_name, last_name, middle_initial, suffix, date_of_birth, gender, house_no, street, barangay, city_municipality, province_region, postal_zip_code, contact_number } = req.body;
+    if (!first_name || !last_name) {
+      return res.status(422).json({ success: false, errors: { first_name: ['Required.'] } });
+    }
+    // Try updating the individual beneficiaries table first
+    const [result] = await db.execute(
+      `UPDATE beneficiaries SET first_name=?, last_name=?, middle_name=?, suffix=?, dob=?, gender=?, house=?, street=?, barangay=?, city=?, province=?, zip=?, contact=?, updated_at=NOW() WHERE user_id=?`,
+      [first_name, last_name, middle_initial || null, suffix || null, date_of_birth || null, gender || null, house_no || null, street || null, barangay || null, city_municipality || null, province_region || null, postal_zip_code || null, contact_number || null, user.id]
+    );
+    // If no row was updated, the beneficiary might be an organization-type beneficiary
+    if (result.rowCount === 0 || result.affectedRows === 0) {
+      await db.execute(
+        `UPDATE beneficiary_organizations SET house=?, street=?, barangay=?, city=?, province=?, zip=?, contact=?, updated_at=NOW() WHERE user_id=?`,
+        [house_no || null, street || null, barangay || null, city_municipality || null, province_region || null, postal_zip_code || null, contact_number || null, user.id]
+      );
+    }
+    // Also update the display name in the users table
+    await db.execute(
+      `UPDATE users SET name=?, updated_at=NOW() WHERE id=?`,
+      [`${first_name} ${last_name}`.trim(), user.id]
+    );
   }
 
   return res.json({ success: true, message: 'Profile updated successfully.' });

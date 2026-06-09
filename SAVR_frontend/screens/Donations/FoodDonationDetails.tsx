@@ -343,7 +343,7 @@ export default function FoodDonationDetails({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 200 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
