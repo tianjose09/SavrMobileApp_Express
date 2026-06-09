@@ -23,13 +23,11 @@ type Pickup = {
 export default function AllUpcomingPickups({ navigation }: any) {
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const fetchPickups = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        // Sort latest to oldest by created_at descending (already comes DESC from backend, but reinforce)
         const sorted = (res.data.pickups as Pickup[]).sort((a, b) => {
           const da = new Date(a.created_at).getTime();
           const db2 = new Date(b.created_at).getTime();
@@ -38,7 +36,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
         setPickups(sorted);
       }
     } catch (e) {
-      console.error('Failed to fetch pickups', e);
+      console.warn('Failed to fetch pickups', e);
     } finally {
       setIsLoading(false);
     }

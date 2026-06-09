@@ -21,7 +21,6 @@ export default function ChooseDonation({ navigation }: any) {
       Animated.timing(slideAnim, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]).start();
   }, []);
-
   const fetchPickups = async () => {
     setLoading(true);
     try {
@@ -33,7 +32,7 @@ export default function ChooseDonation({ navigation }: any) {
         setPickups(sorted);
       }
     } catch (e) {
-      console.error('Failed to fetch pickups', e);
+      console.warn('Failed to fetch pickups', e);
     } finally {
       setLoading(false);
     }
