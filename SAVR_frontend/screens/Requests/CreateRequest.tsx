@@ -545,11 +545,14 @@ export default function CreateRequest({ navigation }: any) {
                             setSelectedItem(isSel ? null : item);
                             setItemQty('');
                             const normUnit = (item.unit || '').trim().toLowerCase();
-                            setItemUnit(
-                              item.category === 'Canned Goods' || normUnit === 'cans' || normUnit === 'can'
-                                ? 'pcs'
-                                : (item.unit || 'kg')
-                            );
+                            let targetUnit = item.unit || 'kg';
+                            if (item.category === 'Canned Goods' || normUnit === 'cans' || normUnit === 'can') {
+                              targetUnit = 'pcs';
+                            } else {
+                              const found = UNIT_OPTIONS.find(o => o.toLowerCase() === normUnit);
+                              if (found) targetUnit = found;
+                            }
+                            setItemUnit(targetUnit);
                           }}
                           activeOpacity={0.8}
                         >

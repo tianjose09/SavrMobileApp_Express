@@ -112,11 +112,19 @@ export default function IngrMealPlanning({ navigation }: any) {
       if (i.outOfStock) return i;
       if (allSelected) return { ...i, selected: false };
       const parsed = parseQty(i.qty);
+      const normUnit = parsed.unit.toLowerCase();
+      let targetUnit = 'kg';
+      if (i.category === 'Canned Goods') {
+        targetUnit = 'pcs';
+      } else {
+        const found = UNIT_OPTIONS.find(o => o.toLowerCase() === normUnit);
+        if (found) targetUnit = found;
+      }
       return {
         ...i,
         selected: true,
         inputQty: i.inputQty ?? '1',
-        inputUnit: i.category === 'Canned Goods' ? 'pcs' : (parsed.unit === 'kg' || parsed.unit === 'pcs' ? parsed.unit : 'kg'),
+        inputUnit: targetUnit,
         maxQty: parsed.value,
       };
     });
@@ -128,11 +136,19 @@ export default function IngrMealPlanning({ navigation }: any) {
       if (i.id !== id) return i;
       if (i.outOfStock) return i;
       const parsed = parseQty(i.qty);
+      const normUnit = parsed.unit.toLowerCase();
+      let targetUnit = 'kg';
+      if (i.category === 'Canned Goods') {
+        targetUnit = 'pcs';
+      } else {
+        const found = UNIT_OPTIONS.find(o => o.toLowerCase() === normUnit);
+        if (found) targetUnit = found;
+      }
       return {
         ...i,
         selected: !i.selected,
         inputQty: !i.selected ? '1' : i.inputQty,
-        inputUnit: i.category === 'Canned Goods' ? 'pcs' : (parsed.unit === 'kg' || parsed.unit === 'pcs' ? parsed.unit : 'kg'),
+        inputUnit: targetUnit,
         maxQty: parsed.value,
       };
     }));
@@ -504,27 +520,24 @@ export default function IngrMealPlanning({ navigation }: any) {
 
                           {/* Unit picker — shows when tapped */}
                           {openUnitPickerId === item.id && (
-                            <ScrollView
-                              horizontal
-                              showsHorizontalScrollIndicator={false}
-                              style={{ marginBottom: 8 }}
-                              contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}
-                            >
+                            <View style={styles.inlineUnitPickerRow}>
                               {UNIT_OPTIONS.map((u) => (
                                 <TouchableOpacity
                                   key={u}
                                   onPress={() => updateInputUnit(item.id, u)}
-                                  style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 5,
-                                    borderRadius: 99,
-                                    backgroundColor: unit === u ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
-                                  }}
+                                  style={[
+                                    styles.inlineUnitPill,
+                                    unit === u ? styles.inlineUnitPillActive : styles.inlineUnitPillInactive
+                                  ]}
+                                  activeOpacity={0.8}
                                 >
-                                  <Text style={{ fontSize: 12, fontWeight: '800', color: unit === u ? '#E87A1E' : '#FFF' }}>{u}</Text>
+                                  <Text style={[
+                                    styles.inlineUnitPillText,
+                                    unit === u ? styles.inlineUnitPillTextActive : styles.inlineUnitPillTextInactive
+                                  ]}>{u}</Text>
                                 </TouchableOpacity>
                               ))}
-                            </ScrollView>
+                            </View>
                           )}
 
                           {/* Mini progress bar */}
@@ -796,6 +809,41 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  inlineUnitPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+    marginVertical: 10,
+  },
+  inlineUnitPill: {
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 20,
+    minWidth: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  inlineUnitPillActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  inlineUnitPillInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+  },
+  inlineUnitPillText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  inlineUnitPillTextActive: {
+    color: '#E87A1E',
+  },
+  inlineUnitPillTextInactive: {
+    color: '#FFFFFF',
   },
   inlineQtyRow: {
     flexDirection: 'row',
