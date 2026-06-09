@@ -155,7 +155,8 @@ export default function DonorRegistration({ navigation }: any) {
       Alert.alert('Success', 'Verification code sent! Please check your email.');
       navigation.navigate('VerifyEmail', payload);
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong.');
+      const msg = error.response?.data?.message || error.message || 'Something went wrong. Please try again.';
+      Alert.alert('Registration Failed', msg);
     } finally {
       setIsLoading(false);
     }
