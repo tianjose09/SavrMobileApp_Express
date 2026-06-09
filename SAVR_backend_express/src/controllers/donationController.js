@@ -261,19 +261,15 @@ exports.paymentSuccess = async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Successful – SAVR</title>
   <script>
-    window.onload = function () {
-      // Try all known schemes in sequence
-      var schemes = ['savrmobile://', 'exp+savr-mobile://'];
-      var i = 0;
-      function tryNext() {
-        if (i >= schemes.length) return;
-        window.location.href = schemes[i++];
-        setTimeout(tryNext, 1200);
-      }
-      tryNext();
-      // Auto-close tab after 4s as last resort (works on Android)
-      setTimeout(function () { window.close(); }, 4000);
-    };
+    function returnToApp() {
+      // Try Expo Go scheme first (no error popup), then standalone APK scheme
+      window.location.href = 'exp+savr-mobile://';
+      setTimeout(function () {
+        window.location.href = 'savrmobile://';
+      }, 1200);
+      setTimeout(function () { window.close(); }, 2500);
+    }
+    window.onload = returnToApp;
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -404,8 +400,8 @@ exports.paymentSuccess = async (req, res) => {
 
     <div class="divider"></div>
 
-    <a class="btn" href="savrmobile://">Return to App</a>
-    <a class="btn-outline" href="savrmobile://">Go to Dashboard</a>
+    <a class="btn" onclick="returnToApp(); return false;" href="#">Return to App</a>
+    <a class="btn-outline" onclick="returnToApp(); return false;" href="#">Go to Dashboard</a>
 
     <p class="footer-note">Powered by PayMongo &nbsp;·&nbsp; SAVR Philippine FoodBank</p>
   </div>
@@ -421,12 +417,12 @@ exports.paymentCancel = (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Cancelled – SAVR</title>
   <script>
-    window.onload = function () {
-      window.location.href = 'savrmobile://';
-      setTimeout(function () {
-        window.location.href = 'exp+savr-mobile://';
-      }, 1500);
-    };
+    function returnToApp() {
+      window.location.href = 'exp+savr-mobile://';
+      setTimeout(function () { window.location.href = 'savrmobile://'; }, 1200);
+      setTimeout(function () { window.close(); }, 2500);
+    }
+    window.onload = returnToApp;
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -538,8 +534,8 @@ exports.paymentCancel = (req, res) => {
 
     <div class="divider"></div>
 
-    <a class="btn" href="savrmobile://">Return to App</a>
-    <a class="btn-outline" href="savrmobile://">Try Again</a>
+    <a class="btn" onclick="returnToApp(); return false;" href="#">Return to App</a>
+    <a class="btn-outline" onclick="returnToApp(); return false;" href="#">Try Again</a>
 
     <p class="footer-note">Powered by PayMongo &nbsp;·&nbsp; SAVR Philippine FoodBank</p>
   </div>
