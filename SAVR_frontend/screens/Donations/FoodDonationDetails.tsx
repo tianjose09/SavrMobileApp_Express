@@ -227,10 +227,10 @@ export default function FoodDonationDetails({ navigation }: any) {
                     onValueChange={(val) => updateItem(item.id, 'unit', val)}
                     placeholder="kg"
                     items={[
-                      { label: "Kilograms (kg)", value: "kg" },
-                      { label: "Pieces (pcs)", value: "pcs" },
-                      { label: "Meals (meal)", value: "meal" },
-                      { label: "Liters (L)", value: "L" }
+                      { label: "kg", value: "kg" },
+                      { label: "pcs", value: "pcs" },
+                      { label: "meal", value: "meal" },
+                      { label: "L", value: "L" }
                     ]}
                     style={styles.input}
                   />
