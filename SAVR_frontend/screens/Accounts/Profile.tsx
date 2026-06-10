@@ -254,8 +254,12 @@ export default function Profile({ navigation }: any) {
           /* Donor Organization or Beneficiary Organization */
           <>
             {!!(profile?.name || profile?.organization_name) && <View style={styles.pillBox}><Text style={styles.pillLabel}>Organization Name</Text><Text style={styles.pillValue}>{profile.organization_name || profile.name}</Text></View>}
-            {!!city && city !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>}
             {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
+            {!!profile?.industry_sector && <View style={styles.pillBox}><Text style={styles.pillLabel}>Industry / Sector</Text><Text style={styles.pillValue}>{profile.industry_sector}</Text></View>}
+            {!!profile?.organization_type && <View style={styles.pillBox}><Text style={styles.pillLabel}>Organization Type</Text><Text style={styles.pillValue}>{profile.organization_type}</Text></View>}
+            {!!profile?.first_name && <View style={styles.pillBox}><Text style={styles.pillLabel}>First Name</Text><Text style={styles.pillValue}>{profile.first_name}</Text></View>}
+            {!!profile?.last_name && <View style={styles.pillBox}><Text style={styles.pillLabel}>Last Name</Text><Text style={styles.pillValue}>{profile.last_name}</Text></View>}
+            {!!city && city !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>}
           </>
         ) : (
           /* Individual — Donor or Beneficiary */
