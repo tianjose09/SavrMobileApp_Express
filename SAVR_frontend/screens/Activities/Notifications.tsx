@@ -146,9 +146,13 @@ export default function Notifications({ navigation }: any) {
               {notifications.map((item) => {
                 const cfg = getTypeConfig(item.type);
                 
-                const isMissedPickup = item.title?.toLowerCase().includes('missed pickup');
-                const fallbackMsg = `Dear Donor,\n\nWe sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.\n\nHow to reschedule:\n1. Log in to your account\n2. Click Donate on the Navigation Bar\n3. Under Upcoming Pickups, click Edit and update the date and time\n\nThank you for your understanding and cooperation.`;
-                const displayDesc = (isMissedPickup && (!item.desc || item.desc.trim() === '')) ? fallbackMsg : item.desc;
+                const isMissed = item.title?.toLowerCase().includes('missed');
+                const fallbackMsg = `Dear Donor,\n\nWe sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.\n\nThank you for your understanding and cooperation.`;
+                let displayDesc = (isMissed && (!item.desc || item.desc.trim() === '')) ? fallbackMsg : (item.desc || '');
+
+                if (displayDesc && displayDesc.includes('How to reschedule:')) {
+                  displayDesc = displayDesc.replace(/\n\nHow to reschedule:[\s\S]*?(?=\n\nThank you|$)/, '');
+                }
 
                 return (
                   <TouchableOpacity
