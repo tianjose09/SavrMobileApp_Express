@@ -177,6 +177,11 @@ export default function ServiceDonation({ navigation }: any) {
       return;
     }
 
+    if (frequency === 'Weekly' && !dayOfWeek) {
+      Alert.alert('Error', 'Please select a day of the week for weekly donations.');
+      return;
+    }
+
     if (!allDay) {
       if (!startsAt || !endsAt) {
         Alert.alert('Error', 'Please fill out all fields to submit donation.');
@@ -626,15 +631,18 @@ export default function ServiceDonation({ navigation }: any) {
                 </View>
                 <View style={[styles.inputGroup, { flex: 1.2 }]}>
                   <Text style={[styles.label, { fontSize: 11 }]} numberOfLines={1} adjustsFontSizeToFit>Max Distance</Text>
-                  <View style={styles.inputBox}>
+                  <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center', paddingRight: 10 }]}>
                     <TextInput
-                      style={styles.inputInner}
+                      style={[styles.inputInner, { flex: 1 }]}
                       placeholder="### km"
                       placeholderTextColor="rgba(255,255,255,0.5)"
                       keyboardType="numeric"
                       value={maxDistance}
                       onChangeText={setMaxDistance}
                     />
+                    {maxDistance.trim().length > 0 && (
+                      <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700', marginLeft: 4 }}>km</Text>
+                    )}
                   </View>
                 </View>
               </View>
