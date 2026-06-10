@@ -975,7 +975,7 @@ exports.dashboard = async (req, res) => {
   const displayName = await getDisplayName(user);
 
   const [[{ totalfinancial }]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS totalfinancial FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+    "SELECT COALESCE(SUM(amount), 0) AS totalfinancial FROM financial_donation_records WHERE user_id = ? AND status = 'approved'",
     [user.id]
   );
   const [[{ totalfood }]] = await db.execute(
@@ -1005,7 +1005,7 @@ exports.dashboard = async (req, res) => {
   );
 
   const [[{ totalfinancialcount }]] = await db.execute(
-    "SELECT COUNT(*) AS totalfinancialcount FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+    "SELECT COUNT(*) AS totalfinancialcount FROM financial_donation_records WHERE user_id = ? AND status = 'approved'",
     [user.id]
   );
   const [[{ totalservice }]] = await db.execute(
