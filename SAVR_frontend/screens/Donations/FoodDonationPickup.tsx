@@ -470,6 +470,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        {/* Extra bottom spacing for Android navigation bar overlap prevention */}
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Shared Android date/time picker */}
@@ -503,7 +505,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: {
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
 
   topHeaderWrap: {

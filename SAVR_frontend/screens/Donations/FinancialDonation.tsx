@@ -302,8 +302,8 @@ export default function FinancialDonation({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-
-          <View style={{ height: 50 }} />
+          {/* Extra bottom spacing for Android navigation bar overlap prevention */}
+          <View style={{ height: 120 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  scrollContent: { paddingHorizontal: 22, paddingTop: 15 },
+  scrollContent: { paddingHorizontal: 22, paddingBottom: 60, paddingTop: 15 },
 
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, marginTop: 20 },
   pageTitle: { fontSize: 27, fontWeight: '800', color: '#000000', letterSpacing: -0.5 },
