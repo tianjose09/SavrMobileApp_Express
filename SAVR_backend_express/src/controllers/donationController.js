@@ -1662,14 +1662,15 @@ exports.updateProfile = async (req, res) => {
       [first_name, last_name, middle_initial || null, suffix || null, date_of_birth || null, gender || null, house_no || null, street || null, barangay || null, city_municipality || null, province_region || null, postal_zip_code || null, contact_number || null, user.id]
     );
   } else if (user.role === 'organization') {
-    const { organization_name, website_url, industry_sector, organization_type, contact_person, position_role, contact_number } = req.body;
+    const { organization_name, website_url, industry_sector, organization_type, first_name, last_name, contact_number } = req.body;
     if (!organization_name) {
       return res.status(422).json({ success: false, errors: { organization_name: ['Required.'] } });
     }
     await db.execute(
       `UPDATE donor_organizations SET org_name=?, website=?, industry=?, type=?, first_name=?, last_name=?, contact=?, updated_at=NOW() WHERE user_id=?`,
-      [organization_name, website_url || null, industry_sector || null, organization_type || null, contact_person || null, position_role || null, contact_number || null, user.id]
+      [organization_name, website_url || null, industry_sector || null, organization_type || null, first_name || null, last_name || null, contact_number || null, user.id]
     );
+    await db.execute(`UPDATE users SET name=?, updated_at=NOW() WHERE id=?`, [organization_name, user.id]);
   } else if (user.role === 'beneficiary') {
     const { first_name, last_name, middle_initial, suffix, date_of_birth, gender, house_no, street, barangay, city_municipality, province_region, postal_zip_code, contact_number } = req.body;
     if (!first_name || !last_name) {
