@@ -299,14 +299,14 @@ db.execute(`
   `)
 ).catch(err => console.error('[beneficiary request trigger]', err.message));
 
-// Ensure financial_donation_records.status allows all used values
+// Ensure financial_donations.status allows all used values
 db.execute(`
-  ALTER TABLE financial_donation_records
-    DROP CONSTRAINT IF EXISTS financial_donation_records_status_check
+  ALTER TABLE financial_donations
+    DROP CONSTRAINT IF EXISTS financial_donations_status_check
 `).then(() =>
   db.execute(`
-    ALTER TABLE financial_donation_records
-      ADD CONSTRAINT financial_donation_records_status_check
+    ALTER TABLE financial_donations
+      ADD CONSTRAINT financial_donations_status_check
       CHECK (status IN ('pending', 'paid', 'completed', 'failed', 'cancelled', 'approved', 'rejected', 'denied'))
   `)
 ).catch(() => {});
@@ -338,11 +338,11 @@ db.execute(`
   END;
   $$ LANGUAGE plpgsql;
 `).then(() =>
-  db.execute(`DROP TRIGGER IF EXISTS trg_financial_donation_status_notify ON financial_donation_records`)
+  db.execute(`DROP TRIGGER IF EXISTS trg_financial_donation_status_notify ON financial_donations`)
 ).then(() =>
   db.execute(`
     CREATE TRIGGER trg_financial_donation_status_notify
-      AFTER UPDATE ON financial_donation_records
+      AFTER UPDATE ON financial_donations
       FOR EACH ROW
       EXECUTE FUNCTION notify_donor_financial_donation_status()
   `)
@@ -975,7 +975,7 @@ exports.dashboard = async (req, res) => {
   const displayName = await getDisplayName(user);
 
   const [[{ totalfinancial }]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS totalfinancial FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+    "SELECT COALESCE(SUM(amount), 0) AS totalfinancial FROM financial_donations WHERE user_id = ? AND status = 'paid'",
     [user.id]
   );
   const [[{ totalfood }]] = await db.execute(
@@ -1005,7 +1005,7 @@ exports.dashboard = async (req, res) => {
   );
 
   const [[{ totalfinancialcount }]] = await db.execute(
-    "SELECT COUNT(*) AS totalfinancialcount FROM financial_donation_records WHERE user_id = ? AND status = 'paid'",
+    "SELECT COUNT(*) AS totalfinancialcount FROM financial_donations WHERE user_id = ? AND status = 'paid'",
     [user.id]
   );
   const [[{ totalservice }]] = await db.execute(
