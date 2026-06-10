@@ -132,7 +132,7 @@ exports.createPaymongoCheckout = async (req, res) => {
               quantity: 1,
               description: message || 'Donation to SAVR Food Bank',
             }],
-            payment_method_types: ['gcash', 'paymaya', 'card'],
+            payment_method_types: ['qrph'],
             success_url: `${baseUrl}/api/payment/success?donation_id=${donationId}&is_expo_go=${isExpoGo}`,
             cancel_url: `${baseUrl}/api/payment/cancel?donation_id=${donationId}&is_expo_go=${isExpoGo}`,
             description: 'SAVR Food Bank Donation',
