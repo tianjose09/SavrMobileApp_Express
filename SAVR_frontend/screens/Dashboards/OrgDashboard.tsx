@@ -146,14 +146,18 @@ export default function OrgDashboard({ navigation }: any) {
   // Progress bar: 0 to 100 donations
   const progressPct = Math.max(0, Math.min((totalDonationsMade / 100) * 100, 100));
 
-  const nextBadgeGoal = nextBadge ? nextBadge.goal_value : 100000;
-  const nextBadgeAmount = nextBadge ? nextBadge.progress : donationAmount;
+  const nextBadgeGoal = nextBadge ? parseFloat(nextBadge.goal_value) || 0 : 100000;
+  const nextBadgeAmount = nextBadge ? parseFloat(nextBadge.progress) || 0 : donationAmount;
   const nextBadgePct = Math.max(
     0,
     Math.min((nextBadgeAmount / nextBadgeGoal) * 100, 100)
   );
 
   const isFinancial = nextBadge && nextBadge.goal_type === 'financial_total';
+
+  const formatBadgeValue = (val: number) => {
+    return val.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  };
 
   if (isLoading) {
     return (
@@ -357,7 +361,7 @@ export default function OrgDashboard({ navigation }: any) {
                         </View>
 
                         <Text style={styles.nextProgressText}>
-                          {isFinancial ? '₱ ' : ''}{nextBadgeAmount.toLocaleString('en-US')} / {isFinancial ? '₱ ' : ''}{nextBadgeGoal.toLocaleString('en-US')}
+                          {isFinancial ? '₱ ' : ''}{formatBadgeValue(nextBadgeAmount)} / {isFinancial ? '₱ ' : ''}{formatBadgeValue(nextBadgeGoal)}
                         </Text>
                       </View>
                     </View>
