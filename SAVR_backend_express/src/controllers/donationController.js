@@ -56,15 +56,14 @@ async function recalculateBadges(userId) {
     );
 
     if (existing.length) {
-      if (existing[0].status !== 'earned') {
-        const earnedAt = status === 'earned' && !existing[0].earned_at ? new Date() : existing[0].earned_at;
-        await db.execute(
-          'UPDATE user_badges SET status = ?, progress = ?, earned_at = ? WHERE user_id = ? AND badge_id = ?',
-          [status, progress, earnedAt, userId, badge.id]
-        );
-        if (status === 'earned') {
-          await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`, true);
-        }
+      const wasEarned = existing[0].status === 'earned';
+      const earnedAt = status === 'earned' && !existing[0].earned_at ? new Date() : existing[0].earned_at;
+      await db.execute(
+        'UPDATE user_badges SET status = ?, progress = ?, earned_at = ?, updated_at = NOW() WHERE user_id = ? AND badge_id = ?',
+        [status, progress, earnedAt, userId, badge.id]
+      );
+      if (status === 'earned' && !wasEarned) {
+        await createNotification(userId, 'badge', `Badge Unlocked: ${badge.name}`, `Congratulations! You've earned the "${badge.name}" badge. Keep up the great work!`, true);
       }
     } else {
       const earnedAt = status === 'earned' ? new Date() : null;

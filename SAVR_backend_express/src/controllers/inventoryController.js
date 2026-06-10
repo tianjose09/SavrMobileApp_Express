@@ -2,6 +2,22 @@ const db = require('../db');
 const dayjs = require('dayjs');
 const { createNotification } = require('./notificationController');
 
+// Reset badges that were incorrectly marked 'earned' based on old test/paid data.
+// Recalculation happens on the next payment event; this just clears the stale 'earned' flags.
+db.execute(`
+  UPDATE user_badges ub
+  SET status = 'not_started', progress = 0, earned_at = NULL, updated_at = NOW()
+  WHERE ub.status = 'earned'
+    AND EXISTS (
+      SELECT 1 FROM badges b WHERE b.id = ub.badge_id AND b.goal_type = 'financial_total'
+    )
+    AND (
+      SELECT COALESCE(SUM(fdr.amount), 0)
+      FROM financial_donation_records fdr
+      WHERE fdr.user_id = ub.user_id AND fdr.status = 'approved'
+    ) < (SELECT goal_value FROM badges WHERE id = ub.badge_id)
+`).catch(err => console.error('[migration] badge reset failed:', err.message));
+
 // Ensure all prep meal rows use meal_type='Prep Meal' and category='Prepared Meals'
 db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal' WHERE meal_type = 'Prepared Meals'")
   .catch(err => console.error('[migration] meal_type fix failed:', err.message));
