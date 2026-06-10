@@ -21,7 +21,6 @@ import NotificationBell from '../../components/NotificationBell';
 
 export default function OrgDashboard({ navigation }: any) {
   const [userName, setUserName] = useState('');
-  const [splitName, setSplitName] = useState('NGO');
   const [initial, setInitial] = useState('J');
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [donationAmount, setDonationAmount] = useState(0);
@@ -100,7 +99,6 @@ export default function OrgDashboard({ navigation }: any) {
 
     setUserName(localName);
     setInitial(localName.charAt(0).toUpperCase());
-    setSplitName(localName.split(' ')[0]);
 
     try {
       const dashRes = await ApiService.getDashboard();
@@ -110,7 +108,6 @@ export default function OrgDashboard({ navigation }: any) {
         if (data.display_name) {
           setUserName(data.display_name);
           setInitial(data.display_name.charAt(0).toUpperCase());
-          setSplitName(data.display_name.split(' ')[0]);
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
 
@@ -219,7 +216,7 @@ export default function OrgDashboard({ navigation }: any) {
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
 
                 <Text style={styles.subtitle}>
-                  Welcome back, <Text style={styles.subtitleBold}>{splitName}!</Text> Here's
+                  Welcome back, <Text style={styles.subtitleBold}>{userName}!</Text> Here's
                   your activity overview - keep making an impact
                 </Text>
               </Animated.View>
