@@ -29,7 +29,17 @@ export default function AchievementBadges({ navigation }: any) {
       const response = await ApiService.getBadges();
       if (response?.data?.success) {
         const all = (response.data.all ?? []) as any[];
-        setAllBadges(all);
+        const sortedAll = [...all].sort((a: any, b: any) => {
+          const aPriority = a.status === 'earned' ? 1 : a.status === 'in_progress' ? 2 : 3;
+          const bPriority = b.status === 'earned' ? 1 : b.status === 'in_progress' ? 2 : 3;
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+          }
+          const aGoal = parseFloat(a.goal_value) || 0;
+          const bGoal = parseFloat(b.goal_value) || 0;
+          return aGoal - bGoal;
+        });
+        setAllBadges(sortedAll);
 
         // Only truly earned badges, sorted lowest goal first
         const earned = all

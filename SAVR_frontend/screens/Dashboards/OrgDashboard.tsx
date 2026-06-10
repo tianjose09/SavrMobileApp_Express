@@ -335,7 +335,7 @@ export default function OrgDashboard({ navigation }: any) {
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <Text style={styles.nextBadgeTitle}>Next Badge Goal</Text>
                       <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}>🔒 NOT YET EARNED</Text>
+                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}>NOT YET EARNED</Text>
                       </View>
                     </View>
 
