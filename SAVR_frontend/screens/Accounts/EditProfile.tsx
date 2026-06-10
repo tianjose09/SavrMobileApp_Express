@@ -54,6 +54,8 @@ export default function EditProfile({ route, navigation }: any) {
     // Organization fields
     organization_name: profile.organization_name || profile.name || '',
     website_url: profile.website_url || '',
+    industry_sector: profile.industry_sector || '',
+    organization_type: profile.organization_type || '',
     // Partner kitchen fields
     kitchen_name: profile.kitchen_name || '',
     contact_person: profile.contact_person || '',
@@ -146,8 +148,11 @@ export default function EditProfile({ route, navigation }: any) {
           ) : isOrgType ? (
             <>
               <Field label="Organization Name" value={formData.organization_name} onChangeText={(t) => handleChange('organization_name', t)} />
-              <Field label="City / Municipality" value={formData.city_municipality} onChangeText={(t) => handleChange('city_municipality', t)} />
               <Field label="Website URL" value={formData.website_url} onChangeText={(t) => handleChange('website_url', t)} keyboardType="url" />
+              <Field label="Industry / Sector" value={formData.industry_sector} onChangeText={(t) => handleChange('industry_sector', t)} />
+              <Field label="Organization Type" value={formData.organization_type} onChangeText={(t) => handleChange('organization_type', t)} />
+              <Field label="First Name" value={formData.first_name} onChangeText={(t) => handleChange('first_name', t)} />
+              <Field label="Last Name" value={formData.last_name} onChangeText={(t) => handleChange('last_name', t)} />
             </>
           ) : (
             <>
