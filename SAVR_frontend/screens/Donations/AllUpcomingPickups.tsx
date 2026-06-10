@@ -11,6 +11,33 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 
+const formatTimeSlotTo12Hour = (timeSlotStr: string | null | undefined): string => {
+  if (!timeSlotStr) return 'Anytime';
+  if (timeSlotStr.toUpperCase().includes('AM') || timeSlotStr.toUpperCase().includes('PM')) {
+    return timeSlotStr;
+  }
+  const convertSingleTime = (timeStr: string) => {
+    const trimmed = timeStr.trim();
+    if (!trimmed) return '';
+    const parts = trimmed.split(':');
+    let hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1] || '0', 10);
+    if (isNaN(hours)) return trimmed;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${strMinutes} ${ampm}`;
+  };
+  if (timeSlotStr.includes(' - ')) {
+    const parts = timeSlotStr.split(' - ');
+    const start = convertSingleTime(parts[0]);
+    const end = convertSingleTime(parts[1]);
+    return start && end ? `${start} - ${end}` : start || end || timeSlotStr;
+  }
+  return convertSingleTime(timeSlotStr);
+};
+
 type Pickup = {
   id: number;
   status: string;
@@ -118,7 +145,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                     <View style={styles.infoRow}>
                       <Ionicons name="time-outline" size={16} color="#00592d" />
                       <Text style={styles.infoLabel}>Time:</Text>
-                      <Text style={styles.infoValue}>{pickup.time_slot || 'TBD'}</Text>
+                      <Text style={styles.infoValue}>{formatTimeSlotTo12Hour(pickup.time_slot)}</Text>
                     </View>
                     <View style={styles.infoRow}>
                       <Ionicons name="location-outline" size={16} color="#00592d" />

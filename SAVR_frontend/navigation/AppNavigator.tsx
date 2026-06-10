@@ -374,7 +374,7 @@ function MainDrawer() {
 }
 
 const linking = {
-  prefixes: ['savrmobile://'],
+  prefixes: ['savrmobile://', 'exp+savrmobile://'],
   config: {
     screens: {
       MainDrawer: {

@@ -168,6 +168,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         expiry_date: fi.expiryDate,
         category: fi.category || '',
         special_notes: fi.specialNotes || '',
+        photo_filename: fi.photoUri ? fi.photoUri.split('/').pop() : null,
       }))));
 
       // Use plain 'food_images' field name (not indexed) so multer .array() picks them up
@@ -613,13 +614,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addressInput: {
-    borderWidth: 1.5,
-    borderColor: '#00592d',
-    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#8CA697',
+    borderRadius: 12,
     paddingHorizontal: 15,
     height: 48,
-    fontSize: 15,
+    fontSize: 14,
     color: '#00592d',
+    backgroundColor: '#F5F7F5',
   },
   geocodeBtn: {
     width: 48,

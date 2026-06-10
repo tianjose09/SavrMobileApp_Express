@@ -24,12 +24,16 @@ db.execute(`
       ) THEN
         INSERT INTO service_donations_inventory (
           service_donation_record_id, user_id, service_tab, frequency,
-          date, starts_at, address, quantity,
+          date, day_of_week, all_day, starts_at, ends_at, address, quantity,
+          vehicle_type, capacity, max_distance, transport_categories,
+          headcount, preferred_work, skill_categories,
           first_name, last_name, email, notes,
           status, created_at, updated_at
         ) VALUES (
           NEW.id, NEW.user_id, NEW.service_tab, NEW.frequency,
-          NEW.date, NEW.starts_at, NEW.address, NEW.quantity,
+          NEW.date, NEW.day_of_week, NEW.all_day, NEW.starts_at, NEW.ends_at, NEW.address, NEW.quantity,
+          NEW.vehicle_type, NEW.capacity, NEW.max_distance, NEW.transport_categories,
+          NEW.headcount, NEW.preferred_work, NEW.skill_categories,
           NEW.first_name, NEW.last_name, NEW.email, NEW.notes,
           'Active', NOW(), NOW()
         );
@@ -40,6 +44,7 @@ db.execute(`
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
+
 `).then(() =>
   db.execute(`DROP TRIGGER IF EXISTS trg_sync_service_donation_inventory ON service_donation_records`)
 ).then(() =>

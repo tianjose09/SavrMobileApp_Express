@@ -101,7 +101,9 @@ function parseTimeSlot(timeSlot) {
 // ─── PayMongo ─────────────────────────────────────────────────────────────────
 
 exports.createPaymongoCheckout = async (req, res) => {
-  const { amount, message } = req.body;
+  const { amount } = req.body;
+  const message = req.body.message || req.body.remarks;
+  const isExpoGo = req.body.is_expo_go === true || req.body.is_expo_go === 'true';
 
   if (!amount || isNaN(amount) || parseFloat(amount) < 1) {
     return res.status(422).json({ success: false, errors: { amount: ['Amount must be at least 1.'] } });
@@ -131,8 +133,8 @@ exports.createPaymongoCheckout = async (req, res) => {
               description: message || 'Donation to SAVR Food Bank',
             }],
             payment_method_types: ['gcash', 'paymaya', 'card'],
-            success_url: `${baseUrl}/api/payment/success?donation_id=${donationId}`,
-            cancel_url: `${baseUrl}/api/payment/cancel?donation_id=${donationId}`,
+            success_url: `${baseUrl}/api/payment/success?donation_id=${donationId}&is_expo_go=${isExpoGo}`,
+            cancel_url: `${baseUrl}/api/payment/cancel?donation_id=${donationId}&is_expo_go=${isExpoGo}`,
             description: 'SAVR Food Bank Donation',
           },
         },
@@ -294,12 +296,10 @@ exports.paymentSuccess = async (req, res) => {
   <title>Payment Successful – SAVR</title>
   <script>
     function returnToApp() {
-      // Try Expo Go scheme first (no error popup), then standalone APK scheme
-      window.location.href = 'exp+savr-mobile://';
-      setTimeout(function () {
-        window.location.href = 'savrmobile://';
-      }, 1200);
-      setTimeout(function () { window.close(); }, 2500);
+      const isExpoGo = ${req.query.is_expo_go === 'true'};
+      const scheme = isExpoGo ? 'exp+savrmobile://' : 'savrmobile://';
+      window.location.href = scheme;
+      setTimeout(function () { window.close(); }, 2000);
     }
     window.onload = returnToApp;
   </script>
@@ -456,9 +456,10 @@ exports.paymentCancel = async (req, res) => {
   <title>Payment Cancelled – SAVR</title>
   <script>
     function returnToApp() {
-      window.location.href = 'exp+savr-mobile://';
-      setTimeout(function () { window.location.href = 'savrmobile://'; }, 1200);
-      setTimeout(function () { window.close(); }, 2500);
+      const isExpoGo = ${req.query.is_expo_go === 'true'};
+      const scheme = isExpoGo ? 'exp+savrmobile://' : 'savrmobile://';
+      window.location.href = scheme;
+      setTimeout(function () { window.close(); }, 2000);
     }
     window.onload = returnToApp;
   </script>
@@ -629,7 +630,15 @@ exports.submitFood = async (req, res) => {
         ? dayjs(item.expiry_date).format('YYYY-MM-DD')
         : dayjs().add(30, 'day').format('YYYY-MM-DD');
 
-    const photoPath = files[i] ? files[i].path : null;
+    let photoPath = null;
+    const photoFilename = item.photo_filename || item.photoFilename;
+    if (photoFilename) {
+      const matchedFile = files.find(f => f.originalname === photoFilename || f.originalname.endsWith(photoFilename));
+      if (matchedFile) photoPath = matchedFile.path;
+    }
+    if (!photoPath && files[i]) {
+      photoPath = files[i].path;
+    }
 
     await db.execute(
       `INSERT INTO food_donation_record_items (food_donation_record_id, food_name, quantity, unit, category, expiration_date, special_notes, photo_path, created_at, updated_at)
@@ -684,7 +693,7 @@ exports.submitService = async (req, res) => {
     contact_first_name, contact_last_name, contact_email, description,
     vehicle_type, capacity, max_distance, transport_categories,
     headcount, preferred_work, skill_categories,
-    all_day, starts_at, ends_at,
+    all_day, starts_at, ends_at, day_of_week
   } = req.body;
 
   if (!service_type || !frequency || !address || !contact_first_name || !contact_last_name || !contact_email) {
@@ -726,24 +735,25 @@ exports.submitService = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO service_donation_records
-       (user_id, service_tab, quantity, frequency, date, starts_at, ends_at, all_day, address,
+       (user_id, service_tab, quantity, frequency, date, day_of_week, starts_at, ends_at, all_day, address,
         first_name, last_name, email, notes,
         vehicle_type, capacity, max_distance, transport_categories,
         headcount, preferred_work, skill_categories,
         status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
     [
       req.user.id, service_type, parseInt(quantity) || null, frequency,
-      finalDate, startsAt, endsAt, isAllDay ? 1 : 0, address,
+      finalDate, day_of_week || null, startsAt, endsAt, isAllDay ? 1 : 0, address,
       contact_first_name, contact_last_name, contact_email, description || null,
-      vehicle_type || null, capacity || null, max_distance || null, transportCatsJson,
+      vehicle_type || null, parseInt(capacity) || null, parseInt(max_distance) || null, transportCatsJson,
       parseInt(headcount) || null, preferred_work || null, skillCatsJson,
     ]
   );
 
   const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
 
-  await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${quantity} unit(s)`, 'truckicon');
+  const qtyLabel = service_type === 'Volunteer Work' ? `${headcount} volunteer(s)` : `${quantity} vehicle(s)`;
+  await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${qtyLabel}`, 'truckicon');
   await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been submitted and is now awaiting approval from our team. We will notify you once it has been reviewed. Thank you for volunteering!`);
   await recalculateBadges(req.user.id);
 
@@ -799,7 +809,7 @@ exports.getUpcomingPickups = async (req, res) => {
     const uid = req.user.id;
 
     const [pickups] = await db.execute(
-      "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','scheduled','approved') ORDER BY created_at DESC LIMIT 5",
+      "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','scheduled','approved') ORDER BY created_at DESC",
       [uid]
     );
 
@@ -809,7 +819,16 @@ exports.getUpcomingPickups = async (req, res) => {
         id: p.id,
         status: p.status,
         preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
-        time_slot: p.time_slot_start + (p.time_slot_end ? ` - ${p.time_slot_end}` : ''),
+        time_slot: (() => {
+          const formatTime12Hour = (timeStr) => {
+            if (!timeStr) return '';
+            const parsed = dayjs(`1970-01-01 ${timeStr}`);
+            return parsed.isValid() ? parsed.format('h:mm A') : timeStr;
+          };
+          const start12 = formatTime12Hour(p.time_slot_start);
+          const end12 = p.time_slot_end ? formatTime12Hour(p.time_slot_end) : '';
+          return start12 + (end12 ? ` - ${end12}` : '');
+        })(),
         pickup_address: p.pickup_address,
         created_at: dayjs(p.created_at).format('MM/DD/YYYY'),
       })),

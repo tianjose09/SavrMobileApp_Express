@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, SafeAreaView, Image, AppState, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { ApiService } from '../../services/api';
 import ToastBanner from '../../components/ToastBanner';
 import NotificationBell from '../../components/NotificationBell';
@@ -107,7 +108,12 @@ export default function FinancialDonation({ navigation }: any) {
     setIsLoading(true);
 
     try {
-      const response = await ApiService.createPaymongoCheckout({ amount: amountNum, remarks: message });
+      const isExpoGo = Constants.appOwnership === 'expo';
+      const response = await ApiService.createPaymongoCheckout({
+        amount: amountNum,
+        remarks: message,
+        is_expo_go: isExpoGo,
+      });
       if (response.data.success && response.data.checkout_url) {
         const donationId = response.data.donation_id;
         if (donationId) setPendingDonationId(donationId);

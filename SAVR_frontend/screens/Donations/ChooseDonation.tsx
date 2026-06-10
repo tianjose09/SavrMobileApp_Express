@@ -7,6 +7,33 @@ import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 
+const formatTimeSlotTo12Hour = (timeSlotStr: string | null | undefined): string => {
+  if (!timeSlotStr) return 'Anytime';
+  if (timeSlotStr.toUpperCase().includes('AM') || timeSlotStr.toUpperCase().includes('PM')) {
+    return timeSlotStr;
+  }
+  const convertSingleTime = (timeStr: string) => {
+    const trimmed = timeStr.trim();
+    if (!trimmed) return '';
+    const parts = trimmed.split(':');
+    let hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1] || '0', 10);
+    if (isNaN(hours)) return trimmed;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${strMinutes} ${ampm}`;
+  };
+  if (timeSlotStr.includes(' - ')) {
+    const parts = timeSlotStr.split(' - ');
+    const start = convertSingleTime(parts[0]);
+    const end = convertSingleTime(parts[1]);
+    return start && end ? `${start} - ${end}` : start || end || timeSlotStr;
+  }
+  return convertSingleTime(timeSlotStr);
+};
+
 export default function ChooseDonation({ navigation }: any) {
   const [pickups, setPickups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +148,7 @@ export default function ChooseDonation({ navigation }: any) {
               displayedPickups.map(item => (
                 <View key={item.id} style={styles.pickupRow}>
                   <Text style={styles.pickupDateTime}>
-                    {item.preferred_date || 'TBD'} | {item.time_slot || 'Anytime'}
+                    {item.preferred_date || 'TBD'} | {formatTimeSlotTo12Hour(item.time_slot)}
                   </Text>
                   <Text style={styles.pickupAddress} numberOfLines={1}>
                     Address: {item.pickup_address || 'TBD'}

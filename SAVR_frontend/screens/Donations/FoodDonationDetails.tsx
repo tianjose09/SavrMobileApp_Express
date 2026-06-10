@@ -327,7 +327,7 @@ export default function FoodDonationDetails({ navigation }: any) {
 
           {/* Button Row */}
           <View style={styles.buttonRow}>
-
+            -0
             <TouchableOpacity
               style={styles.submitBtn}
               onPress={() => handleNext('pickup')}

@@ -4,6 +4,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import { StorageUtils, StorageKeys } from '../../utils/storage';
 
+const Field = ({
+  label,
+  value,
+  onChangeText,
+  keyboardType = 'default',
+  maxLength
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  keyboardType?: any;
+  maxLength?: number;
+}) => (
+  <View style={styles.pillBox}>
+    <Text style={styles.pillLabel}>{label}</Text>
+    <TextInput
+      style={styles.pillInput}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      maxLength={maxLength}
+    />
+  </View>
+);
+
 export default function EditProfile({ route, navigation }: any) {
   const profile = route.params?.profile || {};
 
@@ -91,19 +116,6 @@ export default function EditProfile({ route, navigation }: any) {
     }
   };
 
-  const Field = ({ label, field, keyboardType = 'default', maxLength }: { label: string; field: string; keyboardType?: any; maxLength?: number }) => (
-    <View style={styles.pillBox}>
-      <Text style={styles.pillLabel}>{label}</Text>
-      <TextInput
-        style={styles.pillInput}
-        value={(formData as any)[field]}
-        onChangeText={(t) => handleChange(field, t)}
-        keyboardType={keyboardType}
-        maxLength={maxLength}
-      />
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -126,31 +138,31 @@ export default function EditProfile({ route, navigation }: any) {
 
           {isPartnerKitchen ? (
             <>
-              <Field label="Kitchen Name" field="kitchen_name" />
-              <Field label="Contact Person" field="contact_person" />
-              <Field label="Position / Role" field="position_role" />
-              <Field label="Website URL" field="website_url" keyboardType="url" />
+              <Field label="Kitchen Name" value={formData.kitchen_name} onChangeText={(t) => handleChange('kitchen_name', t)} />
+              <Field label="Contact Person" value={formData.contact_person} onChangeText={(t) => handleChange('contact_person', t)} />
+              <Field label="Position / Role" value={formData.position_role} onChangeText={(t) => handleChange('position_role', t)} />
+              <Field label="Website URL" value={formData.website_url} onChangeText={(t) => handleChange('website_url', t)} keyboardType="url" />
             </>
           ) : isOrgType ? (
             <>
-              <Field label="Organization Name" field="organization_name" />
-              <Field label="City / Municipality" field="city_municipality" />
-              <Field label="Website URL" field="website_url" keyboardType="url" />
+              <Field label="Organization Name" value={formData.organization_name} onChangeText={(t) => handleChange('organization_name', t)} />
+              <Field label="City / Municipality" value={formData.city_municipality} onChangeText={(t) => handleChange('city_municipality', t)} />
+              <Field label="Website URL" value={formData.website_url} onChangeText={(t) => handleChange('website_url', t)} keyboardType="url" />
             </>
           ) : (
             <>
-              <Field label="First Name" field="first_name" />
-              <Field label="Last Name" field="last_name" />
-              <Field label="Middle Initial" field="middle_initial" maxLength={5} />
-              <Field label="Suffix" field="suffix" />
-              <Field label="Date of Birth (YYYY-MM-DD)" field="date_of_birth" />
-              <Field label="Gender" field="gender" />
-              <Field label="House #" field="house_no" keyboardType="number-pad" />
-              <Field label="Street" field="street" />
-              <Field label="Brgy." field="barangay" />
-              <Field label="City / Municipality" field="city_municipality" />
-              <Field label="Province / Region" field="province_region" />
-              <Field label="Postal / ZIP Code" field="postal_zip_code" keyboardType="number-pad" />
+              <Field label="First Name" value={formData.first_name} onChangeText={(t) => handleChange('first_name', t)} />
+              <Field label="Last Name" value={formData.last_name} onChangeText={(t) => handleChange('last_name', t)} />
+              <Field label="Middle Initial" value={formData.middle_initial} onChangeText={(t) => handleChange('middle_initial', t)} maxLength={5} />
+              <Field label="Suffix" value={formData.suffix} onChangeText={(t) => handleChange('suffix', t)} />
+              <Field label="Date of Birth (YYYY-MM-DD)" value={formData.date_of_birth} onChangeText={(t) => handleChange('date_of_birth', t)} />
+              <Field label="Gender" value={formData.gender} onChangeText={(t) => handleChange('gender', t)} />
+              <Field label="House #" value={formData.house_no} onChangeText={(t) => handleChange('house_no', t)} keyboardType="number-pad" />
+              <Field label="Street" value={formData.street} onChangeText={(t) => handleChange('street', t)} />
+              <Field label="Brgy." value={formData.barangay} onChangeText={(t) => handleChange('barangay', t)} />
+              <Field label="City / Municipality" value={formData.city_municipality} onChangeText={(t) => handleChange('city_municipality', t)} />
+              <Field label="Province / Region" value={formData.province_region} onChangeText={(t) => handleChange('province_region', t)} />
+              <Field label="Postal / ZIP Code" value={formData.postal_zip_code} onChangeText={(t) => handleChange('postal_zip_code', t)} keyboardType="number-pad" />
             </>
           )}
 
