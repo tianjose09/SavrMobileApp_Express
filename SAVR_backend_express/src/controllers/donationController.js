@@ -24,7 +24,7 @@ async function recalculateBadges(userId) {
     [userId]
   );
   const [[financialRow]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS total FROM financial_donations WHERE user_id = ? AND status = 'paid'",
+    "SELECT COALESCE(SUM(amount), 0) AS total FROM financial_donation_records WHERE user_id = ? AND status = 'approved'",
     [userId]
   );
   const [[serviceRow]] = await db.execute(
@@ -115,7 +115,7 @@ exports.createPaymongoCheckout = async (req, res) => {
 
   try {
     const [donationResult] = await db.execute(
-      "INSERT INTO financial_donations (user_id, amount, payment_method, message, status, created_at, updated_at) VALUES (?, ?, 'paymongo', ?, 'pending', NOW(), NOW())",
+      "INSERT INTO financial_donation_records (user_id, amount, payment_method, message, status, created_at, updated_at) VALUES (?, ?, 'paymongo', ?, 'pending', NOW(), NOW())",
       [req.user.id, amount, message || null]
     );
     const donationId = donationResult.insertId;
@@ -150,7 +150,7 @@ exports.createPaymongoCheckout = async (req, res) => {
     const paymentId = data.id;
 
     await db.execute(
-      'UPDATE financial_donations SET paymongo_payment_id = ?, paymongo_link_id = ? WHERE id = ?',
+      'UPDATE financial_donation_records SET paymongo_payment_id = ?, paymongo_link_id = ? WHERE id = ?',
       [paymentId, checkoutUrl, donationId]
     );
 
@@ -170,12 +170,12 @@ exports.paymongoWebhook = async (req, res) => {
     const checkoutId = data?.id;
     if (checkoutId) {
       const [rows] = await db.execute(
-        "SELECT * FROM financial_donations WHERE paymongo_payment_id = ? AND status != 'paid'",
+        "SELECT * FROM financial_donation_records WHERE paymongo_payment_id = ? AND status != 'approved'",
         [checkoutId]
       );
       const donation = rows[0];
       if (donation) {
-        await db.execute("UPDATE financial_donations SET status = 'paid' WHERE id = ?", [donation.id]);
+        await db.execute("UPDATE financial_donation_records SET status = 'approved' WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
         await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`);
         await recalculateBadges(donation.user_id);
@@ -187,11 +187,11 @@ exports.paymongoWebhook = async (req, res) => {
     const checkoutId = data?.id || data?.attributes?.checkout_session_id;
     if (checkoutId) {
       const [claim] = await db.execute(
-        "UPDATE financial_donations SET status = 'failed', updated_at = NOW() WHERE paymongo_payment_id = ? AND status NOT IN ('paid','failed','cancelled')",
+        "UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE paymongo_payment_id = ? AND status NOT IN ('approved','failed','cancelled')",
         [checkoutId]
       );
       if (claim.affectedRows > 0) {
-        const [rows] = await db.execute('SELECT * FROM financial_donations WHERE paymongo_payment_id = ?', [checkoutId]);
+        const [rows] = await db.execute('SELECT * FROM financial_donation_records WHERE paymongo_payment_id = ?', [checkoutId]);
         const donation = rows[0];
         if (donation) {
           await createNotification(donation.user_id, 'financial', 'Payment Failed', `Your financial donation of ₱${formatAmount(donation.amount)} could not be processed. Please try again.`, true);
@@ -206,7 +206,7 @@ exports.paymongoWebhook = async (req, res) => {
 exports.checkPaymentStatus = async (req, res) => {
   const donationId = req.params.id;
   const [rows] = await db.execute(
-    'SELECT * FROM financial_donations WHERE id = ? AND user_id = ?',
+    'SELECT * FROM financial_donation_records WHERE id = ? AND user_id = ?',
     [donationId, req.user.id]
   );
   const donation = rows[0];
@@ -236,7 +236,7 @@ exports.checkPaymentStatus = async (req, res) => {
       const piSucceeded = attrs?.payment_intent?.attributes?.status === 'succeeded';
 
       if (sessionPaid || hasPayment || piSucceeded) {
-        await db.execute("UPDATE financial_donations SET status = 'paid', updated_at = NOW() WHERE id = ?", [donation.id]);
+        await db.execute("UPDATE financial_donation_records SET status = 'approved', updated_at = NOW() WHERE id = ?", [donation.id]);
         await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
         await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`, true);
         await recalculateBadges(donation.user_id);
@@ -249,7 +249,7 @@ exports.checkPaymentStatus = async (req, res) => {
       if (sessionFailed || paymentFailed) {
         // Atomic claim — only the first update fires the notification, prevents race condition duplicates
         const [claim] = await db.execute(
-          "UPDATE financial_donations SET status = 'failed', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
+          "UPDATE financial_donation_records SET status = 'failed', updated_at = NOW() WHERE id = ? AND status NOT IN ('approved','failed','cancelled')",
           [donation.id]
         );
         if (claim.affectedRows > 0) {
@@ -271,12 +271,12 @@ exports.paymentSuccess = async (req, res) => {
   let paidAmount = null;
   if (req.query.donation_id) {
     const [rows] = await db.execute(
-      "SELECT * FROM financial_donations WHERE id = ? AND status != 'paid'",
+      "SELECT * FROM financial_donation_records WHERE id = ? AND status != 'approved'",
       [req.query.donation_id]
     );
     const donation = rows[0];
     if (donation) {
-      await db.execute("UPDATE financial_donations SET status = 'paid' WHERE id = ?", [donation.id]);
+      await db.execute("UPDATE financial_donation_records SET status = 'approved' WHERE id = ?", [donation.id]);
       await logActivity(donation.user_id, 'financial', 'Financial Donation Paid', `₱${formatAmount(donation.amount)} payment confirmed`, 'financialiconyellow');
       await createNotification(donation.user_id, 'financial', 'Payment Confirmed', `Your financial donation of ₱${formatAmount(donation.amount)} has been successfully received. Thank you for your generosity!`);
       await recalculateBadges(donation.user_id);
@@ -444,7 +444,7 @@ exports.paymentSuccess = async (req, res) => {
 exports.paymentCancel = async (req, res) => {
   if (req.query.donation_id) {
     await db.execute(
-      "UPDATE financial_donations SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('paid','failed','cancelled')",
+      "UPDATE financial_donation_records SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status NOT IN ('approved','failed','cancelled')",
       [req.query.donation_id]
     );
   }
@@ -766,7 +766,7 @@ exports.getDonationStats = async (req, res) => {
   const uid = req.user.id;
 
   const [[totalFinancialRow]] = await db.execute(
-    "SELECT COALESCE(SUM(amount), 0) AS total FROM financial_donations WHERE user_id = ? AND status = 'paid'",
+    "SELECT COALESCE(SUM(amount), 0) AS total FROM financial_donation_records WHERE user_id = ? AND status = 'approved'",
     [uid]
   );
   const [[totalFoodRow]] = await db.execute(
