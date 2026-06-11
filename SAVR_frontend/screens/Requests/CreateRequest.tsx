@@ -26,6 +26,7 @@ const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
   'Canned Goods': { lib: 'mci', name: 'package-variant-closed' },
   Dairy: { lib: 'mci', name: 'cheese' },
   'Dry Goods': { lib: 'mci', name: 'package-variant' },
+  'Liquid Goods': { lib: 'mci', name: 'bottle-soda-outline' },
   'Fats & Oils': { lib: 'mci', name: 'oil' },
   'Protein Alternatives': { lib: 'mci', name: 'seed-outline' },
   'Sugars & Sweets': { lib: 'mci', name: 'cookie' },

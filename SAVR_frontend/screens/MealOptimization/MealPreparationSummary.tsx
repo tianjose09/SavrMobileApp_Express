@@ -120,7 +120,7 @@ export default function MealPreparationSummary({ navigation }: any) {
           <Text style={styles.ingredients} numberOfLines={1}>{item.ingredients}</Text>
         </View>
         <View style={styles.paxInfo}>
-          <Text style={styles.paxText}>{item.pax} Pax</Text>
+          <Text style={styles.paxText}>{item.pax} Servings</Text>
         </View>
         <TouchableOpacity 
           style={[styles.statusPill, getStatusStyle(item.status)]}

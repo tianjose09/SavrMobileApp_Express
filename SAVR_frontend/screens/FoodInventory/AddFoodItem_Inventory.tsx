@@ -139,6 +139,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 { label: "Canned Goods", value: "Canned Goods" },
                 { label: "Grains & Cereals", value: "Grains & Cereals" },
                 { label: "Dry Goods", value: "Dry Goods" },
+                { label: "Liquid Goods", value: "Liquid Goods" },
                 { label: "Meat", value: "Meat" },
                 { label: "Protein Alternatives", value: "Protein Alternatives" },
                 { label: "Dairy", value: "Dairy" },
@@ -146,7 +147,6 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 { label: "Fruits", value: "Fruits" },
                 { label: "Vegetables", value: "Vegetables" },
                 { label: "Sugars & Sweets", value: "Sugars & Sweets" },
-                { label: "Prepared Meals", value: "Prepared Meals" },
               ]}
               style={styles.input}
             />

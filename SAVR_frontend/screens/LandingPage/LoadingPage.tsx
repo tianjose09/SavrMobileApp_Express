@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, StatusBar, ImageBackground, Animated, Easing } from 'react-native';
+import { View, StyleSheet, StatusBar, ImageBackground, Animated, Image, Easing } from 'react-native';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 export default function LoadingPage({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const waveAnim = useRef(new Animated.Value(0)).current;
+  const fillAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Initial entrance animation
@@ -21,23 +23,23 @@ export default function LoadingPage({ navigation }: any) {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Continuous gentle pulse animation after entrance
+      // Rotation for the liquid wave wobble
       Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
+        Animated.timing(waveAnim, {
+          toValue: 1,
+          duration: 3500, // Slow, rolling wave speed
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
       ).start();
+
+      // Sweep the wave from left to right to fill the logo
+      Animated.timing(fillAnim, {
+        toValue: 1,
+        duration: 3800, // Duration of the fill
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start();
     });
 
     // Fade out and navigate to LandingPage
@@ -49,10 +51,26 @@ export default function LoadingPage({ navigation }: any) {
       }).start(() => {
         navigation.replace('LandingPage');
       });
-    }, 1800);
+    }, 4500); // Give enough time to watch the logo fill up with the liquid wave
 
     return () => clearTimeout(timer);
-  }, [navigation, fadeAnim, scaleAnim, pulseAnim]);
+  }, [navigation, fadeAnim, scaleAnim, waveAnim, fillAnim]);
+
+  // Rotations to create the organic liquid wave shape
+  const rotate1 = waveAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+  const rotate2 = waveAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['360deg', '0deg'],
+  });
+
+  // Translate container to slide the wave over the logo from left to right
+  const fillTranslateX = fillAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-450, 50], 
+  });
 
   return (
     <ImageBackground
@@ -63,18 +81,33 @@ export default function LoadingPage({ navigation }: any) {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green tint overlay */}
       <View style={styles.overlay}>
-        <Animated.View style={[styles.logoContainer, { 
+        <Animated.View style={[styles.contentContainer, { 
           opacity: fadeAnim, 
-          transform: [
-            { scale: scaleAnim },
-            { scale: pulseAnim }
-          ] 
+          transform: [{ scale: scaleAnim }] 
         }]}>
-          <Animated.Image 
-            source={require('../../assets/images/logo/logowhite.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          
+          <MaskedView
+            style={styles.maskedView}
+            maskElement={
+              <Image 
+                source={require('../../assets/images/logo/logowhite.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            }
+          >
+            {/* The base appearance of the logo (faint outline) */}
+            <View style={styles.logoBase} />
+            
+            {/* Liquid wave container that sweeps from left to right */}
+            <Animated.View style={[StyleSheet.absoluteFillObject, { transform: [{ translateX: fillTranslateX }] }]}>
+              {/* Back liquid layer (slightly transparent) */}
+              <Animated.View style={[styles.liquidWave, { opacity: 0.6, transform: [{ rotate: rotate1 }] }]} />
+              {/* Front liquid layer (solid white) */}
+              <Animated.View style={[styles.liquidWave, { opacity: 1, transform: [{ rotate: rotate2 }] }]} />
+            </Animated.View>
+          </MaskedView>
+
         </Animated.View>
       </View>
     </ImageBackground>
@@ -93,7 +126,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoContainer: {
+  contentContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -102,8 +135,26 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 10,
   },
+  maskedView: {
+    width: 350,
+    height: 120,
+  },
   logo: {
     width: 350,
     height: 120,
+    backgroundColor: 'transparent',
+  },
+  logoBase: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)', 
+  },
+  liquidWave: {
+    position: 'absolute',
+    width: 800,
+    height: 800,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 330, // Creates a 'squircle' shape. When rotated, its edge wobbles like an organic wave
+    top: -340, // Centered vertically relative to the 120px tall logo (120/2 - 400 = -340)
+    right: 0, // The right edge of this shape acts as the crashing wave
   }
 });

@@ -58,11 +58,11 @@ export default function FoodDonationDetails({ navigation }: any) {
       'Fats & Oils',
       'Fruits',
       'Grains & Cereals',
+      'Liquid Goods',
       'Meat',
       'Protein Alternatives',
       'Sugars & Sweets',
       'Vegetables',
-      'Prepared Meals',
     ];
     ApiService.getInventoryCategories()
       .then(res => {
