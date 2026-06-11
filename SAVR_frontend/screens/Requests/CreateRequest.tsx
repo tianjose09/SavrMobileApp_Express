@@ -161,20 +161,22 @@ export default function CreateRequest({ navigation }: any) {
       .then(res => {
         if (res.data?.success) {
           const raw = res.data.items || [];
-          const parsed: FoodItem[] = raw.map((i: any) => {
-            let u = i.unit || 'pcs';
-            const norm = u.trim().toLowerCase();
-            if (norm === 'cans' || norm === 'can') {
-              u = 'pcs';
-            }
-            return {
-              id: i.id,
-              name: i.name,
-              category: i.category || 'Other',
-              qty: i.qty,
-              unit: u,
-            };
-          });
+          const parsed: FoodItem[] = raw
+            .filter((i: any) => i.category !== 'Prepared Meals' && i.category !== 'Prep Meal')
+            .map((i: any) => {
+              let u = i.unit || 'pcs';
+              const norm = u.trim().toLowerCase();
+              if (norm === 'cans' || norm === 'can') {
+                u = 'pcs';
+              }
+              return {
+                id: i.id,
+                name: i.name,
+                category: i.category || 'Other',
+                qty: i.qty,
+                unit: u,
+              };
+            });
           setInventoryItems(parsed);
         }
       })
