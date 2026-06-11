@@ -66,6 +66,7 @@ router.post('/donation/schedule',                      donationController.submit
 router.post('/donation/service',                       donationController.submitService);
 router.post('/donation/request',                       donationController.submitBeneficiaryRequest);
 router.get('/donation/my-requests',                    donationController.getBeneficiaryRequests);
+router.post('/donation/my-requests/auto-cancel-expired', donationController.autoCancelExpiredRequests);
 router.post('/donation/my-requests/:id/cancel',        donationController.cancelBeneficiaryRequest);
 router.post('/donation/my-requests/:id/complete',      donationController.completeBeneficiaryRequest);
 router.get('/donation/requests',                             donationController.getAllBeneficiaryRequests);

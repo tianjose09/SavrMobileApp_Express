@@ -140,6 +140,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
+      // Auto-cancel any requests whose delivery date passed without receipt
+      await ApiService.autoCancelExpiredRequests().catch(() => {});
       const res = await ApiService.getMyRequests();
       if (res.data.success) {
         setRequestsData(res.data.requests);

@@ -1258,6 +1258,65 @@ exports.cancelBeneficiaryRequest = async (req, res) => {
   return res.json({ success: true, message: 'Request cancelled successfully.' });
 };
 
+// POST /api/donation/auto-cancel-expired
+// Finds the logged-in beneficiary's active requests where all delivery stops
+// are past-dated and none were received, then marks them Cancelled.
+exports.autoCancelExpiredRequests = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [expired] = await db.execute(`
+      SELECT DISTINCT br.id, br.request_name
+      FROM beneficiary_requests br
+      WHERE br.user_id = ?
+        AND UPPER(br.status) IN ('APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT')
+        AND EXISTS (
+          SELECT 1 FROM donation_drives dd
+          JOIN truck_stops ts
+            ON ts.reference_id::text = dd.id::text
+            AND ts.source = 'donation_drive'
+            AND ts.stop_type = 'DELIVER'
+            AND ts.status = 'pending'
+            AND ts.date < CURRENT_DATE
+          WHERE dd.beneficiary_request_id = br.id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM donation_drives dd
+          JOIN truck_stops ts
+            ON ts.reference_id::text = dd.id::text
+            AND ts.source = 'donation_drive'
+            AND ts.stop_type = 'DELIVER'
+            AND ts.status = 'completed'
+          WHERE dd.beneficiary_request_id = br.id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM donation_drives dd
+          JOIN truck_stops ts
+            ON ts.reference_id::text = dd.id::text
+            AND ts.source = 'donation_drive'
+            AND ts.stop_type = 'DELIVER'
+            AND ts.status = 'pending'
+            AND ts.date >= CURRENT_DATE
+          WHERE dd.beneficiary_request_id = br.id
+        )
+    `, [userId]);
+
+    for (const r of expired) {
+      await db.execute(
+        "UPDATE beneficiary_requests SET status = 'Cancelled', updated_at = NOW() WHERE id = ?",
+        [r.id]
+      );
+      // No notification created here — if staff sent a missed delivery message,
+      // it is already in the beneficiary's notification bell from that action.
+    }
+
+    return res.json({ success: true, cancelled: expired.length });
+  } catch (e) {
+    console.error('[autoCancelExpiredRequests]', e);
+    return res.status(500).json({ success: false, message: 'Failed to auto-cancel expired requests.' });
+  }
+};
+
 exports.updateRequestStatus = async (req, res) => {
   const user = req.user;
   if (user.role === 'beneficiary') {
