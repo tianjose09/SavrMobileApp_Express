@@ -653,8 +653,10 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
   const matchedIngredients = selectedIngredients.filter(ing =>
     isMatch((ing.name || '').toLowerCase(), ingText)
   );
-  // Calculate pax from only the matched ingredients for this specific meal
-  const mealPax = calculatePaxCapacity(matchedIngredients, meal);
+  // Use backend-calculated servings when available; fall back to frontend estimate for mock data
+  const mealPax = (meal.servings && meal.servings !== '—')
+    ? parseInt(meal.servings, 10)
+    : calculatePaxCapacity(matchedIngredients, meal);
   return (
     <View style={[
       styles.mealCard,
