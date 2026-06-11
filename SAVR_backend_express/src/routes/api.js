@@ -88,6 +88,10 @@ router.get('/notifications',         notificationController.getNotifications);
 router.delete('/notifications/:id',  notificationController.deleteNotification);
 router.delete('/notifications',      notificationController.deleteAllNotifications);
 
+// Push token
+router.post('/push-token',           notificationController.savePushToken);
+router.post('/push-token/clear',     notificationController.clearPushToken);
+
 // Inventory
 router.get('/inventory',            inventoryController.index);
 router.get('/inventory/prepared',   inventoryController.preparedMeals);

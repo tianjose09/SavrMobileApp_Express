@@ -1,5 +1,6 @@
 import { StorageUtils, StorageKeys } from './storage';
 import { api } from '../services/api';
+import { clearPushToken } from '../services/pushNotifications';
 
 export const LogoutHelper = {
   async logout(navigation: any): Promise<void> {
@@ -16,8 +17,9 @@ export const LogoutHelper = {
         routes: [{ name: 'LandingPage' }, { name: 'Login' }],
       });
       
-      // 4. API Logout call in background
+      // 4. Clear push token + API logout in background
       if (token) {
+        clearPushToken().catch(() => {});
         api.post('/api/logout', null, {
           headers: { Authorization: `Bearer ${token}` }
         }).catch(() => {

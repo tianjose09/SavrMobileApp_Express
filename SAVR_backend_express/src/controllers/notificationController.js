@@ -3,6 +3,50 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 dayjs.extend(relativeTime);
 
+const https = require('https');
+
+// Ensure push token table exists
+db.execute(`
+  CREATE TABLE IF NOT EXISTS user_push_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE,
+    token TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW()
+  )
+`).catch(err => console.error('[push_tokens] table init failed:', err.message));
+
+// Send a push notification via Expo's push API
+async function sendExpoPush(token, title, body) {
+  if (!token || !token.startsWith('ExponentPushToken')) return;
+  const payload = JSON.stringify({
+    to: token,
+    sound: 'default',
+    title,
+    body,
+    priority: 'high',
+  });
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'exp.host',
+      path: '/--/api/v2/push/send',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (res) => {
+      res.resume();
+      resolve();
+    });
+    req.on('error', (e) => {
+      console.error('[sendExpoPush]', e.message);
+      resolve();
+    });
+    req.write(payload);
+    req.end();
+  });
+}
+
 // Add is_critical column if it doesn't exist yet
 db.execute(`
   CREATE TABLE IF NOT EXISTS notifications (
@@ -73,6 +117,11 @@ async function createNotification(userId, type, title, description, isCritical =
       'INSERT INTO notifications (user_id, type, title, description, is_critical, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
       [userId, type, title, description, isCritical]
     );
+    // Fire push notification if the user has a registered device token
+    const [tokenRows] = await db.execute('SELECT token FROM user_push_tokens WHERE user_id = ?', [userId]);
+    if (tokenRows.length > 0) {
+      sendExpoPush(tokenRows[0].token, title, description).catch(() => {});
+    }
   } catch (e) {
     console.error('[createNotification]', e.message);
   }
@@ -484,5 +533,36 @@ exports.deleteAllNotifications = async (req, res) => {
   } catch (e) {
     console.error('[deleteAllNotifications]', e);
     return res.status(500).json({ success: false, message: 'Failed to delete notifications.' });
+  }
+};
+
+// POST /api/push-token — save or update device push token for the logged-in user
+exports.savePushToken = async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { token } = req.body;
+    if (!token) return res.status(422).json({ success: false, message: 'Token is required.' });
+    await db.execute(
+      `INSERT INTO user_push_tokens (user_id, token, updated_at)
+       VALUES (?, ?, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET token = EXCLUDED.token, updated_at = NOW()`,
+      [uid, token]
+    );
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('[savePushToken]', e);
+    return res.status(500).json({ success: false, message: 'Failed to save push token.' });
+  }
+};
+
+// POST /api/push-token/clear — remove device push token on logout
+exports.clearPushToken = async (req, res) => {
+  try {
+    const uid = req.user.id;
+    await db.execute('DELETE FROM user_push_tokens WHERE user_id = ?', [uid]);
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('[clearPushToken]', e);
+    return res.status(500).json({ success: false, message: 'Failed to clear push token.' });
   }
 };

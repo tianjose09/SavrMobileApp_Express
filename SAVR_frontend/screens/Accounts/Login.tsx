@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import { StorageUtils, StorageKeys } from '../../utils/storage';
+import { registerForPushNotifications } from '../../services/pushNotifications';
 
 const { width, height } = Dimensions.get('window');
 
@@ -99,6 +100,7 @@ export default function Login({ navigation }: any) {
         await StorageUtils.setItem(StorageKeys.USER_ROLE, response.data.user.role || 'donor');
         await StorageUtils.setItem(StorageKeys.DISPLAY_NAME, response.data.user.display_name || '');
         await StorageUtils.setItem(StorageKeys.USER_INFO, JSON.stringify(response.data.user));
+        registerForPushNotifications().catch(() => {}); // non-blocking
         navigation.reset({ index: 0, routes: [{ name: 'MainDrawer' }] });
       }
     } catch (error: any) {
