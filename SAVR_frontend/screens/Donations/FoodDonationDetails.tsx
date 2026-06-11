@@ -69,7 +69,7 @@ export default function FoodDonationDetails({ navigation }: any) {
         const apiCats: string[] = res.data?.categories ?? [];
         const baseValues = new Set(BASE_CATEGORIES.map(c => c.value));
         const extra = apiCats
-          .filter(c => !baseValues.has(c))
+          .filter(c => c !== 'Prepared Meals' && c !== 'Prep Meal' && !baseValues.has(c))
           .map(c => ({ label: c, value: c }));
         setCategoryItems([...BASE_CATEGORIES, ...extra]);
       })
