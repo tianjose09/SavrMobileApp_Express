@@ -21,7 +21,7 @@ export default function IngrMealPlanning({ navigation }: any) {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [openUnitPickerId, setOpenUnitPickerId] = useState<number | null>(null);
 
-  const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
+  const UNIT_OPTIONS = ['kg', 'pcs', 'L'];
 
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

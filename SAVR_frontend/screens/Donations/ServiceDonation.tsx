@@ -12,10 +12,10 @@ import {
   ActivityIndicator,
   StatusBar,
   Image,
-  SafeAreaView,
   Modal,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
@@ -772,6 +772,9 @@ export default function ServiceDonation({ navigation }: any) {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Extra bottom spacing for Android navigation bar overlap prevention */}
+          <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -883,7 +886,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 120, paddingTop: 15 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 160, paddingTop: 15 },
 
   titleSection: {
     alignItems: 'center',

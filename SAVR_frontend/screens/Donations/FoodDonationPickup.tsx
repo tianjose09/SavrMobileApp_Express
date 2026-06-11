@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, SafeAreaView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -470,6 +471,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        {/* Extra bottom spacing for Android navigation bar overlap prevention */}
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Shared Android date/time picker */}
@@ -503,7 +506,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: {
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
 
   topHeaderWrap: {
