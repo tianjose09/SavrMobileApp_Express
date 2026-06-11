@@ -12,10 +12,10 @@ import {
   ActivityIndicator,
   StatusBar,
   Image,
-  SafeAreaView,
   Modal,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
