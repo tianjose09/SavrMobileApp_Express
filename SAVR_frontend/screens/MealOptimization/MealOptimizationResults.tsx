@@ -684,7 +684,7 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
           <View style={[styles.detailBox, { borderColor: isSuggested ? '#e8d49a' : '#b8dfc9' }]}>
             <Text style={styles.detailLabel}>SERVINGS</Text>
             <Text style={[styles.detailValue, { color: isSuggested ? '#9a6b10' : '#156133', fontSize: 18 }]}>
-              ~{mealPax} servings
+              {mealPax} serving{mealPax === 1 ? '' : 's'}
             </Text>
           </View>
         )}

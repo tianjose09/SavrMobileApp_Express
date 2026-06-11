@@ -5,6 +5,27 @@ import { ApiService } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
 import NotificationBell from '../../components/NotificationBell';
 
+const CATEGORY_DISPLAY_MAP: Record<string, string> = {
+  'Canned Goods': 'Canned Goods: Non-Perishable',
+  'Dairy': 'Dairy: Perishable',
+  'Dry Goods': 'Dry Goods: Non-Perishable',
+  'Fats & Oils': 'Fats & Oils: Non-Perishable',
+  'Fruits': 'Fruits: Perishable',
+  'Grains & Cereals': 'Grains & Cereals: Non-Perishable',
+  'Beverages': 'Beverages: Non-Perishable',
+  'Liquid Goods': 'Beverages: Non-Perishable',
+  'Meat': 'Meat: Perishable',
+  'Sugars & Sweets': 'Sugars & Sweets: Non-Perishable',
+  'Protein Alternatives': 'Protein Alternatives: Both',
+  'Vegetables': 'Vegetables: Perishable',
+  'Prepared Meals': 'Prepared Meals: Perishable',
+};
+
+const getCategoryLabel = (cat: string | null) => {
+  if (!cat) return '';
+  return CATEGORY_DISPLAY_MAP[cat] || cat;
+};
+
 export default function FoodInventory({ route, navigation }: any) {
     const [searchQuery, setSearchQuery] = useState('');
     const [inventoryItems, setInventoryItems] = useState<any[]>([]);
@@ -39,7 +60,20 @@ export default function FoodInventory({ route, navigation }: any) {
         }, [])
     );
 
-    const categories = [...new Set(inventoryItems.map((i: any) => i.category).filter(Boolean))].sort() as string[];
+    const categories = [...new Set([
+      'Canned Goods',
+      'Dairy',
+      'Dry Goods',
+      'Fats & Oils',
+      'Fruits',
+      'Grains & Cereals',
+      'Beverages',
+      'Meat',
+      'Sugars & Sweets',
+      'Protein Alternatives',
+      'Vegetables',
+      ...inventoryItems.map((i: any) => i.category).filter(Boolean)
+    ])].sort() as string[];
     const filteredItems = inventoryItems.filter(item => {
         const matchesSearch =
             (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -114,7 +148,7 @@ export default function FoodInventory({ route, navigation }: any) {
                         }}
                     >
                         <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory ? '#FFF' : '#106037' }}>
-                            {selectedCategory ? selectedCategory : 'Filter by Category'}
+                            {selectedCategory ? getCategoryLabel(selectedCategory) : 'Filter by Category'}
                         </Text>
                         <Ionicons
                             name={showCategoryDropdown ? 'chevron-up' : 'chevron-down'}
@@ -156,7 +190,7 @@ export default function FoodInventory({ route, navigation }: any) {
                                         backgroundColor: selectedCategory === cat ? '#eef6f0' : '#FFF',
                                     }}
                                 >
-                                    <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory === cat ? '#106037' : '#4f6157' }}>{cat}</Text>
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory === cat ? '#106037' : '#4f6157' }}>{getCategoryLabel(cat)}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -188,7 +222,7 @@ export default function FoodInventory({ route, navigation }: any) {
                                     <Text style={[styles.tdText, { flex: 2.2 }]} numberOfLines={1}>{item.name}</Text>
                                     <Text style={[styles.tdBold, { flex: 1.5, textAlign: 'center' }]} numberOfLines={1}>{item.qty}</Text>
                                     <Text style={[styles.tdText, { flex: 2.5, textAlign: 'center' }, isRed && styles.textRed]} numberOfLines={1}>{item.expiry}</Text>
-                                    <Text style={[styles.tdText, { flex: 3.5, textAlign: 'center' }]} numberOfLines={1}>{item.category}</Text>
+                                    <Text style={[styles.tdText, { flex: 3.5, textAlign: 'center' }]} numberOfLines={1}>{getCategoryLabel(item.category)}</Text>
                                 </View>
                             );
                         })
