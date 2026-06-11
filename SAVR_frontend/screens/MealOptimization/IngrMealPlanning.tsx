@@ -598,7 +598,7 @@ export default function IngrMealPlanning({ navigation }: any) {
             <View style={styles.selectedSummaryBar}>
               <MaterialCommunityIcons name="food-variant" size={16} color="#8A3E08" />
               <Text style={styles.selectedSummaryText}>
-                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected · tap a row to adjust qty
+                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected · Tap a row to adjust quantity
               </Text>
             </View>
           )}
