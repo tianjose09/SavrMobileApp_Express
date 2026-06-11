@@ -14,6 +14,27 @@ const parseQty = (qtyStr: string): { value: number; unit: string } => {
   return { value: 0, unit: '' };
 };
 
+const CATEGORY_DISPLAY_MAP: Record<string, string> = {
+  'Canned Goods': 'Canned Goods: Non-Perishable',
+  'Dairy': 'Dairy: Perishable',
+  'Dry Goods': 'Dry Goods: Non-Perishable',
+  'Fats & Oils': 'Fats & Oils: Non-Perishable',
+  'Fruits': 'Fruits: Perishable',
+  'Grains & Cereals': 'Grains & Cereals: Non-Perishable',
+  'Beverages': 'Beverages: Non-Perishable',
+  'Liquid Goods': 'Beverages: Non-Perishable',
+  'Meat': 'Meat: Perishable',
+  'Sugars & Sweets': 'Sugars & Sweets: Non-Perishable',
+  'Protein Alternatives': 'Protein Alternatives: Both',
+  'Vegetables': 'Vegetables: Perishable',
+  'Prepared Meals': 'Prepared Meals: Perishable',
+};
+
+const getCategoryLabel = (cat: string | null) => {
+  if (!cat) return '';
+  return CATEGORY_DISPLAY_MAP[cat] || cat;
+};
+
 export default function IngrMealPlanning({ navigation }: any) {
   const [targetPax, setTargetPax] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,13 +88,14 @@ export default function IngrMealPlanning({ navigation }: any) {
         items = JSON.parse(localData);
       } else {
         items = [
-          { id: '1', name: 'Rice', qty: '48 kg', expiry: '2026-06-30', category: 'Grains and Cereal' },
+          { id: '1', name: 'Rice', qty: '48 kg', expiry: '2026-06-30', category: 'Grains & Cereals' },
           { id: '2', name: 'Chicken', qty: '17 kg', expiry: '2026-06-30', category: 'Meat' },
           { id: '3', name: 'Mango', qty: '48 kg', expiry: '2026-07-28', category: 'Fruits' },
           { id: '4', name: 'Carrots', qty: '17 kg', expiry: '2026-06-30', category: 'Vegetables' },
-          { id: '5', name: 'Bread', qty: '680 pcs', expiry: '2026-06-30', category: 'Grains and Cereal' },
+          { id: '5', name: 'Bread', qty: '680 pcs', expiry: '2026-06-30', category: 'Grains & Cereals' },
           { id: '6', name: 'Milk', qty: '17 L', expiry: '2026-01-30', category: 'Dairy' },
-          { id: '7', name: 'Eggs', qty: '17 pcs', expiry: '2026-06-30', category: 'Poultry' },
+          { id: '7', name: 'Water', qty: '20 L', expiry: '2026-08-15', category: 'Beverages' },
+          { id: '8', name: 'Eggs', qty: '17 pcs', expiry: '2026-06-30', category: 'Protein Alternatives' },
         ];
         await StorageUtils.setItem('MOCK_INVENTORY_LIST', JSON.stringify(items));
       }
@@ -223,7 +245,20 @@ export default function IngrMealPlanning({ navigation }: any) {
   const selectedCount = ingredients.filter(i => i.selected).length;
   const selectableIngredients = ingredients.filter(i => !i.outOfStock);
   const allSelectableSelected = selectableIngredients.length > 0 && selectableIngredients.every(i => i.selected);
-  const categories = [...new Set(ingredients.map((i: any) => i.category).filter(Boolean))].sort() as string[];
+  const categories = [...new Set([
+    'Canned Goods',
+    'Dairy',
+    'Dry Goods',
+    'Fats & Oils',
+    'Fruits',
+    'Grains & Cereals',
+    'Beverages',
+    'Meat',
+    'Sugars & Sweets',
+    'Protein Alternatives',
+    'Vegetables',
+    ...ingredients.map((i: any) => i.category).filter(Boolean)
+  ])].sort() as string[];
   const filteredIngredients = ingredients.filter(i => {
     const matchesSearch =
       (i.name && i.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -330,7 +365,7 @@ export default function IngrMealPlanning({ navigation }: any) {
               }}
             >
               <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory ? '#FFF' : '#156133' }}>
-                {selectedCategory ? selectedCategory : 'Filter by Category'}
+                {selectedCategory ? getCategoryLabel(selectedCategory) : 'Filter by Category'}
               </Text>
               <Ionicons
                 name={showCategoryDropdown ? 'chevron-up' : 'chevron-down'}
@@ -372,7 +407,7 @@ export default function IngrMealPlanning({ navigation }: any) {
                       backgroundColor: selectedCategory === cat ? '#eef6f0' : '#FFF',
                     }}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory === cat ? '#156133' : '#4f6157' }}>{cat}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory === cat ? '#156133' : '#4f6157' }}>{getCategoryLabel(cat)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -457,7 +492,7 @@ export default function IngrMealPlanning({ navigation }: any) {
                                 styles.categoryTagText,
                                 item.selected && { color: '#156133', backgroundColor: '#eef6f0' },
                               ]} numberOfLines={1}>
-                                {item.category}
+                                {getCategoryLabel(item.category)}
                               </Text>
                             </View>
                           )}
@@ -563,7 +598,7 @@ export default function IngrMealPlanning({ navigation }: any) {
             <View style={styles.selectedSummaryBar}>
               <MaterialCommunityIcons name="food-variant" size={16} color="#8A3E08" />
               <Text style={styles.selectedSummaryText}>
-                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected · tap a row to adjust qty
+                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected · Tap a row to adjust quantity
               </Text>
             </View>
           )}

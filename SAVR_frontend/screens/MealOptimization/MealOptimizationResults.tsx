@@ -567,7 +567,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{parsedPax}</Text>
-              <Text style={styles.statLabel}>Target{`\n`}Pax</Text>
+              <Text style={styles.statLabel}>Target{`\n`}Servings</Text>
             </View>
           </View>
 
@@ -663,13 +663,15 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
       meal.isTop && !isSuggested && { borderColor: '#dcb04d', backgroundColor: '#fffdf7' },
       isSuggested && styles.mealCardSuggested,
     ]}>
-      <View style={meal.isTop && !isSuggested ? styles.rankPill : styles.rankPill2}>
-        <Text style={meal.isTop && !isSuggested ? styles.rankPillText : styles.rankPillText2}>
-          {meal.rankDisplay}
-        </Text>
+      {/* Meal name row — name wraps freely, rank pill stays on the right */}
+      <View style={styles.mealNameRow}>
+        <Text style={[styles.mealName, isSuggested && { color: '#8a7040' }, { flex: 1 }]}>{meal.name}</Text>
+        <View style={[meal.isTop && !isSuggested ? styles.rankPill : styles.rankPill2, { position: 'relative', top: 0, right: 0, marginLeft: 8, flexShrink: 0 }]}>
+          <Text style={meal.isTop && !isSuggested ? styles.rankPillText : styles.rankPillText2}>
+            {meal.rankDisplay}
+          </Text>
+        </View>
       </View>
-
-      <Text style={[styles.mealName, isSuggested && { color: '#8a7040' }]}>{meal.name}</Text>
 
       <View style={styles.mealTagsList}>
         {meal.tags && meal.tags.map((tag: string, i: number) => (
@@ -682,9 +684,9 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
       <View style={styles.mealDetailGrid}>
         {mealPax > 0 && (
           <View style={[styles.detailBox, { borderColor: isSuggested ? '#e8d49a' : '#b8dfc9' }]}>
-            <Text style={styles.detailLabel}>PAX CAPACITY</Text>
+            <Text style={styles.detailLabel}>SERVINGS</Text>
             <Text style={[styles.detailValue, { color: isSuggested ? '#9a6b10' : '#156133', fontSize: 18 }]}>
-              ~{mealPax} pax
+              {mealPax} serving{mealPax === 1 ? '' : 's'}
             </Text>
           </View>
         )}
@@ -932,6 +934,12 @@ const styles = StyleSheet.create({
     elevation: 3,
     position: 'relative',
     width: '100%'
+  },
+  mealNameRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   rankPill: {
     position: 'absolute',

@@ -136,17 +136,17 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
               }}
               placeholder="Select Category"
               items={[
-                { label: "Canned Goods", value: "Canned Goods" },
-                { label: "Grains & Cereals", value: "Grains & Cereals" },
-                { label: "Dry Goods", value: "Dry Goods" },
-                { label: "Meat", value: "Meat" },
-                { label: "Protein Alternatives", value: "Protein Alternatives" },
-                { label: "Dairy", value: "Dairy" },
-                { label: "Fats & Oils", value: "Fats & Oils" },
-                { label: "Fruits", value: "Fruits" },
-                { label: "Vegetables", value: "Vegetables" },
-                { label: "Sugars & Sweets", value: "Sugars & Sweets" },
-                { label: "Prepared Meals", value: "Prepared Meals" },
+                { label: "Canned Goods: Non-Perishable", value: "Canned Goods" },
+                { label: "Dairy: Perishable", value: "Dairy" },
+                { label: "Dry Goods: Non-Perishable", value: "Dry Goods" },
+                { label: "Fats & Oils: Non-Perishable", value: "Fats & Oils" },
+                { label: "Fruits: Perishable", value: "Fruits" },
+                { label: "Grains & Cereals: Non-Perishable", value: "Grains & Cereals" },
+                { label: "Beverages: Non-Perishable", value: "Beverages" },
+                { label: "Meat: Perishable", value: "Meat" },
+                { label: "Sugars & Sweets: Non-Perishable", value: "Sugars & Sweets" },
+                { label: "Protein Alternatives: Both", value: "Protein Alternatives" },
+                { label: "Vegetables: Perishable", value: "Vegetables" },
               ]}
               style={styles.input}
             />

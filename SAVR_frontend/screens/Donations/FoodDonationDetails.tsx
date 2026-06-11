@@ -52,26 +52,29 @@ export default function FoodDonationDetails({ navigation }: any) {
 
   useEffect(() => {
     const BASE_CATEGORIES = [
-      'Canned Goods',
-      'Dairy',
-      'Dry Goods',
-      'Fats & Oils',
-      'Fruits',
-      'Grains & Cereals',
-      'Meat',
-      'Protein Alternatives',
-      'Sugars & Sweets',
-      'Vegetables',
-      'Prepared Meals',
+      { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
+      { label: 'Dairy: Perishable', value: 'Dairy' },
+      { label: 'Dry Goods: Non-Perishable', value: 'Dry Goods' },
+      { label: 'Fats & Oils: Non-Perishable', value: 'Fats & Oils' },
+      { label: 'Fruits: Perishable', value: 'Fruits' },
+      { label: 'Grains & Cereals: Non-Perishable', value: 'Grains & Cereals' },
+      { label: 'Beverages: Non-Perishable', value: 'Beverages' },
+      { label: 'Meat: Perishable', value: 'Meat' },
+      { label: 'Sugars & Sweets: Non-Perishable', value: 'Sugars & Sweets' },
+      { label: 'Protein Alternatives: Both', value: 'Protein Alternatives' },
+      { label: 'Vegetables: Perishable', value: 'Vegetables' },
     ];
     ApiService.getInventoryCategories()
       .then(res => {
         const apiCats: string[] = res.data?.categories ?? [];
-        const merged = Array.from(new Set([...BASE_CATEGORIES, ...apiCats]));
-        setCategoryItems(merged.map(c => ({ label: c, value: c })));
+        const baseValues = new Set(BASE_CATEGORIES.map(c => c.value));
+        const extra = apiCats
+          .filter(c => c !== 'Prepared Meals' && c !== 'Prep Meal' && !baseValues.has(c))
+          .map(c => ({ label: c, value: c }));
+        setCategoryItems([...BASE_CATEGORIES, ...extra]);
       })
       .catch(() => {
-        setCategoryItems(BASE_CATEGORIES.map(c => ({ label: c, value: c })));
+        setCategoryItems(BASE_CATEGORIES);
       });
   }, []);
 

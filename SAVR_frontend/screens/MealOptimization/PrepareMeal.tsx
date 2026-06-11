@@ -147,7 +147,7 @@ export default function PrepareMeal({ route, navigation }: any) {
             {mealPax > 0 && (
               <View style={styles.paxPill}>
                 <Ionicons name="people" size={14} color="#156133" />
-                <Text style={styles.paxPillText}>~{mealPax} pax capacity</Text>
+                <Text style={styles.paxPillText}>~{mealPax} servings</Text>
               </View>
             )}
           </View>

@@ -14,6 +14,27 @@ import NotificationBell from '../../components/NotificationBell';
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
 type RequestedFood = { id: number; name: string; category: string; qty: string; unit: string };
 
+const CATEGORY_DISPLAY_MAP: Record<string, string> = {
+  'Canned Goods': 'Canned Goods: Non-Perishable',
+  'Dairy': 'Dairy: Perishable',
+  'Dry Goods': 'Dry Goods: Non-Perishable',
+  'Fats & Oils': 'Fats & Oils: Non-Perishable',
+  'Fruits': 'Fruits: Perishable',
+  'Grains & Cereals': 'Grains & Cereals: Non-Perishable',
+  'Beverages': 'Beverages: Non-Perishable',
+  'Liquid Goods': 'Beverages: Non-Perishable',
+  'Meat': 'Meat: Perishable',
+  'Sugars & Sweets': 'Sugars & Sweets: Non-Perishable',
+  'Protein Alternatives': 'Protein Alternatives: Both',
+  'Vegetables': 'Vegetables: Perishable',
+  'Prepared Meals': 'Prepared Meals: Perishable',
+};
+
+const getCategoryLabel = (cat: string | null) => {
+  if (!cat) return '';
+  return CATEGORY_DISPLAY_MAP[cat] || cat;
+};
+
 // ─── Category icon map (MaterialCommunityIcons names) ────────────────────────
 type IconEntry = { lib: 'mci' | 'ion'; name: string };
 const ICON_COLOR = '#6B7280';
@@ -26,6 +47,8 @@ const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
   'Canned Goods': { lib: 'mci', name: 'package-variant-closed' },
   Dairy: { lib: 'mci', name: 'cheese' },
   'Dry Goods': { lib: 'mci', name: 'package-variant' },
+  'Liquid Goods': { lib: 'mci', name: 'bottle-soda-outline' },
+  Beverages: { lib: 'mci', name: 'bottle-soda-outline' },
   'Fats & Oils': { lib: 'mci', name: 'oil' },
   'Protein Alternatives': { lib: 'mci', name: 'seed-outline' },
   'Sugars & Sweets': { lib: 'mci', name: 'cookie' },
@@ -138,20 +161,22 @@ export default function CreateRequest({ navigation }: any) {
       .then(res => {
         if (res.data?.success) {
           const raw = res.data.items || [];
-          const parsed: FoodItem[] = raw.map((i: any) => {
-            let u = i.unit || 'pcs';
-            const norm = u.trim().toLowerCase();
-            if (norm === 'cans' || norm === 'can') {
-              u = 'pcs';
-            }
-            return {
-              id: i.id,
-              name: i.name,
-              category: i.category || 'Other',
-              qty: i.qty,
-              unit: u,
-            };
-          });
+          const parsed: FoodItem[] = raw
+            .filter((i: any) => i.category !== 'Prepared Meals' && i.category !== 'Prep Meal')
+            .map((i: any) => {
+              let u = i.unit || 'pcs';
+              const norm = u.trim().toLowerCase();
+              if (norm === 'cans' || norm === 'can') {
+                u = 'pcs';
+              }
+              return {
+                id: i.id,
+                name: i.name,
+                category: i.category || 'Other',
+                qty: i.qty,
+                unit: u,
+              };
+            });
           setInventoryItems(parsed);
         }
       })
@@ -159,7 +184,20 @@ export default function CreateRequest({ navigation }: any) {
       .finally(() => setInventoryLoading(false));
   }, [requestType]);
 
-  const categories = [...new Set(inventoryItems.map(i => i.category))].sort();
+  const categories = [...new Set([
+    'Canned Goods',
+    'Dairy',
+    'Dry Goods',
+    'Fats & Oils',
+    'Fruits',
+    'Grains & Cereals',
+    'Beverages',
+    'Meat',
+    'Sugars & Sweets',
+    'Protein Alternatives',
+    'Vegetables',
+    ...inventoryItems.map(i => i.category).filter(Boolean)
+  ])].sort();
   const itemsInCategory = selectedCategory
     ? inventoryItems.filter(i => i.category === selectedCategory)
     : [];
@@ -520,7 +558,7 @@ export default function CreateRequest({ navigation }: any) {
                     setItemQty('');
                   }}
                   placeholder="Select Food Categories"
-                  items={categories.map(cat => ({ label: cat, value: cat }))}
+                  items={categories.map(cat => ({ label: getCategoryLabel(cat), value: cat }))}
                   style={styles.fdCatDropdown}
                 />
               )}
@@ -529,7 +567,7 @@ export default function CreateRequest({ navigation }: any) {
               {selectedCategory && (
                 <View style={styles.fdItemsWrap}>
                   <View style={styles.fdItemsHeader}>
-                    <Text style={styles.fdItemsTitle}>{selectedCategory}</Text>
+                    <Text style={styles.fdItemsTitle}>{getCategoryLabel(selectedCategory)}</Text>
                     <Text style={styles.fdItemsCount}>{itemsInCategory.length} items</Text>
                   </View>
                   {itemsInCategory.length === 0 ? (
@@ -561,7 +599,7 @@ export default function CreateRequest({ navigation }: any) {
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.fdItemName, isSel && styles.fdItemNameActive]} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.fdItemCat}>{item.category}</Text>
+                            <Text style={styles.fdItemCat}>{getCategoryLabel(item.category)}</Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
                             <Text style={styles.fdItemStockLabel}>In Stock</Text>
@@ -645,7 +683,7 @@ export default function CreateRequest({ navigation }: any) {
               ) : (
                 requestedFoods.map((f, idx) => (
                   <View key={f.id} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
-                    <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{f.category}</Text>
+                    <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{getCategoryLabel(f.category)}</Text>
                     <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
                     <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
                     <TouchableOpacity onPress={() => removeFood(f.id)} style={{ paddingLeft: 10 }}>
