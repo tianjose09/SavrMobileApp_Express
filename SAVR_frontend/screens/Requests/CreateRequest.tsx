@@ -194,7 +194,6 @@ export default function CreateRequest({ navigation }: any) {
     'Sugars & Sweets',
     'Protein Alternatives',
     'Vegetables',
-    'Prepared Meals',
     ...inventoryItems.map(i => i.category).filter(Boolean)
   ])].sort();
   const itemsInCategory = selectedCategory
