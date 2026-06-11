@@ -362,19 +362,19 @@ export default function CreateRequest({ navigation }: any) {
             <Text style={styles.inputLabel}>Name of Drive</Text>
             <TextInput
               style={styles.inputBox}
-              placeholder="eg. Kapatiran Fire Tondo Relief"
+              placeholder="e.g. Kapatiran Fire Tondo Relief"
               placeholderTextColor="#A5D1B8"
               value={form.title}
               onChangeText={(val) => updateForm('title', val)}
             />
 
-            {/* Financial fields: Amount + Receiving Account — right after Name of Drive */}
-            {requestType === 'financial' && (
+            {/* ── Conditional form layout: Financial vs Food ── */}
+            {requestType === 'financial' ? (
               <View>
-                <Text style={styles.inputLabel}>Amount of Money Needed</Text>
+                <Text style={styles.inputLabel}>Amount of Money Needed (₱)</Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="PHP 0.00"
+                  placeholder="e.g. 5000"
                   placeholderTextColor="#A5D1B8"
                   keyboardType="numeric"
                   value={form.financial_amount}
@@ -389,6 +389,22 @@ export default function CreateRequest({ navigation }: any) {
                     }
                   }}
                 />
+
+                {/* Population & Age */}
+                <View style={[styles.rowInputs, { marginBottom: 18 }]}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.inputLabel}># of Population</Text>
+                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                  </View>
+                  <View style={{ flex: 1.5 }}>
+                    <Text style={styles.inputLabel}>Age Range</Text>
+                    <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
+                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                      <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
+                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                    </View>
+                  </View>
+                </View>
 
                 {/* Receiving Account Details Header */}
                 <View style={styles.receivingAccHeader}>
@@ -417,49 +433,62 @@ export default function CreateRequest({ navigation }: any) {
                   onChangeText={(val) => updateForm('account_name', val)}
                 />
 
-                <Text style={styles.inputLabel}>Account Number</Text>
+                <Text style={styles.inputLabel}>Account Number / Mobile No.</Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="eg. 00001234567"
+                  placeholder="eg. 09171234567 or bank account no."
                   placeholderTextColor="#A5D1B8"
                   keyboardType="numeric"
                   value={form.account_number}
                   onChangeText={(val) => updateForm('account_number', val)}
                 />
-              </View>
-            )}
 
-            {/* Address */}
-            <Text style={styles.inputLabel}>Address / Coverage</Text>
-            <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
-              <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 8, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" textAlign="left" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-              <TextInput style={[styles.inputBox, { flex: 1.5, marginBottom: 0 }]} placeholder="Brgy" placeholderTextColor="#A5D1B8" textAlign="left" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
-            </View>
-            <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
-              <TextInput style={[styles.inputBox, { flex: 2, marginRight: 8, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" textAlign="left" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
-              <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Zip" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
-            </View>
-
-            {/* Population & Age */}
-            <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>No. of Population</Text>
-                <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
-              </View>
-              <View style={{ flex: 1.5 }}>
-                <Text style={styles.inputLabel}>Age Range</Text>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
-                  <Text style={{ color: '#e4e1e1ff', fontSize: 12, fontWeight: '500', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
-                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                {/* Address */}
+                <Text style={styles.inputLabel}>Address / Coverage</Text>
+                <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
+                  <TextInput style={[styles.inputBox, { flex: 1, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Brgy." placeholderTextColor="#A5D1B8" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
+                </View>
+                <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
+                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="ZIP" placeholderTextColor="#A5D1B8" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
                 </View>
               </View>
-            </View>
+            ) : (
+              <View>
+                {/* Population & Age */}
+                <View style={[styles.rowInputs, { marginBottom: 18 }]}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.inputLabel}># of Population</Text>
+                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                  </View>
+                  <View style={{ flex: 1.5 }}>
+                    <Text style={styles.inputLabel}>Age Range</Text>
+                    <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
+                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                      <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
+                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                    </View>
+                  </View>
+                </View>
+
+                {/* Address */}
+                <Text style={styles.inputLabel}>Address / Coverage</Text>
+                <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
+                  <TextInput style={[styles.inputBox, { flex: 1, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Brgy." placeholderTextColor="#A5D1B8" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
+                </View>
+                <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
+                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="ZIP Code" placeholderTextColor="#A5D1B8" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
+                </View>
+              </View>
+            )}
 
             {/* Date & Urgency */}
             <View style={[styles.rowInputs, { marginBottom: 0 }]}>
               <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={styles.inputLabel}>Date Needed</Text>
+                <Text style={styles.inputLabel}>Date</Text>
 
                 {/* Trigger button — works for both platforms */}
                 <TouchableOpacity
@@ -472,7 +501,7 @@ export default function CreateRequest({ navigation }: any) {
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }}>
-                      {form.needed_date || 'YYYY-MM-DD'}
+                      {form.needed_date || 'mm/dd/yyyy'}
                     </Text>
                     <Ionicons name="calendar-outline" size={16} color="#FFF" />
                   </View>
@@ -497,7 +526,7 @@ export default function CreateRequest({ navigation }: any) {
                         <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
                           <Text style={styles.modalCancel}>Cancel</Text>
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Date Needed</Text>
+                        <Text style={styles.modalTitle}>Date</Text>
                         <TouchableOpacity onPress={confirmIOSDate}>
                           <Text style={styles.modalDone}>Done</Text>
                         </TouchableOpacity>
@@ -819,7 +848,7 @@ const styles = StyleSheet.create({
   fdTableCellQty: { color: '#00592d', fontWeight: '800' },
 
   submitRow: { alignItems: 'flex-end', marginTop: 20, paddingRight: 10 },
-  submitBtn: { backgroundColor: '#267A41', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, minWidth: 120, alignItems: 'center' },
+  submitBtn: { backgroundColor: '#D87A38', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, minWidth: 120, alignItems: 'center' },
   submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
