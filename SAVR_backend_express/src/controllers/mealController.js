@@ -1,6 +1,15 @@
 const db = require('../db');
 const dayjs = require('dayjs');
 
+// Convert g→kg, ml→L, pcs→kg (1 pc = 400g) so inputQty matches the recipe's base unit (kg / L)
+function toBaseUnit(qty, unit) {
+  const u = (unit || '').toLowerCase().trim();
+  if (u === 'g')   return qty / 1000;
+  if (u === 'ml')  return qty / 1000;
+  if (u === 'pcs' || u === 'pc') return (qty * 400) / 1000; // 1 pc = 400g = 0.4 kg
+  return qty; // kg, L — already in base unit
+}
+
 const WEIGHT_PAX = 0.7;
 const WEIGHT_EXPIRY = 0.3;
 
@@ -110,8 +119,9 @@ exports.optimizeMeals = async (req, res) => {
     let minDays = 999;
 
     for (const m of matchedIngredients) {
-      if (!m.ingredient.is_optional && m.ingredient.qty_per_serving > 0) {
-        servingCaps.push(Math.floor(m.selData.inputQty / m.ingredient.qty_per_serving));
+      if (m.ingredient.qty_per_serving > 0) {
+        const availableQty = toBaseUnit(m.selData.inputQty, m.selData.unit);
+        servingCaps.push(Math.floor(availableQty / m.ingredient.qty_per_serving));
       }
       if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
     }

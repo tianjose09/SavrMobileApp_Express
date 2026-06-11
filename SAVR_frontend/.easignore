@@ -1,9 +1,26 @@
 node_modules/
 .git/
+.expo/
+.vscode/
+.qodo/
+
+# Logs
 *.log
 expo.log
 expo_startup.log
 tunnel.log
-qr_code.png
+
+# Dev-only files
+scripts/
 README.md
+eslint.config.js
+expo-env.d.ts
 update_icons.js
+qr_code.png
+
+# Test / CI
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
