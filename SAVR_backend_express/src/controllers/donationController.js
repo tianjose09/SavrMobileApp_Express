@@ -884,6 +884,9 @@ exports.deletePickup = async (req, res) => {
 exports.getBadges = async (req, res) => {
   const uid = req.user.id;
 
+  // Always recalculate before returning so staff approvals on the web are reflected immediately
+  await recalculateBadges(uid);
+
   const [badges] = await db.execute('SELECT * FROM badges');
   const [userBadges] = await db.execute('SELECT * FROM user_badges WHERE user_id = ?', [uid]);
   const userBadgeMap = Object.fromEntries(userBadges.map(ub => [ub.badge_id, ub]));
