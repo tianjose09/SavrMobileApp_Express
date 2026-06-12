@@ -190,22 +190,33 @@ export default function CreateRequest({ navigation }: any) {
       .finally(() => setInventoryLoading(false));
   }, [requestType]);
 
+  const BASE_CATEGORIES_WITH_SUFFIX = [
+    'Canned Goods: Non-Perishable',
+    'Dairy: Perishable',
+    'Dry Goods: Non-Perishable',
+    'Fats & Oils: Non-Perishable',
+    'Fruits: Perishable',
+    'Grains & Cereals: Non-Perishable',
+    'Beverages: Non-Perishable',
+    'Meat: Perishable',
+    'Sugars & Sweets: Non-Perishable',
+    'Protein Alternatives: Both',
+    'Vegetables: Perishable'
+  ];
+
+  const getFullCategoryName = (cat: string) => {
+    const clean = cat.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim().toLowerCase();
+    const matched = BASE_CATEGORIES_WITH_SUFFIX.find(b => b.toLowerCase().startsWith(clean + ':'));
+    return matched || cat;
+  };
+
   const categories = [...new Set([
-    'Canned Goods',
-    'Dairy',
-    'Dry Goods',
-    'Fats & Oils',
-    'Fruits',
-    'Grains & Cereals',
-    'Beverages',
-    'Meat',
-    'Sugars & Sweets',
-    'Protein Alternatives',
-    'Vegetables',
-    ...inventoryItems.map(i => i.category ? i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() : '').filter(Boolean)
+    ...BASE_CATEGORIES_WITH_SUFFIX,
+    ...inventoryItems.map(i => i.category ? getFullCategoryName(i.category) : '').filter(Boolean)
   ])].sort();
+
   const itemsInCategory = selectedCategory
-    ? inventoryItems.filter(i => i.category && i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() === selectedCategory)
+    ? inventoryItems.filter(i => i.category && getFullCategoryName(i.category) === selectedCategory)
     : [];
 
   const onDateChange = (event: any, selectedDate?: Date) => {

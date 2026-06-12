@@ -60,26 +60,37 @@ export default function FoodInventory({ route, navigation }: any) {
         }, [])
     );
 
+    const BASE_CATEGORIES_WITH_SUFFIX = [
+      'Canned Goods: Non-Perishable',
+      'Dairy: Perishable',
+      'Dry Goods: Non-Perishable',
+      'Fats & Oils: Non-Perishable',
+      'Fruits: Perishable',
+      'Grains & Cereals: Non-Perishable',
+      'Beverages: Non-Perishable',
+      'Meat: Perishable',
+      'Sugars & Sweets: Non-Perishable',
+      'Protein Alternatives: Both',
+      'Vegetables: Perishable'
+    ];
+
+    const getFullCategoryName = (cat: string) => {
+        const clean = cat.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim().toLowerCase();
+        const matched = BASE_CATEGORIES_WITH_SUFFIX.find(b => b.toLowerCase().startsWith(clean + ':'));
+        return matched || cat;
+    };
+
     const categories = [...new Set([
-      'Canned Goods',
-      'Dairy',
-      'Dry Goods',
-      'Fats & Oils',
-      'Fruits',
-      'Grains & Cereals',
-      'Beverages',
-      'Meat',
-      'Sugars & Sweets',
-      'Protein Alternatives',
-      'Vegetables',
-      ...inventoryItems.map((i: any) => i.category ? i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() : '').filter(Boolean)
+      ...BASE_CATEGORIES_WITH_SUFFIX,
+      ...inventoryItems.map((i: any) => i.category ? getFullCategoryName(i.category) : '').filter(Boolean)
     ])].sort() as string[];
+
     const filteredItems = inventoryItems.filter(item => {
         const matchesSearch =
             (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
             (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
         const matchesCategory = !selectedCategory ||
-            (item.category && item.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() === selectedCategory);
+            (item.category && getFullCategoryName(item.category) === selectedCategory);
         return matchesSearch && matchesCategory;
     });
 

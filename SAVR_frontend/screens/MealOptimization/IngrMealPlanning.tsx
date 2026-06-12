@@ -245,26 +245,37 @@ export default function IngrMealPlanning({ navigation }: any) {
   const selectedCount = ingredients.filter(i => i.selected).length;
   const selectableIngredients = ingredients.filter(i => !i.outOfStock);
   const allSelectableSelected = selectableIngredients.length > 0 && selectableIngredients.every(i => i.selected);
+  const BASE_CATEGORIES_WITH_SUFFIX = [
+    'Canned Goods: Non-Perishable',
+    'Dairy: Perishable',
+    'Dry Goods: Non-Perishable',
+    'Fats & Oils: Non-Perishable',
+    'Fruits: Perishable',
+    'Grains & Cereals: Non-Perishable',
+    'Beverages: Non-Perishable',
+    'Meat: Perishable',
+    'Sugars & Sweets: Non-Perishable',
+    'Protein Alternatives: Both',
+    'Vegetables: Perishable'
+  ];
+
+  const getFullCategoryName = (cat: string) => {
+    const clean = cat.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim().toLowerCase();
+    const matched = BASE_CATEGORIES_WITH_SUFFIX.find(b => b.toLowerCase().startsWith(clean + ':'));
+    return matched || cat;
+  };
+
   const categories = [...new Set([
-    'Canned Goods',
-    'Dairy',
-    'Dry Goods',
-    'Fats & Oils',
-    'Fruits',
-    'Grains & Cereals',
-    'Beverages',
-    'Meat',
-    'Sugars & Sweets',
-    'Protein Alternatives',
-    'Vegetables',
-    ...ingredients.map((i: any) => i.category ? i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() : '').filter(Boolean)
+    ...BASE_CATEGORIES_WITH_SUFFIX,
+    ...ingredients.map((i: any) => i.category ? getFullCategoryName(i.category) : '').filter(Boolean)
   ])].sort() as string[];
+
   const filteredIngredients = ingredients.filter(i => {
     const matchesSearch =
       (i.name && i.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (i.category && i.category.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = !selectedCategory ||
-      (i.category && i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() === selectedCategory);
+      (i.category && getFullCategoryName(i.category) === selectedCategory);
     return matchesSearch && matchesCategory;
   });
   const allFilteredOutOfStock = filteredIngredients.length > 0 && filteredIngredients.every(i => i.outOfStock);
