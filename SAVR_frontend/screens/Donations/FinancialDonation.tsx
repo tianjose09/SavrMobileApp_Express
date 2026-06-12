@@ -206,7 +206,7 @@ export default function FinancialDonation({ navigation }: any) {
           <View style={styles.greenCard}>
 
             {/* Select Amount */}
-            <Text style={styles.sectionLabel}>Select Amount</Text>
+            <Text style={styles.sectionLabel}>Select Amount<Text style={{ color: '#E4B63F' }}> *</Text></Text>
             <View style={styles.amountGrid}>
               {[500, 1000, 2000, 5000].map((preset) => (
                 <TouchableOpacity

@@ -63,13 +63,19 @@ export default function FoodDonationDetails({ navigation }: any) {
       { label: 'Sugars & Sweets: Non-Perishable', value: 'Sugars & Sweets' },
       { label: 'Protein Alternatives: Both', value: 'Protein Alternatives' },
       { label: 'Vegetables: Perishable', value: 'Vegetables' },
+      { label: 'Meals: Perishable', value: 'Meals' },
     ];
     ApiService.getInventoryCategories()
       .then(res => {
         const apiCats: string[] = res.data?.categories ?? [];
         const baseValues = new Set(BASE_CATEGORIES.map(c => c.value));
         const extra = apiCats
-          .filter(c => c !== 'Prepared Meals' && c !== 'Prep Meal' && !baseValues.has(c))
+          .filter(c => {
+            if (baseValues.has(c)) return false;
+            const lower = c.toLowerCase();
+            if (lower.includes('meal')) return false; // Filter out 'Prep Meal', 'Prepared Meals', 'Meal', etc. since we added 'Meals' explicitly
+            return true;
+          })
           .map(c => ({ label: c, value: c }));
         setCategoryItems([...BASE_CATEGORIES, ...extra]);
       })
@@ -213,7 +219,7 @@ export default function FoodDonationDetails({ navigation }: any) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Food Item Name</Text>
+                <Text style={styles.label}>Food Item Name<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Canned vegetables, Fresh fruits"
@@ -225,7 +231,7 @@ export default function FoodDonationDetails({ navigation }: any) {
 
               <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                  <Text style={styles.label}>Quantity</Text>
+                  <Text style={styles.label}>Quantity<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <TextInput
                     style={styles.input}
                     placeholder="##"
@@ -256,7 +262,7 @@ export default function FoodDonationDetails({ navigation }: any) {
 
               <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                  <Text style={styles.label}>Category</Text>
+                  <Text style={styles.label}>Category<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <CustomDropdown
                     selectedValue={item.category}
                     onValueChange={(val) => updateItem(item.id, 'category', val)}

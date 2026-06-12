@@ -128,24 +128,25 @@ export default function Profile({ navigation }: any) {
     }
   };
 
-  const handleDeactivate = () => {
+  const handleDeleteAccount = () => {
     Alert.alert(
-      'Deactivate Account',
-      'Are you sure you want to deactivate your account? This action cannot be undone.',
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone and will permanently remove your data.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Deactivate',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
-              await ApiService.deactivateAccount();
-              Alert.alert('Success', 'Your account has been deactivated.');
+              await ApiService.deleteAccount();
+              Alert.alert('Success', 'Your account has been deleted.');
               import('../../utils/logout').then(({ LogoutHelper }) => LogoutHelper.logout(navigation));
-            } catch (e) {
-              Alert.alert('Error', 'Failed to deactivate account.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete account. You may need to clear your active records first.');
+              console.error(error);
             }
-          }
+          },
         }
       ]
     );
@@ -297,8 +298,8 @@ export default function Profile({ navigation }: any) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.deactivateWrapper} onPress={handleDeactivate}>
-          <Text style={styles.deactivateText}>Deactivate My Account</Text>
+        <TouchableOpacity style={styles.deactivateWrapper} onPress={handleDeleteAccount}>
+          <Text style={styles.deactivateText}>Delete My Account</Text>
         </TouchableOpacity>
 
         {/* Removed bottom tab spacer */}

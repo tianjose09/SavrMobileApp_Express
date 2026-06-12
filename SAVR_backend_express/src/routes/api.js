@@ -54,7 +54,7 @@ router.use(authMiddleware);
 
 router.get('/profile',               authController.profile);
 router.put('/profile',               donationController.updateProfile);
-router.post('/profile/deactivate',   donationController.deactivateAccount);
+router.post('/profile/delete',   donationController.deleteAccount);
 router.post('/logout',               authController.logout);
 router.get('/dashboard',             authController.dashboard);
 

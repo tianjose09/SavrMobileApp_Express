@@ -1758,7 +1758,12 @@ exports.updateProfile = async (req, res) => {
   return res.json({ success: true, message: 'Profile updated successfully.' });
 };
 
-exports.deactivateAccount = async (req, res) => {
-  await db.execute('UPDATE users SET is_active = false WHERE id = ?', [req.user.id]);
-  return res.json({ success: true, message: 'Account deactivated.' });
+exports.deleteAccount = async (req, res) => {
+  try {
+    await db.execute('DELETE FROM users WHERE id = ?', [req.user.id]);
+    return res.json({ success: true, message: 'Account deleted.' });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete account. Please ensure all related records are cleared or contact support.' });
+  }
 };

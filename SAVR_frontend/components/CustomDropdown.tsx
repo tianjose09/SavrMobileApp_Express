@@ -57,9 +57,10 @@ export default function CustomDropdown({
             !selectedValue && styles.placeholderText,
             { flex: 1, paddingRight: 5 },
             style?.color ? { color: selectedValue ? style.color : getPlaceholderColor() } : null,
+            style?.fontSize ? { fontSize: style.fontSize } : null,
+            style?.fontWeight ? { fontWeight: style.fontWeight } : null,
           ]}
           numberOfLines={1}
-          adjustsFontSizeToFit
         >
           {selectedItem ? selectedItem.label : placeholder}
         </Text>

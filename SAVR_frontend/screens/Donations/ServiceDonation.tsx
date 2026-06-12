@@ -377,11 +377,11 @@ export default function ServiceDonation({ navigation }: any) {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1.5, marginRight: 15 }]}>
-                <Text style={styles.label}>Region Coverage</Text>
+                <Text style={styles.label}>Region Coverage<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <CustomDropdown
                   selectedValue={address}
                   onValueChange={setAddress}
-                  placeholder="Select a City / Region"
+                  placeholder="Select a Region"
                   items={[
                     { label: "NCR (Metro Manila)", value: "NCR" },
                     { label: "Region I (Ilocos)", value: "Region I" },
@@ -405,7 +405,10 @@ export default function ServiceDonation({ navigation }: any) {
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>{activeTab === 'TRANSPORTATION' ? 'Quantity' : 'Headcount'}</Text>
+                <Text style={styles.label}>
+                  {activeTab === 'TRANSPORTATION' ? 'Quantity' : 'Headcount'}
+                  <Text style={{ color: '#E4B63F' }}> *</Text>
+                </Text>
                 <View style={styles.inputBox}>
                   <TextInput
                     style={styles.inputInner}
@@ -422,7 +425,7 @@ export default function ServiceDonation({ navigation }: any) {
             {/* Row 1: Frequency + Date (if Monthly) */}
             <View style={[styles.row, { marginBottom: 10 }]}>
               <View style={[styles.inputGroup, (frequency === 'Monthly' || frequency === 'Weekly' || frequency === 'Daily' || frequency === 'One-Time') ? { flex: 1.5, marginRight: 10 } : { flex: 1 }]}>
-                <Text style={styles.label}>Frequency</Text>
+                <Text style={styles.label}>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <CustomDropdown
                   selectedValue={frequency}
                   onValueChange={(val) => {
@@ -455,7 +458,7 @@ export default function ServiceDonation({ navigation }: any) {
 
               {(frequency === 'Monthly' || frequency === 'One-Time') && (
                 <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                  <Text style={styles.label}>Date</Text>
+                  <Text style={styles.label}>Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <TouchableOpacity
                     style={[
                       styles.inputBox,
@@ -481,7 +484,7 @@ export default function ServiceDonation({ navigation }: any) {
 
               {frequency === 'Weekly' && (
                 <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                  <Text style={styles.label}>Day of Week</Text>
+                  <Text style={styles.label}>Day of Week<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <CustomDropdown
                     selectedValue={dayOfWeek}
                     onValueChange={setDayOfWeek}
@@ -528,7 +531,7 @@ export default function ServiceDonation({ navigation }: any) {
             {/* Row 2: Starts At + Ends At */}
             <View style={[styles.row, { marginBottom: 20 }]}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
-                <Text style={styles.label}>Starts At</Text>
+                <Text style={styles.label}>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <TouchableOpacity
                   style={[
                     styles.inputBox,
@@ -557,7 +560,7 @@ export default function ServiceDonation({ navigation }: any) {
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Ends At</Text>
+                <Text style={styles.label}>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <TouchableOpacity
                   style={[
                     styles.inputBox,
@@ -695,7 +698,7 @@ export default function ServiceDonation({ navigation }: any) {
             </View>
 
             {/* CONTACT PERSON */}
-            <Text style={styles.boldSectionTitle}>Contact Person</Text>
+            <Text style={styles.boldSectionTitle}>Contact Person<Text style={{ color: '#E4B63F' }}> *</Text></Text>
             <View style={styles.row}>
               <View style={[styles.inputBox, { flex: 1, marginRight: 15 }]}>
                 <TextInput

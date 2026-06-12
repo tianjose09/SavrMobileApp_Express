@@ -75,7 +75,7 @@ export const ApiService = {
   // Profile & Dashboard
   getProfile: () => api.get('api/profile'),
   updateProfile: (data: any) => api.put('api/profile', data),
-  deactivateAccount: () => api.post('api/profile/deactivate'),
+  deleteAccount: () => api.post('api/profile/delete'),
   getDashboard: () => api.get('api/dashboard'),
 
   // Email Verification
