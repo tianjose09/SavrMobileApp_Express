@@ -72,6 +72,10 @@ export default function CreateRequest({ navigation }: any) {
   const [showDatePicker, setShowDatePicker] = useState(false); // Android
   const [showIOSPicker, setShowIOSPicker] = useState(false);   // iOS Modal
   const [dateObj, setDateObj] = useState(new Date());
+
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false); // Android
+  const [showEndIOSPicker, setShowEndIOSPicker] = useState(false);   // iOS Modal
+  const [endDateObj, setEndDateObj] = useState(new Date());
   const isSubmitting = useRef(false);
 
   // Inventory state
@@ -88,7 +92,7 @@ export default function CreateRequest({ navigation }: any) {
   const [form, setForm] = useState({
     title: '', financial_amount: '', population: '',
     age_start: '', age_end: '', street: '', barangay: '',
-    city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
+    city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '',
     receiving_method: '', account_name: '', account_number: '',
   });
 
@@ -100,7 +104,7 @@ export default function CreateRequest({ navigation }: any) {
     setForm({
       title: '', financial_amount: '', population: '',
       age_start: '', age_end: '', street: '', barangay: '',
-      city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
+      city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '',
       receiving_method: '', account_name: '', account_number: '',
     });
     setRequestedFoods([]);
@@ -108,6 +112,7 @@ export default function CreateRequest({ navigation }: any) {
     setSelectedItem(null);
     setItemQty('');
     setDateObj(new Date());
+    setEndDateObj(new Date());
     isSubmitting.current = false;
   };
 
@@ -116,10 +121,11 @@ export default function CreateRequest({ navigation }: any) {
     setForm({
       title: '', financial_amount: '', population: '',
       age_start: '', age_end: '', street: '', barangay: '',
-      city_municipality: '', postal_zip_code: '', needed_date: '', urgency_level: '',
+      city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '',
       receiving_method: '', account_name: '', account_number: '',
     });
     setDateObj(new Date());
+    setEndDateObj(new Date());
     setRequestedFoods([]);
     setSelectedCategory(null);
     setSelectedItem(null);
@@ -224,6 +230,27 @@ export default function CreateRequest({ navigation }: any) {
     setShowIOSPicker(false);
   };
 
+  const onEndDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowEndDatePicker(false);
+      if (event.type === 'dismissed' || !selectedDate) return;
+    }
+    const currentDate = selectedDate || endDateObj;
+    setEndDateObj(currentDate);
+    const yyyy = currentDate.getFullYear();
+    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(currentDate.getDate()).padStart(2, '0');
+    updateForm('end_date', `${yyyy}-${mm}-${dd}`);
+  };
+
+  const confirmIOSEndDate = () => {
+    const yyyy = endDateObj.getFullYear();
+    const mm = String(endDateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(endDateObj.getDate()).padStart(2, '0');
+    updateForm('end_date', `${yyyy}-${mm}-${dd}`);
+    setShowEndIOSPicker(false);
+  };
+
   const addFoodToList = () => {
     if (!selectedItem) return;
     if (!itemQty || isNaN(Number(itemQty)) || Number(itemQty) <= 0) {
@@ -245,8 +272,8 @@ export default function CreateRequest({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (isSubmitting.current) return;
-    if (!form.title || !form.urgency_level) {
-      Alert.alert('Error', 'Please fill out at least the Name of Drive and Urgency Level.');
+    if (!form.title || !form.urgency_level || !form.population || !form.street || !form.barangay || !form.city_municipality || !form.needed_date || !form.end_date) {
+      Alert.alert('Error', 'Please fill out all required fields marked with an asterisk (*).');
       return;
     }
     if (requestType === 'food' && requestedFoods.length === 0) {
@@ -359,7 +386,7 @@ export default function CreateRequest({ navigation }: any) {
           {/* Form Card */}
           <View style={styles.formCard}>
 
-            <Text style={styles.inputLabel}>Name of Drive</Text>
+            <Text style={styles.inputLabel}>Name of Drive <Text style={{ color: '#E8A835' }}>*</Text></Text>
             <TextInput
               style={styles.inputBox}
               placeholder="e.g. Kapatiran Fire Tondo Relief"
@@ -371,7 +398,7 @@ export default function CreateRequest({ navigation }: any) {
             {/* ── Conditional form layout: Financial vs Food ── */}
             {requestType === 'financial' ? (
               <View>
-                <Text style={styles.inputLabel}>Amount of Money Needed (₱)</Text>
+                <Text style={styles.inputLabel}>Amount of Money Needed (₱) <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
                   placeholder="e.g. 5000"
@@ -393,7 +420,7 @@ export default function CreateRequest({ navigation }: any) {
                 {/* Population & Age */}
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                   <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
-                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population</Text>
+                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
                     <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
                   <View style={{ flex: 1, justifyContent: 'flex-end' }}>
@@ -412,7 +439,7 @@ export default function CreateRequest({ navigation }: any) {
                   <Text style={styles.receivingAccTitle}>Receiving Account Details</Text>
                 </View>
 
-                <Text style={styles.inputLabel}>Receiving Method</Text>
+                <Text style={styles.inputLabel}>Receiving Method <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <CustomDropdown
                   selectedValue={form.receiving_method}
                   onValueChange={(val) => updateForm('receiving_method', val)}
@@ -424,7 +451,7 @@ export default function CreateRequest({ navigation }: any) {
                   style={[styles.inputBox, { marginBottom: 18 }]}
                 />
 
-                <Text style={styles.inputLabel}>Account Name</Text>
+                <Text style={styles.inputLabel}>Account Name <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
                   placeholder="eg. Juan dela Cruz"
@@ -433,7 +460,7 @@ export default function CreateRequest({ navigation }: any) {
                   onChangeText={(val) => updateForm('account_name', val)}
                 />
 
-                <Text style={styles.inputLabel}>Account Number / Mobile No.</Text>
+                <Text style={styles.inputLabel}>Account Number / Mobile No. <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
                   placeholder="eg. 09171234567 or bank account no."
@@ -444,7 +471,7 @@ export default function CreateRequest({ navigation }: any) {
                 />
 
                 {/* Address */}
-                <Text style={styles.inputLabel}>Address / Coverage</Text>
+                <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
                   <TextInput style={[styles.inputBox, { flex: 1, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
                   <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Brgy." placeholderTextColor="#A5D1B8" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
@@ -459,7 +486,7 @@ export default function CreateRequest({ navigation }: any) {
                 {/* Population & Age */}
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                   <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
-                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population</Text>
+                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
                     <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
                   <View style={{ flex: 1, justifyContent: 'flex-end' }}>
@@ -473,7 +500,7 @@ export default function CreateRequest({ navigation }: any) {
                 </View>
 
                 {/* Address */}
-                <Text style={styles.inputLabel}>Address / Coverage</Text>
+                <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
                   <TextInput style={[styles.inputBox, { flex: 1, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
                   <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Brgy." placeholderTextColor="#A5D1B8" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
@@ -485,12 +512,10 @@ export default function CreateRequest({ navigation }: any) {
               </View>
             )}
 
-            {/* Date & Urgency */}
-            <View style={[styles.rowInputs, { marginBottom: 0 }]}>
+            {/* Start & End Date */}
+            <View style={[styles.rowInputs, { marginBottom: 18 }]}>
               <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={styles.inputLabel}>Date</Text>
-
-                {/* Trigger button — works for both platforms */}
+                <Text style={styles.inputLabel}>Start Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TouchableOpacity
                   style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
                   onPress={() => {
@@ -506,56 +531,113 @@ export default function CreateRequest({ navigation }: any) {
                     <Ionicons name="calendar-outline" size={16} color="#FFF" />
                   </View>
                 </TouchableOpacity>
-
-                {/* Android native picker */}
-                {Platform.OS === 'android' && showDatePicker && (
-                  <DateTimePicker
-                    value={dateObj}
-                    mode="date"
-                    display="default"
-                    minimumDate={new Date()}
-                    onChange={onDateChange}
-                  />
-                )}
-
-                {/* iOS Modal picker */}
-                <Modal visible={showIOSPicker} transparent animationType="slide">
-                  <View style={styles.modalOverlay}>
-                    <View style={styles.modalSheet}>
-                      <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
-                          <Text style={styles.modalCancel}>Cancel</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Date</Text>
-                        <TouchableOpacity onPress={confirmIOSDate}>
-                          <Text style={styles.modalDone}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-                        <DateTimePicker
-                          value={dateObj}
-                          mode="date"
-                          display="spinner"
-                          minimumDate={new Date()}
-                          onChange={(e, d) => { if (d) setDateObj(d); }}
-                          style={{ width: '100%', alignSelf: 'center' }}
-                          textColor="#1a1a1a"
-                        />
-                      </View>
-                    </View>
-                  </View>
-                </Modal>
               </View>
+
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Urgency Level</Text>
-                <CustomDropdown
-                  selectedValue={form.urgency_level}
-                  onValueChange={(val) => updateForm('urgency_level', val)}
-                  placeholder="Select Level"
-                  items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
-                  style={[styles.inputBox, { marginBottom: 0 }]}
-                />
+                <Text style={styles.inputLabel}>End Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                <TouchableOpacity
+                  style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
+                  onPress={() => {
+                    if (Platform.OS === 'ios') setShowEndIOSPicker(true);
+                    else setShowEndDatePicker(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: form.end_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }}>
+                      {form.end_date || 'mm/dd/yyyy'}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={16} color="#FFF" />
+                  </View>
+                </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Android native pickers */}
+            {Platform.OS === 'android' && showDatePicker && (
+              <DateTimePicker
+                value={dateObj}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={onDateChange}
+              />
+            )}
+            {Platform.OS === 'android' && showEndDatePicker && (
+              <DateTimePicker
+                value={endDateObj}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={onEndDateChange}
+              />
+            )}
+
+            {/* iOS Modal pickers */}
+            <Modal visible={showIOSPicker} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalSheet}>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
+                      <Text style={styles.modalCancel}>Cancel</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.modalTitle}>Start Date</Text>
+                    <TouchableOpacity onPress={confirmIOSDate}>
+                      <Text style={styles.modalDone}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                    <DateTimePicker
+                      value={dateObj}
+                      mode="date"
+                      display="spinner"
+                      minimumDate={new Date()}
+                      onChange={(e, d) => { if (d) setDateObj(d); }}
+                      style={{ width: '100%', alignSelf: 'center' }}
+                      textColor="#1a1a1a"
+                    />
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+            <Modal visible={showEndIOSPicker} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalSheet}>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => setShowEndIOSPicker(false)}>
+                      <Text style={styles.modalCancel}>Cancel</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.modalTitle}>End Date</Text>
+                    <TouchableOpacity onPress={confirmIOSEndDate}>
+                      <Text style={styles.modalDone}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                    <DateTimePicker
+                      value={endDateObj}
+                      mode="date"
+                      display="spinner"
+                      minimumDate={new Date()}
+                      onChange={(e, d) => { if (d) setEndDateObj(d); }}
+                      style={{ width: '100%', alignSelf: 'center' }}
+                      textColor="#1a1a1a"
+                    />
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+            {/* Urgency */}
+            <View style={{ marginBottom: 0 }}>
+              <Text style={styles.inputLabel}>Urgency Level <Text style={{ color: '#E8A835' }}>*</Text></Text>
+              <CustomDropdown
+                selectedValue={form.urgency_level}
+                onValueChange={(val) => updateForm('urgency_level', val)}
+                placeholder="Select Level"
+                items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
+                style={[styles.inputBox, { marginBottom: 0 }]}
+              />
             </View>
           </View>
 
@@ -564,7 +646,7 @@ export default function CreateRequest({ navigation }: any) {
             <View style={styles.foodDetailsCard}>
               <View style={styles.foodDetailsHeader}>
                 <MaterialCommunityIcons name="food-variant" size={18} color="#00592d" />
-                <Text style={styles.foodDetailsTitle}>Food Details</Text>
+                <Text style={styles.foodDetailsTitle}>Food Details <Text style={{ color: '#E8A835' }}>*</Text></Text>
               </View>
 
               {/* Category selector */}

@@ -978,8 +978,8 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO beneficiary_requests
-     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
+     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
     [
       req.user.id,
       title,
@@ -996,6 +996,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
       city_municipality || '',
       postal_zip_code || '',
       needed_date || null,
+      req.body.end_date || null,
       urgency_level || null,
       parsedFoodItems ? JSON.stringify(parsedFoodItems) : null,
       receiving_method || null,
