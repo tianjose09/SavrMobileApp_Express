@@ -402,7 +402,7 @@ export default function DonorDashboard({ navigation }: any) {
 
                     <View style={styles.nextBadgeCard}>
                       {/* Locked badge image with overlay */}
-                      <View style={{ position: 'relative' }}>
+                      <View style={{ position: 'relative', marginRight: 14 }}>
                         <Image
                           source={BADGE_IMAGES[nextBadge.icon]}
                           style={[styles.nextBadgeImage, { opacity: 0.25 }]}
@@ -831,7 +831,6 @@ const styles = StyleSheet.create({
   nextBadgeImage: {
     width: 90,
     height: 90,
-    marginRight: 14,
   },
 
   nextBadgeTextWrap: {
