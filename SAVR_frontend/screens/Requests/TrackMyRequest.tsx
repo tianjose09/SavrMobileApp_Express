@@ -313,7 +313,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
     const allBatches: any[] = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
 
     return (
-      <View key={req.id}>
+      <View key={`${req.id}-${idx}`}>
         {!isFirst && <View style={styles.groupItemDivider} />}
 
         {/* Title + Status Badge */}
