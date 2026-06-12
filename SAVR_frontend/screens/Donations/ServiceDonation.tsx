@@ -241,32 +241,20 @@ export default function ServiceDonation({ navigation }: any) {
       if (response.data.success) {
         const serviceLabel = activeTab === 'VOLUNTEER' ? 'Volunteer Work' : 'Transportation Service';
         const dateLabel = date ? date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'recurring schedule';
-        setToast({
-          visible: true,
-          title: `${serviceLabel} Submitted!`,
-          message: `Your ${serviceLabel.toLowerCase()} pledge for ${dateLabel} has been recorded. Thank you!`,
-        });
-        // Reset form fields
-        setAddress('');
-        setFrequency('');
-        setDayOfWeek('');
-        setDate(null);
-        setStartsAt(null);
-        setEndsAt(null);
-        setAllDay(false);
-        setFirstName('');
-        setLastName('');
-        setEmail('');
-        setDescription('');
-        setQuantity('');
-        setVehicleType('');
-        setCapacity('');
-        setMaxDistance('');
-        setSelectedCategories([]);
-        setHeadcount('');
-        setPreferredWork('');
-        setSelectedSkills([]);
-        setTimeout(() => navigation.navigate('HomeTabs', { screen: 'Home' }), 4500);
+        
+        Alert.alert(
+          `${serviceLabel} Submitted!`,
+          `Your ${serviceLabel.toLowerCase()} pledge for ${dateLabel} has been recorded. Thank you!`,
+          [{ 
+            text: 'OK', 
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'ChooseDonation' }],
+              });
+            } 
+          }]
+        );
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit service donation.');
       }

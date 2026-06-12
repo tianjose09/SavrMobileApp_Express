@@ -265,7 +265,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 5,
     alignItems: 'center',
   },
 

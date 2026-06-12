@@ -39,12 +39,19 @@ export default function FinancialDonation({ navigation }: any) {
     setPendingDonationId(null);
     setPaymentLinkOpened(false);
     const donatedAmt = parseFloat(confirmedAmount).toLocaleString('en-US');
-    setToast({
-      visible: true,
-      title: 'Donation Confirmed!',
-      message: `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
-    });
-    setTimeout(() => navigation.navigate('Home'), 4500);
+    Alert.alert(
+      'Donation Confirmed!',
+      `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
+      [{ 
+        text: 'OK', 
+        onPress: () => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'ChooseDonation' }],
+          });
+        } 
+      }]
+    );
   };
 
   const checkOnce = async (donationId: number): Promise<boolean> => {
