@@ -34,7 +34,7 @@ function getEffectiveStatus(req: any): string {
   if (
     ['REJECTED', 'DENIED', 'DECLINED', 'REFUSED', 'DISAPPROVED'].includes(raw) ||
     raw.includes('REJECT') || raw.includes('DEN') || raw.includes('DECLIN')
-  ) return 'Cancelled';
+  ) return 'Rejected';
   if (raw === 'PENDING') return 'Pending';
 
   // Approved / Accepted / Allocated / Urgent:
@@ -42,7 +42,7 @@ function getEffectiveStatus(req: any): string {
   //   date+time has already been reached; otherwise stays Approved.
   if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
     const batches = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
-    if (batches.some((b: any) => ['missed', 'notified'].includes((b.status || '').toLowerCase()))) return 'Cancelled';
+    if (batches.some((b: any) => ['missed', 'notified'].includes((b.status || '').toLowerCase()))) return 'Delivery Missed';
     if (batches.some((b: any) => (b.status || '').toLowerCase() === 'pending' && isDeliveryTimeReached(b))) return 'In Transit';
     return 'Approved';
   }
@@ -57,6 +57,8 @@ function getStatusColor(effectiveStatus: string): string {
     case 'In Transit': return '#A87919';
     case 'Completed': return '#00592d';
     case 'Cancelled': return '#C0392B';
+    case 'Rejected': return '#C0392B';
+    case 'Delivery Missed': return '#E67E22';
     default: return '#555555';
   }
 }
@@ -68,6 +70,8 @@ function getStatusBadgeColor(effectiveStatus: string): string {
     case 'In Transit': return '#FFF8E7';
     case 'Completed': return '#E8F5E9';
     case 'Cancelled': return '#FFEBEE';
+    case 'Rejected': return '#FFEBEE';
+    case 'Delivery Missed': return '#FEF0E6';
     default: return '#F5F5F5';
   }
 }
@@ -91,7 +95,7 @@ function formatDeliveryDateTime(iso: string | null): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Cancelled'] as const;
+const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Rejected'] as const;
 type FilterType = typeof FILTERS[number];
 
 export default function TrackMyRequest({ route, navigation }: any) {
@@ -238,7 +242,9 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
   const filteredRequests = requestsData.filter(req => {
     if (selectedFilter === 'All') return true;
-    return getEffectiveStatus(req) === selectedFilter;
+    const status = getEffectiveStatus(req);
+    if (selectedFilter === 'Rejected') return ['Rejected', 'Cancelled', 'Delivery Missed'].includes(status);
+    return status === selectedFilter;
   });
 
   // In Transit requests with multiple batches expand into one entry per batch
