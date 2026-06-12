@@ -257,13 +257,14 @@ export default function IngrMealPlanning({ navigation }: any) {
     'Sugars & Sweets',
     'Protein Alternatives',
     'Vegetables',
-    ...ingredients.map((i: any) => i.category).filter(Boolean)
+    ...ingredients.map((i: any) => i.category ? i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() : '').filter(Boolean)
   ])].sort() as string[];
   const filteredIngredients = ingredients.filter(i => {
     const matchesSearch =
       (i.name && i.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (i.category && i.category.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = !selectedCategory || i.category === selectedCategory;
+    const matchesCategory = !selectedCategory ||
+      (i.category && i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() === selectedCategory);
     return matchesSearch && matchesCategory;
   });
   const allFilteredOutOfStock = filteredIngredients.length > 0 && filteredIngredients.every(i => i.outOfStock);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -14,6 +14,16 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [scheduleType, setScheduleType] = useState<'pickup' | 'delivery'>(initialType);
   const [pickupAddress, setPickupAddress] = useState('');
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setPickupAddress('');
+    setPickupDate(null);
+    setPickupTimeFrom(null);
+    setPickupTimeTo(null);
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   useEffect(() => {
     if (route.params?.initialScheduleType) {
@@ -229,7 +239,18 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       />
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00592d"
+            colors={['#00592d']}
+          />
+        }
+      >
         {/* TOP NAV & HERO */}
         <View style={styles.topHeaderWrap}>
           <View style={styles.topNav}>
@@ -342,7 +363,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         {/* DATE & TIME FIELDS */}
         <View style={styles.dateTimeSectionWrap}>
           <View style={styles.fieldContainer}>
-            <Text style={styles.inputLabel}>Preferred Date</Text>
+            <Text style={styles.inputLabel}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
             <TouchableOpacity
               style={styles.pickerInputWrapper}
               onPress={() => {
@@ -361,7 +382,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.inputLabel}>Time Slot</Text>
+            <Text style={styles.inputLabel}>Time Slot<Text style={{ color: '#E4B63F' }}> *</Text></Text>
             <View style={styles.timeSlotRow}>
               <View style={styles.halfInput}>
                 <Text style={styles.timeLabel}>From</Text>

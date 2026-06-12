@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, SafeAreaView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, SafeAreaView, Modal, RefreshControl } from 'react-native';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +33,15 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
     return d;
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setDeliveryDate(null);
+    setDeliveryTimeFrom(null);
+    setDeliveryTimeTo(null);
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   const { foodItems } = route.params || { foodItems: [] };
 
@@ -131,7 +140,18 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00592d"
+            colors={['#00592d']}
+          />
+        }
+      >
         <View style={styles.heroBackground}>
           <View style={styles.topNav}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -176,7 +196,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
           {/* DATE & TIME FIELDS */}
           <View style={styles.dateTimeSectionWrap}>
             <View style={styles.fieldContainer}>
-              <Text style={styles.inputLabel}>Preferred Date</Text>
+              <Text style={styles.inputLabel}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
               <TouchableOpacity
                 style={styles.pickerInputWrapper}
                 onPress={() => {
@@ -195,7 +215,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text style={styles.inputLabel}>Time Slot</Text>
+              <Text style={styles.inputLabel}>Time Slot<Text style={{ color: '#E4B63F' }}> *</Text></Text>
               <View style={styles.timeSlotRow}>
                 <View style={styles.halfInput}>
                   <Text style={styles.timeLabel}>From</Text>

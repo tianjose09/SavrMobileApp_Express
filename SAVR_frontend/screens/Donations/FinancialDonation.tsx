@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, Image, AppState, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Linking, ActivityIndicator, Image, AppState, StatusBar, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -15,6 +15,14 @@ export default function FinancialDonation({ navigation }: any) {
   const [pendingDonationId, setPendingDonationId] = useState<number | null>(null);
   const [paymentLinkOpened, setPaymentLinkOpened] = useState(false);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setAmount('');
+    setMessage('');
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   const appStateRef = useRef(AppState.currentState);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -190,7 +198,18 @@ export default function FinancialDonation({ navigation }: any) {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00592d"
+              colors={['#00592d']}
+            />
+          }
+        >
 
           {/* Title */}
           <View style={styles.titleRow}>

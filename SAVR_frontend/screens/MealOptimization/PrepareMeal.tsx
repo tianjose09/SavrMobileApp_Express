@@ -73,7 +73,11 @@ export default function PrepareMeal({ route, navigation }: any) {
         await ApiService.deductInventory({ deductions, meal_name: meal.name });
       }
 
-      navigation.navigate('MealPreparationSummary');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'IngrMealPlanning' }],
+      });
+      navigation.navigate('Summary');
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message || 'Failed to update inventory. Please try again.');
     } finally {
@@ -99,7 +103,13 @@ export default function PrepareMeal({ route, navigation }: any) {
             </Text>
             <TouchableOpacity
               style={styles.doneBtn}
-              onPress={() => navigation.navigate('MealPreparationSummary')}
+              onPress={() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'IngrMealPlanning' }],
+                });
+                navigation.navigate('Summary');
+              }}
               activeOpacity={0.85}
             >
               <Ionicons name="list" size={20} color="#156133" style={{ marginRight: 8 }} />

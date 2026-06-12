@@ -202,10 +202,10 @@ export default function CreateRequest({ navigation }: any) {
     'Sugars & Sweets',
     'Protein Alternatives',
     'Vegetables',
-    ...inventoryItems.map(i => i.category).filter(Boolean)
+    ...inventoryItems.map(i => i.category ? i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() : '').filter(Boolean)
   ])].sort();
   const itemsInCategory = selectedCategory
-    ? inventoryItems.filter(i => i.category === selectedCategory)
+    ? inventoryItems.filter(i => i.category && i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() === selectedCategory)
     : [];
 
   const onDateChange = (event: any, selectedDate?: Date) => {
