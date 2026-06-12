@@ -302,7 +302,12 @@ async function autoNotifyBeneficiary(userId) {
             msg = stop.staff_message ||
 `Dear Beneficiary,
 
-We sincerely apologize for not being able to meet the scheduled delivery date for your request "${name}". If possible, we kindly ask you to reschedule your preferred date and time.
+We sincerely apologize for not being able to meet the scheduled delivery date. If possible, we kindly ask you to reschedule your preferred date and time.
+
+How to reschedule:
+1. Log in to your account
+2. Click Create Request
+3. Fill up to make another new request
 
 Thank you for your understanding and cooperation.`;
           } else {
@@ -450,6 +455,11 @@ async function autoNotifyDonor(userId) {
 `Dear Donor,
 
 We sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.
+
+How to reschedule:
+1. Log in to your account
+2. Click Donate on the Navigation Bar
+3. Then click Food Donation card and fill up the needed details once again.
 
 Thank you for your understanding and cooperation.`;
             // Update record status and stamp notified_status together so the generic
