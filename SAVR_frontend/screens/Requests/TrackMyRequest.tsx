@@ -52,23 +52,23 @@ function getEffectiveStatus(req: any): string {
 
 function getStatusColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
-    case 'Pending':    return '#A87919';
-    case 'Approved':   return '#00592d';
+    case 'Pending': return '#A87919';
+    case 'Approved': return '#00592d';
     case 'In Transit': return '#A87919';
-    case 'Completed':  return '#00592d';
-    case 'Cancelled':   return '#C0392B';
-    default:           return '#555555';
+    case 'Completed': return '#00592d';
+    case 'Cancelled': return '#C0392B';
+    default: return '#555555';
   }
 }
 
 function getStatusBadgeColor(effectiveStatus: string): string {
   switch (effectiveStatus) {
-    case 'Pending':    return '#FFF8E7';
-    case 'Approved':   return '#E8F5E9';
+    case 'Pending': return '#FFF8E7';
+    case 'Approved': return '#E8F5E9';
     case 'In Transit': return '#FFF8E7';
-    case 'Completed':  return '#E8F5E9';
-    case 'Cancelled':   return '#FFEBEE';
-    default:           return '#F5F5F5';
+    case 'Completed': return '#E8F5E9';
+    case 'Cancelled': return '#FFEBEE';
+    default: return '#F5F5F5';
   }
 }
 
@@ -141,7 +141,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
     setIsLoading(true);
     try {
       // Auto-cancel any requests whose delivery date passed without receipt
-      await ApiService.autoCancelExpiredRequests().catch(() => {});
+      await ApiService.autoCancelExpiredRequests().catch(() => { });
       const res = await ApiService.getMyRequests();
       if (res.data.success) {
         setRequestsData(res.data.requests);
@@ -399,7 +399,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           })()}
 
           {renderSummaryRow('Target Population', req.population)}
-          {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years` : 'All Ages')}
+          {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years Old` : 'All Ages')}
           {renderSummaryRow('Start Date', (req.request_date || req.created_at) ? new Date(req.request_date || req.created_at).toLocaleDateString('en-PH') : null)}
 
           {/* Scheduled Delivery from active batch */}
