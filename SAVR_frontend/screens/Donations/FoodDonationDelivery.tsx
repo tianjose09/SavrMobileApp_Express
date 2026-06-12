@@ -21,7 +21,8 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
   const [showIOSDate, setShowIOSDate] = useState(false);
   const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
   const [showIOSDateTo, setShowIOSDateTo] = useState(false);
-  const [tempDate, setTempDate] = useState(() => new Date());
+  const getTomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0, 0, 0, 0); return d; };
+  const [tempDate, setTempDate] = useState(() => getTomorrow());
   const [tempTimeFrom, setTempTimeFrom] = useState(() => {
     const d = new Date();
     d.setHours(7, 0, 0, 0);
@@ -61,6 +62,11 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
       Alert.alert('Error', 'Please select a preferred date.');
       return;
     }
+    const tomorrow = getTomorrow();
+    if (deliveryDate < tomorrow) {
+      Alert.alert('Invalid Date', 'Please select a date starting from tomorrow onwards.');
+      return;
+    }
     if (!deliveryTimeFrom || !deliveryTimeTo) {
       Alert.alert('Error', 'Please select both start and end times for the slot.');
       return;
@@ -70,12 +76,12 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
     const toHours = deliveryTimeTo.getHours();
     const toMinutes = deliveryTimeTo.getMinutes();
 
-    if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
+    if (fromHours < 7 || fromHours > 17 || (fromHours === 17 && fromMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 5:00 PM.');
       return;
     }
-    if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
+    if (toHours < 7 || toHours > 17 || (toHours === 17 && toMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 5:00 PM.');
       return;
     }
     if (deliveryTimeFrom >= deliveryTimeTo) {
@@ -280,7 +286,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
                   <Text style={styles.modalTitle}>Select Date</Text>
                   <TouchableOpacity onPress={() => { setDeliveryDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
                 </View>
-                <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={getTomorrow()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
               </View>
             </View>
           </Modal>
@@ -334,7 +340,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
               : (deliveryTimeTo || (() => { const d = new Date(); d.setHours(9, 0, 0, 0); return d; })())
           }
           mode={datePickerMode === 'date' ? 'date' : 'time'}
-          minimumDate={datePickerMode === 'date' ? new Date() : undefined}
+          minimumDate={datePickerMode === 'date' ? getTomorrow() : undefined}
           display="default"
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
