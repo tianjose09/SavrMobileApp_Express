@@ -175,7 +175,7 @@ export default function ForgotPassword({ navigation }: any) {
                   <Text style={styles.label}>Email Address</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="you@email.com"
+                    placeholder="Enter your email address"
                     placeholderTextColor="rgba(255,255,255,0.55)"
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -298,11 +298,11 @@ export default function ForgotPassword({ navigation }: any) {
         </KeyboardAvoidingView>
 
         <TouchableOpacity
-          style={styles.backGlobalButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Ionicons name="arrow-back" size={32} color="#FFF" />
+          <Ionicons name="chevron-back" size={26} color="#FFF" />
         </TouchableOpacity>
       </SafeAreaView>
     </ImageBackground>
@@ -459,10 +459,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textDecorationLine: 'underline',
   },
-  backGlobalButton: {
+  backButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 20,
+    top: Platform.OS === 'ios' ? 60 : 45,
+    left: 15,
     padding: 10,
     zIndex: 10,
   },
