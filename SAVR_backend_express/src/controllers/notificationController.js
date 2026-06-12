@@ -5,6 +5,17 @@ dayjs.extend(relativeTime);
 
 const https = require('https');
 
+async function logFoodActivity(userId, title, description) {
+  try {
+    await db.execute(
+      "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'food', ?, ?, 'truckicon', NOW(), NOW())",
+      [userId, title, description]
+    );
+  } catch (e) {
+    console.error('[logFoodActivity]', e.message);
+  }
+}
+
 // Ensure push token table exists
 db.execute(`
   CREATE TABLE IF NOT EXISTS user_push_tokens (
@@ -362,6 +373,14 @@ async function autoNotifyDonor(userId) {
         if (result.affectedRows === 0) continue;
 
         await createNotification(r.user_id, 'food', foodTitles[s] || `Food Donation ${r.status}`, foodMessages[s] || `Your food donation status has been updated to "${r.status}".`, true);
+
+        if (s === 'approved') {
+          await logFoodActivity(r.user_id, 'Food Donation Approved', 'Your food donation has been approved by our team.');
+        } else if (s === 'received' || s === 'completed') {
+          await logFoodActivity(r.user_id, 'Food Donation Received', 'Your food donation has been received. Thank you for your generosity!');
+        } else if (s === 'rejected') {
+          await logFoodActivity(r.user_id, 'Food Donation Rejected', 'Your food donation has been rejected. Please contact our team for more details.');
+        }
       } catch (e) {
         console.error('[autoNotifyDonor food] item', r.id, e.message);
       }
