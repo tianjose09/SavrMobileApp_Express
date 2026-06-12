@@ -76,12 +76,12 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
     const toHours = deliveryTimeTo.getHours();
     const toMinutes = deliveryTimeTo.getMinutes();
 
-    if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
+    if (fromHours < 7 || fromHours > 17 || (fromHours === 17 && fromMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 5:00 PM.');
       return;
     }
-    if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
+    if (toHours < 7 || toHours > 17 || (toHours === 17 && toMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 5:00 PM.');
       return;
     }
     if (deliveryTimeFrom >= deliveryTimeTo) {
