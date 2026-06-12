@@ -967,65 +967,70 @@ exports.getActivities = async (req, res) => {
 // ─── Beneficiary Requests ─────────────────────────────────────────────────────
 
 exports.submitBeneficiaryRequest = async (req, res) => {
-  const {
-    title, type, food_type, quantity, unit, financial_amount,
-    population, age_start, age_end, street, barangay,
-    city_municipality, postal_zip_code, needed_date, urgency_level,
-    food_items,
-    account_name, account_number,
-  } = req.body;
-  const receiving_method = req.body.receiving_method || req.body.bank_name || null;
+  try {
+    const {
+      title, type, food_type, quantity, unit, financial_amount,
+      population, age_start, age_end, street, barangay,
+      city_municipality, postal_zip_code, needed_date, urgency_level,
+      food_items,
+      account_name, account_number,
+    } = req.body;
+    const receiving_method = req.body.receiving_method || req.body.bank_name || null;
 
-  if (!title || !type) {
-    return res.status(422).json({ success: false, message: 'Title and type are required.' });
+    if (!title || !type) {
+      return res.status(422).json({ success: false, message: 'Title and type are required.' });
+    }
+
+    // Parse food_items if sent as a JSON string
+    let parsedFoodItems = null;
+    if (food_items) {
+      try {
+        parsedFoodItems = typeof food_items === 'string' ? JSON.parse(food_items) : food_items;
+      } catch { parsedFoodItems = null; }
+    }
+
+    // Derive legacy single-item columns from the first food item when not sent individually
+    const firstItem = Array.isArray(parsedFoodItems) ? parsedFoodItems[0] : null;
+    const resolvedFoodType = food_type || firstItem?.food_name || firstItem?.name || null;
+    const resolvedQuantity = quantity ? parseFloat(quantity) : (firstItem?.qty ? parseFloat(firstItem.qty) : null);
+    const resolvedUnit     = unit || firstItem?.unit || null;
+
+    const [result] = await db.execute(
+      `INSERT INTO beneficiary_requests
+       (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, start_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
+      [
+        req.user.id,
+        title,
+        type,
+        resolvedFoodType,
+        resolvedQuantity,
+        resolvedUnit,
+        financial_amount ? parseFloat(financial_amount) : null,
+        population ? parseInt(population) : 0,
+        age_start ? parseInt(age_start) : 0,
+        age_end ? parseInt(age_end) : 0,
+        street || '',
+        barangay || '',
+        city_municipality || '',
+        postal_zip_code || '',
+        needed_date || null,
+        req.body.end_date || null,
+        urgency_level || null,
+        parsedFoodItems ? JSON.stringify(parsedFoodItems) : null,
+        receiving_method || null,
+        account_name || null,
+        account_number || null,
+      ]
+    );
+
+    await createNotification(req.user.id, 'service', 'Request Submitted', `Your assistance request "${title}" has been received and is being reviewed. We will notify you once it is processed.`);
+
+    return res.status(201).json({ success: true, message: 'Request submitted successfully.', request_id: result.insertId });
+  } catch (e) {
+    console.error('[submitBeneficiaryRequest]', e.message);
+    return res.status(500).json({ success: false, message: e.message });
   }
-
-  // Parse food_items if sent as a JSON string
-  let parsedFoodItems = null;
-  if (food_items) {
-    try {
-      parsedFoodItems = typeof food_items === 'string' ? JSON.parse(food_items) : food_items;
-    } catch { parsedFoodItems = null; }
-  }
-
-  // Derive legacy single-item columns from the first food item when not sent individually
-  const firstItem = Array.isArray(parsedFoodItems) ? parsedFoodItems[0] : null;
-  const resolvedFoodType = food_type || firstItem?.food_name || firstItem?.name || null;
-  const resolvedQuantity = quantity ? parseFloat(quantity) : (firstItem?.qty ? parseFloat(firstItem.qty) : null);
-  const resolvedUnit     = unit || firstItem?.unit || null;
-
-  const [result] = await db.execute(
-    `INSERT INTO beneficiary_requests
-     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, start_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
-    [
-      req.user.id,
-      title,
-      type,
-      resolvedFoodType,
-      resolvedQuantity,
-      resolvedUnit,
-      financial_amount ? parseFloat(financial_amount) : null,
-      population ? parseInt(population) : 0,
-      age_start ? parseInt(age_start) : 0,
-      age_end ? parseInt(age_end) : 0,
-      street || '',
-      barangay || '',
-      city_municipality || '',
-      postal_zip_code || '',
-      needed_date || null,
-      req.body.end_date || null,
-      urgency_level || null,
-      parsedFoodItems ? JSON.stringify(parsedFoodItems) : null,
-      receiving_method || null,
-      account_name || null,
-      account_number || null,
-    ]
-  );
-
-  await createNotification(req.user.id, 'service', 'Request Submitted', `Your assistance request "${title}" has been received and is being reviewed. We will notify you once it is processed.`);
-
-  return res.status(201).json({ success: true, message: 'Request submitted successfully.', request_id: result.insertId });
 };
 
 exports.getBeneficiaryRequests = async (req, res) => {
