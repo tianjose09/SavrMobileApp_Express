@@ -393,7 +393,7 @@ export default function CreateRequest({ navigation }: any) {
                 {/* Population & Age */}
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.inputLabel}># of Population</Text>
+                    <Text style={styles.inputLabel}>Number of Population</Text>
                     <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
                   <View style={{ flex: 1.5 }}>
@@ -459,7 +459,7 @@ export default function CreateRequest({ navigation }: any) {
                 {/* Population & Age */}
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.inputLabel}># of Population</Text>
+                    <Text style={styles.inputLabel}>Number of Population</Text>
                     <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
                   <View style={{ flex: 1.5 }}>
