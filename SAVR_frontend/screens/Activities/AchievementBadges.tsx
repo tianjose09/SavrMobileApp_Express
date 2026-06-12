@@ -277,21 +277,21 @@ export default function AchievementBadges({ navigation }: any) {
                     const isEarned = badge.status === 'earned';
                     return (
                       <View style={styles.badgeListCard} key={badge.id}>
-                        <View style={{ position: 'relative' }}>
+                        <View style={styles.badgeListImageWrap}>
                           <Image
                             source={BADGE_IMAGES[badge.icon]}
                             style={[styles.badgeListImage, !isEarned && { opacity: 0.2 }]}
                             resizeMode="contain"
                           />
                           {!isEarned && (
-                            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-                              <Ionicons name="lock-closed" size={26} color="#8A8A8A" />
+                            <View style={styles.lockOverlay}>
+                              <Ionicons name="lock-closed" size={24} color="#8A8A8A" />
                             </View>
                           )}
                         </View>
 
                         <View style={styles.badgeListTextWrap}>
-                          <Text style={styles.badgeListName}>{badge.name}</Text>
+                          <Text style={styles.badgeListName} numberOfLines={2} adjustsFontSizeToFit>{badge.name}</Text>
                           <Text style={styles.badgeListDesc}>{badge.description}</Text>
                           {renderProgressBar(badge)}
                         </View>
@@ -634,29 +634,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ECECEC',
     borderRadius: 24,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
 
+  badgeListImageWrap: {
+    position: 'relative',
+    marginRight: 12,
+    width: 68,
+    height: 68,
+  },
+
   badgeListImage: {
-    width: 86,
-    height: 86,
-    marginRight: 14,
+    width: '100%',
+    height: '100%',
+  },
+
+  lockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   badgeListTextWrap: {
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 6,
   },
 
   badgeListName: {
     color: '#4A3B2B',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
   badgeListDesc: {
@@ -666,9 +682,9 @@ const styles = StyleSheet.create({
   },
 
   statusPill: {
-    minWidth: 86,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    minWidth: 76,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
