@@ -307,7 +307,7 @@ export default function CreateRequest({ navigation }: any) {
       const payload = {
         ...form,
         type: requestType,
-        food_items: requestedFoods.map(f => ({ id: f.id, name: f.name, category: f.category, qty: f.qty, unit: f.unit })),
+        food_items: requestedFoods.map(f => ({ id: f.id, food_name: f.name, food_type: f.category, qty: f.qty, unit: f.unit })),
       };
       const res = await ApiService.submitBeneficiaryRequest(payload);
       if (res.data.success) {
