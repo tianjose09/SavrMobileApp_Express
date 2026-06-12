@@ -260,49 +260,45 @@ export default function FoodDonationDetails({ navigation }: any) {
                 </View>
               </View>
 
-              <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                  <Text style={styles.label}>Category<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                  <CustomDropdown
-                    selectedValue={item.category}
-                    onValueChange={(val) => updateItem(item.id, 'category', val)}
-                    placeholder="Select Category"
-                    items={categoryItems}
-                    style={styles.input}
-                  />
-                </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Category<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                <CustomDropdown
+                  selectedValue={item.category}
+                  onValueChange={(val) => updateItem(item.id, 'category', val)}
+                  placeholder="Select Category"
+                  items={categoryItems}
+                  style={styles.input}
+                />
+              </View>
 
-                <View style={[styles.inputGroup, { flex: 1.2 }]}>
-                  <Text style={styles.label}>Expiration Date</Text>
-                  <TouchableOpacity
-                    style={styles.dateInput}
-                    onPress={() => {
-                      if (Platform.OS === 'ios') {
-                        setIosTempDate(item.expiryDate || new Date());
-                        setShowIOSDatePickerId(item.id);
-                      } else {
-                        setShowDatePickerId(item.id);
-                      }
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.dateText,
-                          !item.expiryDate && { color: 'rgba(255,255,255,0.65)' },
-                        ]}
-                      >
-                        {item.expiryDate
-                          ? item.expiryDate.toLocaleDateString()
-                          : 'mm/dd/yyyy'}
-                      </Text>
-                      <Ionicons name="calendar-outline" size={20} color={item.expiryDate ? "#FFF" : "rgba(255,255,255,0.65)"} />
-                    </View>
-                  </TouchableOpacity>
-
-
-                </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Expiration Date</Text>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => {
+                    if (Platform.OS === 'ios') {
+                      setIosTempDate(item.expiryDate || new Date());
+                      setShowIOSDatePickerId(item.id);
+                    } else {
+                      setShowDatePickerId(item.id);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.dateText,
+                        !item.expiryDate && { color: 'rgba(255,255,255,0.65)' },
+                      ]}
+                    >
+                      {item.expiryDate
+                        ? item.expiryDate.toLocaleDateString()
+                        : 'mm/dd/yyyy'}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={20} color={item.expiryDate ? "#FFF" : "rgba(255,255,255,0.65)"} />
+                  </View>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
