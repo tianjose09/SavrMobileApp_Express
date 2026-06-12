@@ -996,7 +996,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
   const [result] = await db.execute(
     `INSERT INTO beneficiary_requests
-     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, request_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
+     (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, start_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
     [
       req.user.id,
@@ -1156,8 +1156,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
       age_range_min: r.age_min ?? null,
       age_range_max: r.age_max ?? null,
       drive_id: pendingBatch?.drive_id || null,
-      drive_start_date: r.request_date
-        ? new Date(r.request_date).toISOString().split('T')[0]
+      drive_start_date: r.start_date
+        ? new Date(r.start_date).toISOString().split('T')[0]
         : (r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : null),
       drive_end_date: (deliveryBatches[0]?.drive_end_date) || null,
       food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
@@ -1343,7 +1343,7 @@ exports.updateRequestStatus = async (req, res) => {
   }
 
   const allowed = ['Pending', 'Allocated', 'Urgent', 'Approved', 'Rejected', 'Accepted', 'Denied', 'Completed', 'Cancelled'];
-  const { delivery_date_time, dispatched_quantity, dispatched_items, request_date, submitted_date } = req.body;
+  const { delivery_date_time, dispatched_quantity, dispatched_items, start_date, submitted_date } = req.body;
   // Normalize to Title Case so 'approved', 'APPROVED', 'Approved' all work
   const rawStatus = req.body.status || '';
   const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
@@ -1361,10 +1361,10 @@ exports.updateRequestStatus = async (req, res) => {
   let query = 'UPDATE beneficiary_requests SET status = ?, updated_at = NOW()';
   const params = [status];
 
-  // Date Needed (request_date)
-  if (request_date !== undefined) {
-    query += ', request_date = ?';
-    params.push(request_date ? new Date(request_date) : null);
+  // Start date
+  if (start_date !== undefined) {
+    query += ', start_date = ?';
+    params.push(start_date ? new Date(start_date) : null);
   }
 
   // Date Submitted (created_at) — staff can correct the submission timestamp
@@ -1464,8 +1464,8 @@ exports.getAllBeneficiaryRequests = async (req, res) => {
   const [requests] = await db.execute(
     `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
             population, age_min, age_max, street, barangay, city, zip_code,
-            request_date, urgency, food_items, status, created_at, updated_at,
-            bank_name, account_name, account_number,
+            start_date, end_date, urgency, food_items, status, created_at, updated_at,
+            account_name, account_number,
             received_items, dispatched_quantity, dispatched_items, notified_status
      FROM beneficiary_requests
      ORDER BY created_at DESC`
@@ -1496,8 +1496,8 @@ exports.getBeneficiaryRequestById = async (req, res) => {
   const [rows] = await db.execute(
     `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
             population, age_min, age_max, street, barangay, city, zip_code,
-            request_date, urgency, food_items, status, created_at, updated_at,
-            bank_name, account_name, account_number,
+            start_date, end_date, urgency, food_items, status, created_at, updated_at,
+            account_name, account_number,
             received_items, dispatched_quantity, dispatched_items, notified_status
      FROM beneficiary_requests WHERE id = ?`,
     [req.params.id]
