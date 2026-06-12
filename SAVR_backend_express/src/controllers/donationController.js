@@ -808,7 +808,17 @@ exports.getUpcomingPickups = async (req, res) => {
     const uid = req.user.id;
 
     const [pickups] = await db.execute(
-      "SELECT * FROM food_donation_records WHERE user_id = ? AND status IN ('pending','scheduled','approved') ORDER BY created_at DESC",
+      `SELECT fdr.* FROM food_donation_records fdr
+       WHERE fdr.user_id = ?
+         AND fdr.status IN ('pending','scheduled','approved')
+         AND NOT EXISTS (
+           SELECT 1 FROM truck_stops ts
+           WHERE ts.reference_id::text = fdr.id::text
+             AND ts.source = 'food_donation'
+             AND ts.stop_type = 'PICKUP'
+             AND ts.status = 'completed'
+         )
+       ORDER BY fdr.created_at DESC`,
       [uid]
     );
 
@@ -918,7 +928,6 @@ exports.getBadges = async (req, res) => {
 
 const ACTIVITY_STATUS = {
   financial: 'Completed',
-  food:      'Scheduled',
   service:   'Submitted',
   inventory: 'Processed',
 };
@@ -934,6 +943,12 @@ exports.getActivities = async (req, res) => {
     activities: activities.map(a => {
       const titleLower = (a.title || '').toLowerCase();
       let status = ACTIVITY_STATUS[a.type] || 'Updated';
+      if (a.type === 'food') {
+        if (titleLower.includes('approved')) status = 'Approved';
+        else if (titleLower.includes('received') || titleLower.includes('completed')) status = 'Completed';
+        else if (titleLower.includes('rejected') || titleLower.includes('denied')) status = 'Denied';
+        else status = 'Pending';
+      }
       if (titleLower.includes('missed')) status = 'Missed';
       return {
         id: a.id,
