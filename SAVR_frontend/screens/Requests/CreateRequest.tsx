@@ -392,11 +392,11 @@ export default function CreateRequest({ navigation }: any) {
 
                 {/* Population & Age */}
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.inputLabel}>Number of Population</Text>
+                  <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
+                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population</Text>
                     <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
-                  <View style={{ flex: 1.5 }}>
+                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                     <Text style={styles.inputLabel}>Age Range</Text>
                     <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
                       <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
@@ -458,16 +458,16 @@ export default function CreateRequest({ navigation }: any) {
               <View>
                 {/* Population & Age */}
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.inputLabel}>Number of Population</Text>
+                  <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
+                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population</Text>
                     <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
-                  <View style={{ flex: 1.5 }}>
+                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                     <Text style={styles.inputLabel}>Age Range</Text>
                     <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
-                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
                       <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
-                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
                     </View>
                   </View>
                 </View>
