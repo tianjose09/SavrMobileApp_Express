@@ -170,7 +170,7 @@ export default function ServiceDonation({ navigation }: any) {
     const hasContactDetails = address && firstName && lastName && email;
     const hasFrequencyDate = (frequency !== 'Monthly' && frequency !== 'One-Time') || date;
     const hasTabInfo = (activeTab === 'VOLUNTEER' && headcount.trim() && parseInt(headcount) > 0) ||
-                       (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0);
+      (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0);
 
     if (!hasContactDetails || !hasFrequencyDate || !hasTabInfo) {
       Alert.alert('Error', 'Please fill out all fields to submit donation.');
@@ -377,7 +377,7 @@ export default function ServiceDonation({ navigation }: any) {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1.5, marginRight: 15 }]}>
-                <Text style={styles.label}>Address / Coverage</Text>
+                <Text style={styles.label}>Region Coverage</Text>
                 <CustomDropdown
                   selectedValue={address}
                   onValueChange={setAddress}
