@@ -25,10 +25,10 @@ function isDeliveryTimeReached(batch: any): boolean {
   return new Date() >= new Date(dateTimeStr);
 }
 
+// Request-level status — no batch logic here (batches get their own separate cards)
 function getEffectiveStatus(req: any): string {
   const raw = (req.status || 'PENDING').toUpperCase().trim();
 
-  // Final / terminal states
   if (['CANCELLED', 'CANCELED'].includes(raw)) return 'Cancelled';
   if (raw === 'COMPLETED' || raw === 'DONE') return 'Completed';
   if (
@@ -37,17 +37,39 @@ function getEffectiveStatus(req: any): string {
   ) return 'Rejected';
   if (raw === 'PENDING') return 'Pending';
 
-  // Approved / Accepted / Allocated / Urgent:
-  // → In Transit only when staff has a pending delivery batch whose scheduled
-  //   date+time has already been reached; otherwise stays Approved.
   if (['APPROVED', 'ACCEPTED', 'ALLOCATED', 'URGENT', 'IN TRANSIT', 'IN_TRANSIT', 'INTRANSIT'].includes(raw)) {
-    const batches = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
-    if (batches.some((b: any) => ['missed', 'notified'].includes((b.status || '').toLowerCase()))) return 'Delivery Missed';
-    if (batches.some((b: any) => (b.status || '').toLowerCase() === 'pending' && isDeliveryTimeReached(b))) return 'In Transit';
+    // Drive-based completion: Done, or end_date passed
+    const driveStatus = (req.drive_status || '').toLowerCase();
+    if (driveStatus === 'done') return 'Completed';
+    if (req.drive_end_date) {
+      const end = new Date(req.drive_end_date + 'T00:00:00');
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (end < today) return 'Completed';
+    }
     return 'Approved';
   }
 
   return 'Pending';
+}
+
+// A batch is missed if staff marked it missed/notified, OR its date is strictly before today and not yet completed
+function isMissedBatch(batch: any): boolean {
+  const s = (batch.status || '').toLowerCase();
+  if (['missed', 'notified'].includes(s)) return true;
+  if (s !== 'completed' && batch.delivery_date) {
+    const batchDay = new Date(batch.delivery_date + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return batchDay < today;
+  }
+  return false;
+}
+
+// Returns a batch-level status for a separate batch card, or null if no card needed
+function getBatchEffectiveStatus(batch: any): 'In Transit' | 'Delivery Missed' | null {
+  if ((batch.status || '').toLowerCase() === 'completed') return null;
+  if (isMissedBatch(batch)) return 'Delivery Missed';
+  if (isDeliveryTimeReached(batch)) return 'In Transit';
+  return null;
 }
 
 function getStatusColor(effectiveStatus: string): string {
@@ -144,8 +166,6 @@ export default function TrackMyRequest({ route, navigation }: any) {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      // Auto-cancel any requests whose delivery date passed without receipt
-      await ApiService.autoCancelExpiredRequests().catch(() => { });
       const res = await ApiService.getMyRequests();
       if (res.data.success) {
         setRequestsData(res.data.requests);
@@ -240,29 +260,42 @@ export default function TrackMyRequest({ route, navigation }: any) {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const filteredRequests = requestsData.filter(req => {
-    if (selectedFilter === 'All') return true;
-    const status = getEffectiveStatus(req);
-    if (selectedFilter === 'Rejected') return ['Rejected', 'Cancelled', 'Delivery Missed'].includes(status);
-    return status === selectedFilter;
-  });
-
-  // In Transit requests with multiple batches expand into one entry per batch
-  const expandedRequests = filteredRequests.flatMap(req => {
+  // Build all cards: one request card per request + separate batch cards for In Transit / Delivery Missed
+  const allCards = requestsData.flatMap((req: any) => {
+    const cards: any[] = [];
+    const reqStatus = getEffectiveStatus(req);
     const batches: any[] = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
-    if (getEffectiveStatus(req) === 'In Transit' && batches.length > 1) {
-      return batches.map(batch => ({ ...req, _activeBatch: batch }));
-    }
     const activeBatch =
       batches.find((b: any) => b.status === 'pending' && isDeliveryTimeReached(b)) ||
       batches.find((b: any) => b.status === 'pending') ||
-      batches[0] ||
-      null;
-    return [{ ...req, _activeBatch: activeBatch }];
+      batches[0] || null;
+
+    // Always one request-level card
+    cards.push({ ...req, _cardType: 'request', _cardStatus: reqStatus, _activeBatch: activeBatch });
+
+    // While drive is ongoing (Approved), each started/missed batch gets its own separate card
+    if (reqStatus === 'Approved') {
+      for (const batch of batches) {
+        const batchStatus = getBatchEffectiveStatus(batch);
+        if (batchStatus) {
+          cards.push({ ...req, _cardType: 'batch', _cardStatus: batchStatus, _activeBatch: batch });
+        }
+      }
+    }
+
+    return cards;
   });
 
-  const financialRequests = expandedRequests.filter(req => req.type?.toLowerCase() === 'financial');
-  const foodRequests = expandedRequests.filter(req => req.type?.toLowerCase() !== 'financial');
+  // Filter the expanded cards
+  const filteredCards = allCards.filter((card: any) => {
+    if (selectedFilter === 'All') return true;
+    const s = card._cardStatus;
+    if (selectedFilter === 'Rejected') return ['Rejected', 'Cancelled', 'Delivery Missed'].includes(s);
+    return s === selectedFilter;
+  });
+
+  const financialRequests = filteredCards.filter((c: any) => c.type?.toLowerCase() === 'financial');
+  const foodRequests = filteredCards.filter((c: any) => c.type?.toLowerCase() !== 'financial');
 
   const renderSummaryRow = (label: string, value: string | number | null | undefined) => (
     <View style={styles.reportTableRow}>
@@ -272,7 +305,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
   );
 
   const renderRequestCard = (req: any, idx: number, isFirst: boolean) => {
-    const effectiveStatus = getEffectiveStatus(req);
+    const effectiveStatus = req._cardStatus || getEffectiveStatus(req);
     const statusColor = getStatusColor(effectiveStatus);
     const statusBg = getStatusBadgeColor(effectiveStatus);
     const isFood = req.type?.toLowerCase() !== 'financial';

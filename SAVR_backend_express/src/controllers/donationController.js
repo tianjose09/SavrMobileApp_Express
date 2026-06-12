@@ -1077,7 +1077,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
     [allStops] = await db.execute(`
       SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start, ts.time_slot_end,
              ts.food_name, ts.qty, ts.unit, ts.food_type,
-             dd.id AS drive_id, dd.beneficiary_request_id,
+             dd.id AS drive_id, dd.beneficiary_request_id, dd.status AS drive_status,
              dd.start_date AS drive_start_date, dd.end_date AS drive_end_date
       FROM truck_stops ts
       JOIN donation_drives dd ON dd.id = ts.reference_id AND ts.source = 'donation_drive'
@@ -1097,6 +1097,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
         drive_id: did,
         request_id: rid,
         first_stop_id: stop.stop_id,
+        drive_status: (stop.drive_status || '').toLowerCase(),
         status: ['notified'].includes((stop.status || '').toLowerCase()) ? 'missed' : (stop.status || '').toLowerCase(),
         date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
         time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
@@ -1134,6 +1135,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       batch_number: idx + 1,
       stop_id: b.first_stop_id,
       drive_id: b.drive_id,
+      drive_status: b.drive_status,
       status: b.status,           // 'pending' | 'completed' | 'missed'
       delivery_date: b.date,
       delivery_time_start: b.time,
@@ -1164,6 +1166,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       drive_start_date: r.start_date
         ? new Date(r.start_date).toISOString().split('T')[0]
         : (r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : null),
+      drive_status: deliveryBatches[0]?.drive_status || null,
       drive_end_date: (deliveryBatches[0]?.drive_end_date) || null,
       food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
       quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
