@@ -434,7 +434,7 @@ async function autoNotifyDonor(userId) {
                fdr.user_id AS donor_id
         FROM truck_stops ts
         JOIN food_donation_records fdr ON fdr.id::text = ts.reference_id::text
-        WHERE fdr.user_id = ? AND ts.source = 'food_donation' AND ts.stop_type = 'PICKUP'
+        WHERE fdr.user_id = ? AND ts.source = 'food_donation'
           AND (
             (LOWER(ts.status) = 'pending'   AND ts.notified_at IS NULL)
             OR (LOWER(ts.status) = 'completed' AND ts.notified_at IS NULL)
