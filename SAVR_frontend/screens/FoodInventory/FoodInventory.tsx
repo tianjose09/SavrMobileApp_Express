@@ -72,13 +72,14 @@ export default function FoodInventory({ route, navigation }: any) {
       'Sugars & Sweets',
       'Protein Alternatives',
       'Vegetables',
-      ...inventoryItems.map((i: any) => i.category).filter(Boolean)
+      ...inventoryItems.map((i: any) => i.category ? i.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() : '').filter(Boolean)
     ])].sort() as string[];
     const filteredItems = inventoryItems.filter(item => {
         const matchesSearch =
             (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
             (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
-        const matchesCategory = !selectedCategory || item.category === selectedCategory;
+        const matchesCategory = !selectedCategory ||
+            (item.category && item.category.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim() === selectedCategory);
         return matchesSearch && matchesCategory;
     });
 

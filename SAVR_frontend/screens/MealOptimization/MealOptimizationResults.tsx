@@ -541,7 +541,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Optimization Results</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('MealPreparationSummary')} style={styles.headerListBtn}>
+          <TouchableOpacity onPress={() => navigation.navigate('Summary')} style={styles.headerListBtn}>
             <Ionicons name="list" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>

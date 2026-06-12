@@ -13,6 +13,7 @@ import {
   StatusBar,
   SafeAreaView,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -49,29 +50,47 @@ export default function FoodDonationDetails({ navigation }: any) {
   const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
   const [iosTempDate, setIosTempDate] = useState(new Date());
   const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setItems([
+      {
+        id: '1',
+        name: '',
+        quantity: '',
+        unit: 'kg',
+        category: '',
+        expiryDate: null,
+        specialNotes: '',
+        photoUri: null,
+      },
+    ]);
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   useEffect(() => {
     const BASE_CATEGORIES = [
-      { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
-      { label: 'Dairy: Perishable', value: 'Dairy' },
-      { label: 'Dry Goods: Non-Perishable', value: 'Dry Goods' },
-      { label: 'Fats & Oils: Non-Perishable', value: 'Fats & Oils' },
-      { label: 'Fruits: Perishable', value: 'Fruits' },
-      { label: 'Grains & Cereals: Non-Perishable', value: 'Grains & Cereals' },
-      { label: 'Beverages: Non-Perishable', value: 'Beverages' },
-      { label: 'Meat: Perishable', value: 'Meat' },
-      { label: 'Sugars & Sweets: Non-Perishable', value: 'Sugars & Sweets' },
-      { label: 'Protein Alternatives: Both', value: 'Protein Alternatives' },
-      { label: 'Vegetables: Perishable', value: 'Vegetables' },
-      { label: 'Meals: Perishable', value: 'Meals' },
+      { label: 'Canned Goods', value: 'Canned Goods' },
+      { label: 'Dairy', value: 'Dairy' },
+      { label: 'Dry Goods', value: 'Dry Goods' },
+      { label: 'Fats & Oils', value: 'Fats & Oils' },
+      { label: 'Fruits', value: 'Fruits' },
+      { label: 'Grains & Cereals', value: 'Grains & Cereals' },
+      { label: 'Beverages', value: 'Beverages' },
+      { label: 'Meat', value: 'Meat' },
+      { label: 'Sugars & Sweets', value: 'Sugars & Sweets' },
+      { label: 'Protein Alternatives', value: 'Protein Alternatives' },
+      { label: 'Vegetables', value: 'Vegetables' },
+      { label: 'Meals', value: 'Meals' },
     ];
     ApiService.getInventoryCategories()
       .then(res => {
         const apiCats: string[] = res.data?.categories ?? [];
-        const baseValues = new Set(BASE_CATEGORIES.map(c => c.value));
-        const extra = apiCats
+        const baseValuesLower = new Set(BASE_CATEGORIES.map(c => c.value.toLowerCase()));
+        const extra = [...new Set(apiCats.map(c => c.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim()))]
           .filter(c => {
-            if (baseValues.has(c)) return false;
+            if (baseValuesLower.has(c.toLowerCase())) return false;
             const lower = c.toLowerCase();
             if (lower.includes('meal')) return false; // Filter out 'Prep Meal', 'Prepared Meals', 'Meal', etc. since we added 'Meals' explicitly
             return true;
@@ -140,12 +159,12 @@ export default function FoodDonationDetails({ navigation }: any) {
     }
 
     for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (!item.name.trim() || !item.quantity.trim() || !item.category) {
-        Alert.alert('Error', 'Please fill out all fields to submit donation.');
-        return;
-      }
-    }
+       const item = items[i];
+       if (!item.name.trim() || !item.quantity.trim() || !item.category || !item.unit) {
+         Alert.alert('Error', 'Please fill out all fields to submit donation.');
+         return;
+       }
+     }
 
     navigation.navigate('FoodDonationPickup', {
       initialScheduleType: method,
@@ -196,7 +215,18 @@ export default function FoodDonationDetails({ navigation }: any) {
           <Text style={styles.heroTitle}>Food Donation</Text>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00592d"
+              colors={['#00592d']}
+            />
+          }
+        >
           <View style={styles.headerFlexRow}>
             <Text style={styles.sectionTitle}>Food Donation Details</Text>
             <TouchableOpacity style={styles.addMoreBtn} onPress={addItem} activeOpacity={0.8}>
@@ -243,7 +273,7 @@ export default function FoodDonationDetails({ navigation }: any) {
                 </View>
 
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>Units</Text>
+                  <Text style={styles.label}>Units<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <CustomDropdown
                     selectedValue={item.unit}
                     onValueChange={(val) => updateItem(item.id, 'unit', val)}

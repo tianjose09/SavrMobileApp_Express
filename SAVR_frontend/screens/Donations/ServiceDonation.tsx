@@ -168,9 +168,9 @@ export default function ServiceDonation({ navigation }: any) {
   const handleSubmit = async () => {
     // Basic validation
     const hasContactDetails = address && firstName && lastName && email;
-    const hasFrequencyDate = (frequency !== 'Monthly' && frequency !== 'One-Time') || date;
-    const hasTabInfo = (activeTab === 'VOLUNTEER' && headcount.trim() && parseInt(headcount) > 0) ||
-      (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0);
+    const hasFrequencyDate = frequency && ((frequency !== 'Monthly' && frequency !== 'One-Time') || date);
+    const hasTabInfo = (activeTab === 'VOLUNTEER' && headcount.trim() && parseInt(headcount) > 0 && preferredWork) ||
+      (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0 && vehicleType && capacity.trim() && parseInt(capacity) > 0 && maxDistance.trim() && parseFloat(maxDistance) > 0);
 
     if (!hasContactDetails || !hasFrequencyDate || !hasTabInfo) {
       Alert.alert('Error', 'Please fill out all fields to submit donation.');
@@ -458,7 +458,7 @@ export default function ServiceDonation({ navigation }: any) {
 
               {(frequency === 'Monthly' || frequency === 'One-Time') && (
                 <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                  <Text style={styles.label}>Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                  <Text style={styles.label}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <TouchableOpacity
                     style={[
                       styles.inputBox,
@@ -590,9 +590,9 @@ export default function ServiceDonation({ navigation }: any) {
             </View>
 
             {activeTab === 'TRANSPORTATION' ? (
-              <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 2.2, marginRight: 15 }]}>
-                  <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Type of Vehicle</Text>
+              <View>
+                <View style={[styles.inputGroup, { marginBottom: 15 }]}>
+                  <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Type of Vehicle<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <CustomDropdown
                     selectedValue={vehicleType}
                     onValueChange={setVehicleType}
@@ -619,39 +619,43 @@ export default function ServiceDonation({ navigation }: any) {
                     style={styles.inputBox}
                   />
                 </View>
-                <View style={[styles.inputGroup, { flex: 0.8, marginRight: 15 }]}>
-                  <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Capacity</Text>
-                  <View style={styles.inputBox}>
-                    <TextInput
-                      style={styles.inputInner}
-                      placeholder="##"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
-                      keyboardType="numeric"
-                      value={capacity}
-                      onChangeText={setCapacity}
-                    />
+
+                <View style={styles.row}>
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Capacity<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <View style={styles.inputBox}>
+                      <TextInput
+                        style={styles.inputInner}
+                        placeholder="##"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        keyboardType="numeric"
+                        value={capacity}
+                        onChangeText={setCapacity}
+                      />
+                    </View>
                   </View>
-                </View>
-                <View style={[styles.inputGroup, { flex: 1.2 }]}>
-                  <Text style={[styles.label, { fontSize: 11 }]} numberOfLines={1} adjustsFontSizeToFit>Max Distance</Text>
-                  <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center', paddingRight: 10 }]}>
-                    <TextInput
-                      style={[styles.inputInner, { flex: 1 }]}
-                      placeholder="### km"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
-                      keyboardType="numeric"
-                      value={maxDistance}
-                      onChangeText={setMaxDistance}
-                    />
-                    {maxDistance.trim().length > 0 && (
-                      <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700', marginLeft: 4 }}>km</Text>
-                    )}
+
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Max Distance<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center', paddingRight: 10 }]}>
+                      <TextInput
+                        style={[styles.inputInner, { flex: 1 }]}
+                        placeholder="### km"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        keyboardType="numeric"
+                        value={maxDistance}
+                        onChangeText={setMaxDistance}
+                      />
+                      {maxDistance.trim().length > 0 && (
+                        <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700', marginLeft: 4 }}>km</Text>
+                      )}
+                    </View>
                   </View>
                 </View>
               </View>
             ) : (
               <View style={[styles.inputGroup, { width: '100%' }]}>
-                <Text style={styles.label}>Preferred Work</Text>
+                <Text style={styles.label}>Preferred Work<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <CustomDropdown
                   selectedValue={preferredWork}
                   onValueChange={setPreferredWork}
