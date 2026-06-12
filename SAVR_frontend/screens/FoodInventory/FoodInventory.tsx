@@ -230,7 +230,7 @@ export default function FoodInventory({ route, navigation }: any) {
                         filteredItems.map((item, index) => {
                             const isRed = item.expiry === '2026-01-30';
                             return (
-                                <View key={item.id} style={styles.tRow}>
+                                <View key={`${item.id}-${index}`} style={styles.tRow}>
                                     <Text style={[styles.tdText, { flex: 2.2 }]} numberOfLines={1}>{item.name}</Text>
                                     <Text style={[styles.tdBold, { flex: 1.5, textAlign: 'center' }]} numberOfLines={1}>{item.qty}</Text>
                                     <Text style={[styles.tdText, { flex: 2.5, textAlign: 'center' }, isRed && styles.textRed]} numberOfLines={1}>{item.expiry}</Text>
