@@ -58,7 +58,7 @@ function getStatusColor(effectiveStatus: string): string {
     case 'Completed': return '#00592d';
     case 'Cancelled': return '#C0392B';
     case 'Rejected': return '#C0392B';
-    case 'Delivery Missed': return '#E67E22';
+    case 'Delivery Missed': return '#C0392B';
     default: return '#555555';
   }
 }
@@ -71,7 +71,7 @@ function getStatusBadgeColor(effectiveStatus: string): string {
     case 'Completed': return '#E8F5E9';
     case 'Cancelled': return '#FFEBEE';
     case 'Rejected': return '#FFEBEE';
-    case 'Delivery Missed': return '#FEF0E6';
+    case 'Delivery Missed': return '#FFEBEE';
     default: return '#F5F5F5';
   }
 }
