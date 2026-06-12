@@ -699,7 +699,7 @@ export default function CreateRequest({ navigation }: any) {
                       const isSel = selectedItem?.id === item.id;
                       return (
                         <TouchableOpacity
-                          key={item.id}
+                          key={`${item.id}-${idx}`}
                           style={[styles.fdItemRow, isSel && styles.fdItemRowActive, idx < itemsInCategory.length - 1 && styles.fdItemRowBorder]}
                           onPress={() => {
                             setSelectedItem(isSel ? null : item);
@@ -804,7 +804,7 @@ export default function CreateRequest({ navigation }: any) {
                 </View>
               ) : (
                 requestedFoods.map((f, idx) => (
-                  <View key={f.id} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
+                  <View key={`${f.id}-${idx}`} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
                     <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{getCategoryLabel(f.category)}</Text>
                     <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
                     <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
