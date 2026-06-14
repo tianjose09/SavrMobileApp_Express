@@ -1104,21 +1104,25 @@ exports.getBeneficiaryRequests = async (req, res) => {
         time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
         start_date: stop.drive_start_date ? new Date(stop.drive_start_date).toISOString().split('T')[0] : null,
         end_date: stop.drive_end_date ? new Date(stop.drive_end_date).toISOString().split('T')[0] : null,
-        items: [],
+        pending_items: [],  // pending stops only — shown as DELIVERING
+        all_items: [],      // all stops regardless of status — shown in Delivered Batches
       };
     }
     // Batch is pending if ANY stop in the drive is pending
-    if ((stop.status || '').toLowerCase() === 'pending') driveMap[did].status = 'pending';
-    const existingItem = driveMap[did].items.find(i => i.food_name === (stop.food_name || ''));
-    if (existingItem) {
-      existingItem.qty += parseFloat(stop.qty || '0');
-    } else {
-      driveMap[did].items.push({
-        food_name: stop.food_name || '',
-        qty: parseFloat(stop.qty || '0'),
-        unit: stop.unit || '',
-        category: stop.food_type || '',
-      });
+    const stopStatus = (stop.status || '').toLowerCase();
+    if (stopStatus === 'pending') driveMap[did].status = 'pending';
+
+    const foodName = stop.food_name || '';
+    const qty = parseFloat(stop.qty || '0');
+    // Always aggregate into all_items (for Delivered Batches history)
+    const allExisting = driveMap[did].all_items.find(i => i.food_name === foodName);
+    if (allExisting) { allExisting.qty += qty; }
+    else { driveMap[did].all_items.push({ food_name: foodName, qty, unit: stop.unit || '', category: stop.food_type || '' }); }
+    // Only aggregate pending stops into pending_items (for DELIVERING badge)
+    if (stopStatus === 'pending') {
+      const pendingExisting = driveMap[did].pending_items.find(i => i.food_name === foodName);
+      if (pendingExisting) { pendingExisting.qty += qty; }
+      else { driveMap[did].pending_items.push({ food_name: foodName, qty, unit: stop.unit || '', category: stop.food_type || '' }); }
     }
   }
 
@@ -1147,7 +1151,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
       delivery_time_end: b.time_end,
       drive_start_date: b.start_date,
       drive_end_date: b.end_date,
-      delivery_food_items: b.items,
+      delivery_food_items: b.pending_items,   // pending qty — for DELIVERING badge
+      delivered_food_items: b.all_items,      // all qty — for Delivered Batches history
     }));
 
     // Top-level delivery_food_items from the first pending batch
