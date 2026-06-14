@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform,
-  Modal,
+  Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -152,6 +152,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
     allBatches: any[];
   }>({ visible: false, requestName: '', requestStatus: '', foodItems: [], deliveryFoodItems: [], allBatches: [] });
 
+  const [noteModal, setNoteModal] = useState<{
+    visible: boolean;
+    requestId: number | null;
+    noteText: string;
+  }>({ visible: false, requestId: null, noteText: '' });
+
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -261,6 +267,13 @@ export default function TrackMyRequest({ route, navigation }: any) {
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Connection error.');
     }
+  };
+
+  const handleSendNote = async () => {
+    // Note sending functionality (stubbed for now if no endpoint exists)
+    console.log("Sending Note:", noteModal.noteText, "for request:", noteModal.requestId);
+    setNoteModal(m => ({ ...m, visible: false }));
+    Alert.alert('Note Sent', 'Thank you for your feedback.');
   };
 
   const toggleGroup = (group: string) => {
@@ -506,22 +519,23 @@ export default function TrackMyRequest({ route, navigation }: any) {
                 {activeBatch.delivery_date ? '  ·  ' + activeBatch.delivery_date : ''}
               </Text>
             )}
-            <View style={styles.batchRow}>
-              <View style={{ flex: 1 }}>
-                {allBatches.length === 1 && activeBatch.delivery_date && (
-                  <Text style={styles.batchDate}>{activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}</Text>
-                )}
-              </View>
+            <View style={[styles.batchRow, { justifyContent: 'flex-end', borderBottomWidth: 0, paddingBottom: 0 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {activeBatch.status === 'completed' || activeBatch.status === 'missed' ? (
                   <View style={styles.batchConfirmedBadge}>
                     <Text style={styles.batchConfirmedText}>Received</Text>
                   </View>
                 ) : (
-                  <TouchableOpacity style={styles.receivedBtn} activeOpacity={0.8} onPress={() => handleReceivedRequest(req, activeBatch)}>
-                    <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
-                    <Text style={styles.receivedBtnText}>I Received This</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <TouchableOpacity style={styles.receivedBtn} activeOpacity={0.8} onPress={() => handleReceivedRequest(req, activeBatch)}>
+                      <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.receivedBtnText}>I Received This</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.noteBtn} activeOpacity={0.8} onPress={() => setNoteModal({ visible: true, requestId: req.id, noteText: '' })}>
+                      <Ionicons name="chatbubble-outline" size={14} color="#666" style={{ marginRight: 4 }} />
+                      <Text style={styles.noteBtnText}>Note</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             </View>
@@ -712,6 +726,48 @@ export default function TrackMyRequest({ route, navigation }: any) {
             >
               <Text style={styles.modalConfirmText}>Close</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Note Modal */}
+      <Modal visible={noteModal.visible} transparent animationType="fade" onRequestClose={() => setNoteModal(m => ({ ...m, visible: false }))}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={[styles.modalTitle, { marginBottom: 0 }]}>Send a Note</Text>
+              <TouchableOpacity onPress={() => setNoteModal(m => ({ ...m, visible: false }))}>
+                <Ionicons name="close" size={20} color="#888" />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.modalDesc, { marginBottom: 16 }]}>
+              Let us know if anything was missing, incorrect, or if you have any concerns about this delivery.
+            </Text>
+            <View style={{
+              borderWidth: 1.5,
+              borderColor: '#DDDDDD',
+              borderRadius: 10,
+              padding: 10,
+              minHeight: 100,
+              marginBottom: 20
+            }}>
+              <TextInput
+                style={{ fontSize: 14, color: '#111', flex: 1, textAlignVertical: 'top' }}
+                placeholder="e.g. We received fewer items than expected, some packages were damaged..."
+                placeholderTextColor="#999"
+                multiline
+                value={noteModal.noteText}
+                onChangeText={text => setNoteModal(m => ({ ...m, noteText: text }))}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity style={{ backgroundColor: '#F3F4F6', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' }} onPress={() => setNoteModal(m => ({ ...m, visible: false }))}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#555' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ backgroundColor: '#00592d', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', flex: 1 }} onPress={handleSendNote}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFF' }}>Send Note</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -952,6 +1008,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
+  },
+  noteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+  },
+  noteBtnText: {
+    color: '#666666',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
 
   emptyText: {
