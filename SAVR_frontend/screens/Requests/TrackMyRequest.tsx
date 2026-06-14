@@ -66,15 +66,14 @@ function isMissedBatch(batch: any): boolean {
   return batchDay < today;
 }
 
-// Spec: In Transit = active + not missed + delivery has started
-//       Delivery Missed = missed
-//       null = completed/cancelled, OR active but future (stays in Approved)
+// In Transit = active + not missed (show all active batches immediately, matching web)
+// Delivery Missed = missed or date passed without completion
+// null = completed/cancelled
 function getBatchEffectiveStatus(batch: any): 'In Transit' | 'Delivery Missed' | null {
   const s = (batch.status || '').toLowerCase();
   if (['completed', 'cancelled'].includes(s)) return null;
   if (isMissedBatch(batch)) return 'Delivery Missed';
   if (!ACTIVE_STATUSES.includes(s)) return null;
-  if (!deliveryStarted(batch)) return null; // future batch — stays in Approved, no extra card yet
   return 'In Transit';
 }
 
