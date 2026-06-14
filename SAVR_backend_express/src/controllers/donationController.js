@@ -1109,12 +1109,17 @@ exports.getBeneficiaryRequests = async (req, res) => {
     }
     // Batch is pending if ANY stop in the drive is pending
     if ((stop.status || '').toLowerCase() === 'pending') driveMap[did].status = 'pending';
-    driveMap[did].items.push({
-      food_name: stop.food_name || '',
-      qty: parseFloat(stop.qty || '0'),
-      unit: stop.unit || '',
-      category: stop.food_type || '',
-    });
+    const existingItem = driveMap[did].items.find(i => i.food_name === (stop.food_name || ''));
+    if (existingItem) {
+      existingItem.qty += parseFloat(stop.qty || '0');
+    } else {
+      driveMap[did].items.push({
+        food_name: stop.food_name || '',
+        qty: parseFloat(stop.qty || '0'),
+        unit: stop.unit || '',
+        category: stop.food_type || '',
+      });
+    }
   }
 
   for (const batch of Object.values(driveMap)) {
