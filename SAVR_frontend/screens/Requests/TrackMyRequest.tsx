@@ -17,12 +17,13 @@ if (Platform.OS === 'android') {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function isDeliveryTimeReached(batch: any): boolean {
+// Spec: delivery has started when its scheduled date+time <= now
+function deliveryStarted(batch: any): boolean {
   if (!batch.delivery_date) return false;
-  const dateTimeStr = batch.delivery_time_start
-    ? `${batch.delivery_date}T${batch.delivery_time_start}:00`
-    : `${batch.delivery_date}T00:00:00`;
-  return new Date() >= new Date(dateTimeStr);
+  const t = /^\d{1,2}:\d{2}/.test(batch.delivery_time_start || '')
+    ? batch.delivery_time_start.slice(0, 5)
+    : '00:00';
+  return new Date(`${batch.delivery_date.slice(0, 10)}T${t}:00`) <= new Date();
 }
 
 // Request-level status — no batch logic here (batches get their own separate cards)
@@ -52,23 +53,29 @@ function getEffectiveStatus(req: any): string {
   return 'Pending';
 }
 
-// A batch is missed if staff marked it missed/notified, OR its date is strictly before today and not yet completed
+const ACTIVE_STATUSES = ['pending', 'accepted', 'in_transit', 'delivered'];
+
+// Spec: missed = staff flagged it, OR active batch whose date is strictly before today
 function isMissedBatch(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
-  if (['missed', 'notified'].includes(s)) return true;
-  if (s !== 'completed' && batch.delivery_date) {
-    const batchDay = new Date(batch.delivery_date + 'T00:00:00');
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    return batchDay < today;
-  }
-  return false;
+  if (['notified', 'missed'].includes(s)) return true;
+  const isActive = ACTIVE_STATUSES.includes(s);
+  if (!isActive || !batch.delivery_date) return false;
+  const batchDay = new Date(batch.delivery_date.slice(0, 10) + 'T00:00:00');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return batchDay < today;
 }
 
-// Returns a batch-level status for a separate batch card, or null if no card needed
+// Spec: In Transit = active + not missed + delivery has started
+//       Delivery Missed = missed
+//       null = completed/cancelled, OR active but future (stays in Approved)
 function getBatchEffectiveStatus(batch: any): 'In Transit' | 'Delivery Missed' | null {
-  if ((batch.status || '').toLowerCase() === 'completed') return null;
+  const s = (batch.status || '').toLowerCase();
+  if (['completed', 'cancelled'].includes(s)) return null;
   if (isMissedBatch(batch)) return 'Delivery Missed';
-  return 'In Transit'; // all pending batches are In Transit (web shows them immediately)
+  if (!ACTIVE_STATUSES.includes(s)) return null;
+  if (!deliveryStarted(batch)) return null; // future batch — stays in Approved, no extra card yet
+  return 'In Transit';
 }
 
 function getStatusColor(effectiveStatus: string): string {
@@ -364,7 +371,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
                   // Approved: show cumulative received so far
                   const receivedItems = Array.isArray(req.received_items) ? req.received_items : [];
-                  const receivedEntry = receivedItems.find((ri: any) => ri.food_name === name);
+                  const receivedEntry = receivedItems.find((ri: any) => (ri.food_name || '').toLowerCase() === name.toLowerCase());
                   const receivedQty = receivedEntry ? parseFloat(receivedEntry.received_qty || '0') : 0;
 
                   // In Transit: use this batch card's own items (activeBatch), not the top-level field
@@ -372,7 +379,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                     ? activeBatch.delivery_food_items
                     : Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [];
                   const delivEntry = effectiveStatus === 'In Transit'
-                    ? delivItems.find((d: any) => d.food_name === name)
+                    ? delivItems.find((d: any) => (d.food_name || '').toLowerCase() === name.toLowerCase())
                     : null;
 
                   return (
@@ -643,7 +650,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                 const itemCategory = item.food_type || item.category || '';
                 const showDelivering = itemsModal.requestStatus === 'In Transit';
                 const delivItem = showDelivering
-                  ? itemsModal.deliveryFoodItems.find(d => (d.food_name || '') === itemName)
+                  ? itemsModal.deliveryFoodItems.find(d => (d.food_name || '').toLowerCase() === itemName.toLowerCase())
                   : null;
                 return (
                   <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
@@ -677,7 +684,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
               {itemsModal.allBatches.length > 0 && (() => {
                 const visibleBatches = itemsModal.requestStatus === 'Completed'
                   ? itemsModal.allBatches
-                  : itemsModal.allBatches.filter((b: any) => ['completed', 'received'].includes(b.status));
+                  : itemsModal.allBatches.filter((b: any) => b.status === 'completed');
                 if (visibleBatches.length === 0) return null;
                 return (
                   <View style={{ marginTop: 16 }}>
