@@ -779,7 +779,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <Text style={styles.modalDesc}>
               Have you received the items in this delivery?
               {receiptModal.batchDate
-                ? '\n\nScheduled: ' + new Date(receiptModal.batchDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) + (receiptModal.batchTime ? ' at ' + receiptModal.batchTime : '')
+                ? '\n\nScheduled: ' + new Date(receiptModal.batchDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
                 : ''}
             </Text>
             <View style={styles.modalButtons}>
