@@ -213,9 +213,11 @@ export default function TrackMyRequest({ route, navigation }: any) {
       visible: true,
       requestName: req.request_name || 'Request',
       foodItems: Array.isArray(req.food_items) ? req.food_items : [],
-      deliveryFoodItems: Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [],
+      deliveryFoodItems: Array.isArray(req._activeBatch?.delivery_food_items)
+        ? req._activeBatch.delivery_food_items
+        : Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [],
       allBatches: Array.isArray(req.delivery_batches) ? req.delivery_batches : [],
-      requestStatus: getEffectiveStatus(req),
+      requestStatus: req._cardStatus || getEffectiveStatus(req),
     });
   };
 
@@ -365,8 +367,10 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   const receivedEntry = receivedItems.find((ri: any) => ri.food_name === name);
                   const receivedQty = receivedEntry ? parseFloat(receivedEntry.received_qty || '0') : 0;
 
-                  // In Transit: show current delivery batch amount
-                  const delivItems: any[] = Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [];
+                  // In Transit: use this batch card's own items (activeBatch), not the top-level field
+                  const delivItems: any[] = Array.isArray(activeBatch?.delivery_food_items)
+                    ? activeBatch.delivery_food_items
+                    : Array.isArray(req.delivery_food_items) ? req.delivery_food_items : [];
                   const delivEntry = effectiveStatus === 'In Transit'
                     ? delivItems.find((d: any) => d.food_name === name)
                     : null;
