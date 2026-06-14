@@ -1086,50 +1086,33 @@ exports.getBeneficiaryRequests = async (req, res) => {
     `, requestIds);
   }
 
-  // Group truck_stops by drive_id — each donation_drive = one delivery batch
+  // One batch card per truck_stop (matches web: each stop = one delivery event)
   const batchesByRequest = {};
-  const driveMap = {};
   for (const stop of allStops) {
     const rid = stop.beneficiary_request_id;
-    const did = stop.drive_id;
-    if (!driveMap[did]) {
-      driveMap[did] = {
-        drive_id: did,
-        request_id: rid,
-        first_stop_id: stop.stop_id,
-        drive_status: (stop.drive_status || '').toLowerCase(),
-        status: ['notified'].includes((stop.status || '').toLowerCase()) ? 'missed' : (stop.status || '').toLowerCase(),
-        date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
-        time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
-        time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
-        start_date: stop.drive_start_date ? new Date(stop.drive_start_date).toISOString().split('T')[0] : null,
-        end_date: stop.drive_end_date ? new Date(stop.drive_end_date).toISOString().split('T')[0] : null,
-        pending_items: [],  // pending stops only — shown as DELIVERING
-        all_items: [],      // all stops regardless of status — shown in Delivered Batches
-      };
-    }
-    // Batch is pending if ANY stop in the drive is pending
     const stopStatus = (stop.status || '').toLowerCase();
-    if (stopStatus === 'pending') driveMap[did].status = 'pending';
-
-    const foodName = stop.food_name || '';
-    const qty = parseFloat(stop.qty || '0');
-    // Always aggregate into all_items (for Delivered Batches history)
-    const allExisting = driveMap[did].all_items.find(i => i.food_name === foodName);
-    if (allExisting) { allExisting.qty += qty; }
-    else { driveMap[did].all_items.push({ food_name: foodName, qty, unit: stop.unit || '', category: stop.food_type || '' }); }
-    // Only aggregate pending stops into pending_items (for DELIVERING badge)
-    if (stopStatus === 'pending') {
-      const pendingExisting = driveMap[did].pending_items.find(i => i.food_name === foodName);
-      if (pendingExisting) { pendingExisting.qty += qty; }
-      else { driveMap[did].pending_items.push({ food_name: foodName, qty, unit: stop.unit || '', category: stop.food_type || '' }); }
-    }
-  }
-
-  for (const batch of Object.values(driveMap)) {
-    const rid = batch.request_id;
+    const mappedStatus = ['notified'].includes(stopStatus) ? 'missed' : stopStatus;
+    const item = {
+      food_name: stop.food_name || '',
+      qty: parseFloat(stop.qty || '0'),
+      unit: stop.unit || '',
+      category: stop.food_type || '',
+    };
     if (!batchesByRequest[rid]) batchesByRequest[rid] = [];
-    batchesByRequest[rid].push(batch);
+    batchesByRequest[rid].push({
+      stop_id: stop.stop_id,
+      drive_id: stop.drive_id,
+      request_id: rid,
+      drive_status: (stop.drive_status || '').toLowerCase(),
+      status: mappedStatus,
+      date: stop.date ? new Date(stop.date).toISOString().split('T')[0] : null,
+      time: stop.time_slot_start ? stop.time_slot_start.substring(0, 5) : null,
+      time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
+      start_date: stop.drive_start_date ? new Date(stop.drive_start_date).toISOString().split('T')[0] : null,
+      end_date: stop.drive_end_date ? new Date(stop.drive_end_date).toISOString().split('T')[0] : null,
+      delivery_food_items: mappedStatus === 'pending' ? [item] : [],   // DELIVERING badge
+      delivered_food_items: mappedStatus === 'completed' ? [item] : [], // Delivered Batches
+    });
   }
 
   const mapped = requests.map(r => {
@@ -1142,17 +1125,17 @@ exports.getBeneficiaryRequests = async (req, res) => {
 
     const deliveryBatches = (batchesByRequest[r.id] || []).map((b, idx) => ({
       batch_number: idx + 1,
-      stop_id: b.first_stop_id,
+      stop_id: b.stop_id,
       drive_id: b.drive_id,
       drive_status: b.drive_status,
-      status: b.status,           // 'pending' | 'completed' | 'missed'
+      status: b.status,
       delivery_date: b.date,
       delivery_time_start: b.time,
       delivery_time_end: b.time_end,
       drive_start_date: b.start_date,
       drive_end_date: b.end_date,
-      delivery_food_items: b.pending_items,   // pending qty — for DELIVERING badge
-      delivered_food_items: b.all_items,      // all qty — for Delivered Batches history
+      delivery_food_items: b.delivery_food_items,   // pending — for DELIVERING badge
+      delivered_food_items: b.delivered_food_items, // completed — for Delivered Batches
     }));
 
     // Top-level delivery_food_items from the first pending batch
@@ -1211,14 +1194,13 @@ exports.receiveBeneficiaryStop = async (req, res) => {
   }
   const request = reqRows[0];
 
-  // Mark ALL truck stops in this drive as completed (one drive = one delivery batch)
+  // Mark only THIS specific stop as completed (each stop = one independent batch)
   await db.execute(
-    "UPDATE truck_stops SET status = 'completed', notified_at = NOW(), updated_at = NOW() WHERE reference_id = ? AND source = 'donation_drive' AND stop_type = 'DELIVER'",
-    [stop.drive_id]
+    "UPDATE truck_stops SET status = 'completed', notified_at = NOW(), updated_at = NOW() WHERE id = ?",
+    [stopId]
   );
 
-  // Flip the oldest in_transit donation_deliveries row to received — this is what
-  // advances the web's goal bar (mirrors the web backend's /received endpoint logic).
+  // Flip the oldest in_transit donation_deliveries row to received so the web goal bar advances
   try {
     await db.execute(
       `UPDATE donation_deliveries SET status = 'received', updated_at = NOW()
@@ -1233,10 +1215,10 @@ exports.receiveBeneficiaryStop = async (req, res) => {
     console.error('[receiveBeneficiaryStop] donation_deliveries flip failed:', e.message);
   }
 
-  // Get the staff-dispatched quantities directly from truck_stops (authoritative)
+  // Get only this stop's food item (not all items in the drive)
   const [driveItems] = await db.execute(
-    "SELECT food_name, qty, unit FROM truck_stops WHERE reference_id = ? AND source = 'donation_drive' AND stop_type = 'DELIVER'",
-    [stop.drive_id]
+    "SELECT food_name, qty, unit FROM truck_stops WHERE id = ?",
+    [stopId]
   );
 
   // Merge into accumulated received_items

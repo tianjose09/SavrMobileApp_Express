@@ -708,7 +708,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                         <Text style={{ fontSize: 12, fontWeight: '800', color: '#00592d', marginBottom: 4 }}>
                           Batch {batch.batch_number}{batch.delivery_date ? '  ·  ' + batch.delivery_date : ''}
                         </Text>
-                        {(batch.delivered_food_items || batch.delivery_food_items || []).map((fi: any, j: number) => (
+                        {(batch.delivered_food_items || []).map((fi: any, j: number) => (
                           <Text key={j} style={{ fontSize: 12, color: '#333', marginTop: 2 }}>
                             {fi.food_name}  {fi.qty} {fi.unit}
                           </Text>
