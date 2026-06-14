@@ -68,8 +68,7 @@ function isMissedBatch(batch: any): boolean {
 function getBatchEffectiveStatus(batch: any): 'In Transit' | 'Delivery Missed' | null {
   if ((batch.status || '').toLowerCase() === 'completed') return null;
   if (isMissedBatch(batch)) return 'Delivery Missed';
-  if (isDeliveryTimeReached(batch)) return 'In Transit';
-  return null;
+  return 'In Transit'; // all pending batches are In Transit (web shows them immediately)
 }
 
 function getStatusColor(effectiveStatus: string): string {
