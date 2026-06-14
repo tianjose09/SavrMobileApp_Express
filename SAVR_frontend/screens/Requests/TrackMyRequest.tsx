@@ -316,15 +316,22 @@ export default function TrackMyRequest({ route, navigation }: any) {
       <View key={`${req.id}-${idx}`}>
         {!isFirst && <View style={styles.groupItemDivider} />}
 
-        {/* Title + Status Badge */}
+        {/* Title + Status Badge + three-dot */}
         <View style={styles.titleStatusRow}>
-          <Text style={styles.reportMainTitle} numberOfLines={2}>
+          <Text style={[styles.reportMainTitle, { flex: 1 }]} numberOfLines={2}>
             {req.request_name || 'Untitled Request'}
           </Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-            <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-              {effectiveStatus.toUpperCase()}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+              <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+                {effectiveStatus.toUpperCase()}
+              </Text>
+            </View>
+            {isFood && (
+              <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => handleViewItems(req)}>
+                <Ionicons name="ellipsis-vertical" size={18} color="#555" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -496,9 +503,6 @@ export default function TrackMyRequest({ route, navigation }: any) {
                 )}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => handleViewItems(req)}>
-                  <Ionicons name="ellipsis-vertical" size={18} color="#555" />
-                </TouchableOpacity>
                 {activeBatch.status === 'completed' || activeBatch.status === 'missed' ? (
                   <View style={styles.batchConfirmedBadge}>
                     <Text style={styles.batchConfirmedText}>Received</Text>
@@ -670,7 +674,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
               {itemsModal.allBatches.length > 0 && (() => {
                 const visibleBatches = itemsModal.requestStatus === 'Completed'
                   ? itemsModal.allBatches
-                  : itemsModal.allBatches.filter((b: any) => b.status === 'completed');
+                  : itemsModal.allBatches.filter((b: any) => ['completed', 'received'].includes(b.status));
                 if (visibleBatches.length === 0) return null;
                 return (
                   <View style={{ marginTop: 16 }}>
