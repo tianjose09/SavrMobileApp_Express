@@ -455,7 +455,7 @@ export default function IngrMealPlanning({ navigation }: any) {
                   const outOfStock = item.outOfStock || false;
                   return (
                     <View
-                      key={item.id}
+                      key={`${item.id}-${idx}`}
                       style={[
                         styles.tableRow,
                         item.selected && styles.tableRowSelected,

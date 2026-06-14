@@ -165,6 +165,40 @@ async function autoNotifyBeneficiary(userId) {
     for (const r of requests) {
       try {
         const s = (r.status || '').toLowerCase().trim();
+
+        // Rejected/denied: the DB trigger already created the notification row.
+        // We only need to fire the push — no new notification needed.
+        const isRejected = ['rejected', 'denied', 'declined', 'refused', 'disapproved'].includes(s) ||
+                           s.includes('reject') || s.includes('den') || s.includes('declin');
+        if (isRejected) {
+          let prevNotified = [];
+          try { prevNotified = typeof r.notified_statuses_json === 'string' ? JSON.parse(r.notified_statuses_json) : (r.notified_statuses_json || []); } catch {}
+          if (prevNotified.includes(r.status)) continue;
+
+          // Atomically claim so we only push once
+          const [claimRes] = await db.execute(
+            `UPDATE beneficiary_requests
+             SET notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || ?::jsonb
+             WHERE id = ? AND NOT (COALESCE(notified_statuses_json, '[]'::jsonb) @> ?::jsonb)`,
+            [JSON.stringify([r.status]), r.id, JSON.stringify([r.status])]
+          );
+          if (claimRes.affectedRows === 0) continue;
+
+          // Use the trigger-created notification text for the push content
+          const [notifRows] = await db.execute(
+            `SELECT title, description FROM notifications WHERE user_id = ? AND type = 'service' ORDER BY created_at DESC LIMIT 1`,
+            [r.user_id]
+          );
+          const [tokenRows] = await db.execute('SELECT token FROM user_push_tokens WHERE user_id = ?', [r.user_id]);
+          if (tokenRows.length > 0) {
+            const name = r.request_name || 'Unnamed';
+            const title = notifRows[0]?.title || 'Request Rejected';
+            const body = notifRows[0]?.description || `Your request "${name}" has been rejected.`;
+            sendExpoPush(tokenRows[0].token, title, body).catch(() => {});
+          }
+          continue;
+        }
+
         if (!notableStatuses.includes(s)) continue;
 
         // Skip if this exact status was already notified before (even if status bounced away and back)
