@@ -1207,6 +1207,22 @@ exports.receiveBeneficiaryStop = async (req, res) => {
     [stop.drive_id]
   );
 
+  // Flip the oldest in_transit donation_deliveries row to received — this is what
+  // advances the web's goal bar (mirrors the web backend's /received endpoint logic).
+  try {
+    await db.execute(
+      `UPDATE donation_deliveries SET status = 'received', updated_at = NOW()
+       WHERE id = (
+         SELECT id FROM donation_deliveries
+         WHERE donation_drive_id = ? AND status = 'in_transit'
+         ORDER BY created_at ASC LIMIT 1
+       )`,
+      [stop.drive_id]
+    );
+  } catch (e) {
+    console.error('[receiveBeneficiaryStop] donation_deliveries flip failed:', e.message);
+  }
+
   // Get the staff-dispatched quantities directly from truck_stops (authoritative)
   const [driveItems] = await db.execute(
     "SELECT food_name, qty, unit FROM truck_stops WHERE reference_id = ? AND source = 'donation_drive' AND stop_type = 'DELIVER'",
