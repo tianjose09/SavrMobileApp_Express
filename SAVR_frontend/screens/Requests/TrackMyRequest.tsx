@@ -287,7 +287,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
     const reqStatus = getEffectiveStatus(req);
     const batches: any[] = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
     const activeBatch =
-      batches.find((b: any) => b.status === 'pending' && isDeliveryTimeReached(b)) ||
+      batches.find((b: any) => b.status === 'pending' && deliveryStarted(b)) ||
       batches.find((b: any) => b.status === 'pending') ||
       batches[0] || null;
 
