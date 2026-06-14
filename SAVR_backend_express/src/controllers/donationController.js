@@ -1213,6 +1213,30 @@ exports.receiveBeneficiaryStop = async (req, res) => {
     [stop.drive_id]
   );
 
+  // Upsert a donation_deliveries record so the web's goal bar reflects the confirmed receipt.
+  // If staff already created one for this drive, update its status to 'delivered'.
+  // If not, create one using the truck_stop quantities.
+  try {
+    const [existingDel] = await db.execute(
+      'SELECT id FROM donation_deliveries WHERE donation_drive_id = ? LIMIT 1',
+      [stop.drive_id]
+    );
+    const deliveryItems = driveItems.map(i => ({ food_name: i.food_name, qty: i.qty, unit: i.unit, type: 'food' }));
+    if (existingDel.length > 0) {
+      await db.execute(
+        "UPDATE donation_deliveries SET status = 'delivered', updated_at = NOW() WHERE donation_drive_id = ?",
+        [stop.drive_id]
+      );
+    } else {
+      await db.execute(
+        "INSERT INTO donation_deliveries (donation_drive_id, delivery_items, status, created_at, updated_at) VALUES (?, ?, 'delivered', NOW(), NOW())",
+        [stop.drive_id, JSON.stringify(deliveryItems)]
+      );
+    }
+  } catch (e) {
+    console.error('[receiveBeneficiaryStop] donation_deliveries upsert failed:', e.message);
+  }
+
   // Merge into accumulated received_items
   let existingReceived = [];
   try { existingReceived = typeof request.received_items === 'string' ? JSON.parse(request.received_items) : (request.received_items || []); } catch {}
