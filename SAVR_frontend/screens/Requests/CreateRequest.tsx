@@ -16,18 +16,14 @@ type RequestedFood = { id: number; name: string; category: string; qty: string; 
 
 const CATEGORY_DISPLAY_MAP: Record<string, string> = {
   'Canned Goods': 'Canned Goods: Non-Perishable',
-  'Dairy': 'Dairy: Perishable',
-  'Dry Goods': 'Dry Goods: Non-Perishable',
-  'Fats & Oils': 'Fats & Oils: Non-Perishable',
-  'Fruits': 'Fruits: Perishable',
-  'Grains & Cereals': 'Grains & Cereals: Non-Perishable',
-  'Beverages': 'Beverages: Non-Perishable',
-  'Liquid Goods': 'Beverages: Non-Perishable',
-  'Meat': 'Meat: Perishable',
-  'Sugars & Sweets': 'Sugars & Sweets: Non-Perishable',
-  'Protein Alternatives': 'Protein Alternatives: Both',
-  'Vegetables': 'Vegetables: Perishable',
   'Prepared Meals': 'Prepared Meals: Perishable',
+  'Beverages': 'Beverages: Non-Perishable',
+};
+
+const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
+  'Beverages': ["Bottled Water", "Canned Juice", "Soda", "Milk", "Coffee"],
+  'Canned Goods': ["Canned Sardines", "Canned Tuna", "Canned Corned Beef", "Canned Meat Loaf"],
+  'Prepared Meals': ["Fried Chicken", "Lugaw", "Adobo Rice Meal", "Pancit", "Spaghetti"]
 };
 
 const getCategoryLabel = (cat: string | null) => {
@@ -78,15 +74,11 @@ export default function CreateRequest({ navigation }: any) {
   const [endDateObj, setEndDateObj] = useState(new Date());
   const isSubmitting = useRef(false);
 
-  // Inventory state
-  const [inventoryItems, setInventoryItems] = useState<FoodItem[]>([]);
-  const [inventoryLoading, setInventoryLoading] = useState(false);
+  // Food request details state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showItemModal, setShowItemModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
+  const [selectedFoodName, setSelectedFoodName] = useState<string>('');
   const [itemQty, setItemQty] = useState('');
   const [itemUnit, setItemUnit] = useState('kg');
-  const [showUnitPicker, setShowUnitPicker] = useState(false);
   const [requestedFoods, setRequestedFoods] = useState<RequestedFood[]>([]);
 
   const [form, setForm] = useState({
@@ -109,7 +101,7 @@ export default function CreateRequest({ navigation }: any) {
     });
     setRequestedFoods([]);
     setSelectedCategory(null);
-    setSelectedItem(null);
+    setSelectedFoodName('');
     setItemQty('');
     setDateObj(new Date());
     setEndDateObj(new Date());
@@ -128,96 +120,10 @@ export default function CreateRequest({ navigation }: any) {
     setEndDateObj(new Date());
     setRequestedFoods([]);
     setSelectedCategory(null);
-    setSelectedItem(null);
+    setSelectedFoodName('');
     setItemQty('');
-
-    if (requestType === 'food') {
-      try {
-        const res = await ApiService.getInventory();
-        if (res.data?.success) {
-          const raw = res.data.items || [];
-          const parsed: FoodItem[] = raw.map((i: any) => {
-            let u = i.unit || 'pcs';
-            const norm = u.trim().toLowerCase();
-            if (norm === 'cans' || norm === 'can') {
-              u = 'pcs';
-            }
-            return {
-              id: i.id,
-              name: i.name,
-              category: i.category || 'Other',
-              qty: i.qty,
-              unit: u,
-            };
-          });
-          setInventoryItems(parsed);
-        }
-      } catch (err) {
-        console.error('Failed to reload inventory on refresh', err);
-      }
-    }
     setRefreshing(false);
   };
-
-  // Fetch inventory — all data comes live from the food_inventory table via ApiService.getInventory()
-  useEffect(() => {
-    if (requestType !== 'food') return;
-    setInventoryLoading(true);
-    ApiService.getInventory()
-      .then(res => {
-        if (res.data?.success) {
-          const raw = res.data.items || [];
-          const parsed: FoodItem[] = raw
-            .filter((i: any) => i.category !== 'Prepared Meals' && i.category !== 'Prep Meal')
-            .map((i: any) => {
-              let u = i.unit || 'pcs';
-              const norm = u.trim().toLowerCase();
-              if (norm === 'cans' || norm === 'can') {
-                u = 'pcs';
-              }
-              return {
-                id: i.id,
-                name: i.name,
-                category: i.category || 'Other',
-                qty: i.qty,
-                unit: u,
-              };
-            });
-          setInventoryItems(parsed);
-        }
-      })
-      .catch(() => { })
-      .finally(() => setInventoryLoading(false));
-  }, [requestType]);
-
-  const BASE_CATEGORIES_WITH_SUFFIX = [
-    'Canned Goods: Non-Perishable',
-    'Dairy: Perishable',
-    'Dry Goods: Non-Perishable',
-    'Fats & Oils: Non-Perishable',
-    'Fruits: Perishable',
-    'Grains & Cereals: Non-Perishable',
-    'Beverages: Non-Perishable',
-    'Meat: Perishable',
-    'Sugars & Sweets: Non-Perishable',
-    'Protein Alternatives: Both',
-    'Vegetables: Perishable'
-  ];
-
-  const getFullCategoryName = (cat: string) => {
-    const clean = cat.replace(/:\s*(Perishable|Non-Perishable|Both)$/i, '').trim().toLowerCase();
-    const matched = BASE_CATEGORIES_WITH_SUFFIX.find(b => b.toLowerCase().startsWith(clean + ':'));
-    return matched || cat;
-  };
-
-  const categories = [...new Set([
-    ...BASE_CATEGORIES_WITH_SUFFIX,
-    ...inventoryItems.map(i => i.category ? getFullCategoryName(i.category) : '').filter(Boolean)
-  ])].sort();
-
-  const itemsInCategory = selectedCategory
-    ? inventoryItems.filter(i => i.category && getFullCategoryName(i.category) === selectedCategory)
-    : [];
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     // Android: dismiss fires with undefined — just close picker, don't update
@@ -263,20 +169,51 @@ export default function CreateRequest({ navigation }: any) {
   };
 
   const addFoodToList = () => {
-    if (!selectedItem) return;
+    if (!selectedCategory) {
+      Alert.alert('Error', 'Please select a food category.');
+      return;
+    }
+    if (!selectedFoodName) {
+      Alert.alert('Error', 'Please select a food name.');
+      return;
+    }
     if (!itemQty || isNaN(Number(itemQty)) || Number(itemQty) <= 0) {
       Alert.alert('Invalid Quantity', 'Please enter a valid quantity.');
       return;
     }
-    const already = requestedFoods.find(f => f.id === selectedItem.id);
-    if (already) {
-      setRequestedFoods(prev => prev.map(f => f.id === selectedItem.id ? { ...f, qty: itemQty, unit: itemUnit } : f));
-    } else {
-      setRequestedFoods(prev => [...prev, { ...selectedItem, qty: itemQty, unit: itemUnit }]);
+    if (!itemUnit.trim()) {
+      Alert.alert('Invalid Unit', 'Please enter a unit.');
+      return;
     }
-    setSelectedItem(null);
+
+    const alreadyIdx = requestedFoods.findIndex(
+      f => f.category === selectedCategory && f.name === selectedFoodName
+    );
+
+    if (alreadyIdx > -1) {
+      setRequestedFoods(prev => {
+        const copy = [...prev];
+        copy[alreadyIdx] = {
+          ...copy[alreadyIdx],
+          qty: itemQty,
+          unit: itemUnit.trim()
+        };
+        return copy;
+      });
+    } else {
+      setRequestedFoods(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          name: selectedFoodName,
+          category: selectedCategory,
+          qty: itemQty,
+          unit: itemUnit.trim()
+        }
+      ]);
+    }
+    setSelectedFoodName('');
     setItemQty('');
-    setShowItemModal(false);
   };
 
   const removeFood = (id: number) => setRequestedFoods(prev => prev.filter(f => f.id !== id));
@@ -661,133 +598,80 @@ export default function CreateRequest({ navigation }: any) {
               </View>
 
               {/* Category selector */}
-              {inventoryLoading ? (
-                <View style={styles.loadingWrap}>
-                  <ActivityIndicator color="#00592d" size="small" />
-                  <Text style={styles.loadingText}>Loading...</Text>
-                </View>
-              ) : categories.length === 0 ? (
-                <View style={styles.emptyWrap}>
-                  <MaterialCommunityIcons name="package-variant" size={32} color="#ccc" />
-                  <Text style={styles.fdEmptyHint}>No inventory available.</Text>
-                </View>
-              ) : (
-                <CustomDropdown
-                  selectedValue={selectedCategory || ''}
-                  onValueChange={(val) => {
-                    setSelectedCategory(val || null);
-                    setSelectedItem(null);
-                    setItemQty('');
-                  }}
-                  placeholder="Select Food Categories"
-                  items={categories.map(cat => ({ label: getCategoryLabel(cat), value: cat }))}
-                  style={styles.fdCatDropdown}
-                />
-              )}
+              <CustomDropdown
+                selectedValue={selectedCategory || ''}
+                onValueChange={(val) => {
+                  setSelectedCategory(val || null);
+                  setSelectedFoodName('');
+                  setItemQty('');
+                  if (val === 'Canned Goods') {
+                    setItemUnit('pcs');
+                  } else if (val === 'Prepared Meals') {
+                    setItemUnit('meal');
+                  } else if (val === 'Beverages') {
+                    setItemUnit('pcs');
+                  } else {
+                    setItemUnit('');
+                  }
+                }}
+                placeholder="Food Category"
+                items={[
+                  { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
+                  { label: 'Prepared Meals: Perishable', value: 'Prepared Meals' },
+                  { label: 'Beverages: Non-Perishable', value: 'Beverages' }
+                ]}
+                style={styles.fdCatDropdown}
+                disableSort={true}
+                placeholderTextColor="#A3A3A3"
+              />
 
-              {/* Items list */}
-              {selectedCategory && (
-                <View style={styles.fdItemsWrap}>
-                  <View style={styles.fdItemsHeader}>
-                    <Text style={styles.fdItemsTitle}>{getCategoryLabel(selectedCategory)}</Text>
-                    <Text style={styles.fdItemsCount}>{itemsInCategory.length} items</Text>
-                  </View>
-                  {itemsInCategory.length === 0 ? (
-                    <Text style={styles.fdEmptyHint}>No items in this category.</Text>
-                  ) : (
-                    itemsInCategory.map((item, idx) => {
-                      const isSel = selectedItem?.id === item.id;
-                      return (
-                        <TouchableOpacity
-                          key={`${item.id}-${idx}`}
-                          style={[styles.fdItemRow, isSel && styles.fdItemRowActive, idx < itemsInCategory.length - 1 && styles.fdItemRowBorder]}
-                          onPress={() => {
-                            setSelectedItem(isSel ? null : item);
-                            setItemQty('');
-                            const normUnit = (item.unit || '').trim().toLowerCase();
-                            let targetUnit = item.unit || 'kg';
-                            if (item.category === 'Canned Goods' || normUnit === 'cans' || normUnit === 'can') {
-                              targetUnit = 'pcs';
-                            } else {
-                              const found = UNIT_OPTIONS.find(o => o.toLowerCase() === normUnit);
-                              if (found) targetUnit = found;
-                            }
-                            setItemUnit(targetUnit);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={[styles.fdItemIcon, isSel && styles.fdItemIconActive]}>
-                            <CatIcon cat={item.category} size={18} active={false} />
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.fdItemName, isSel && styles.fdItemNameActive]} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.fdItemCat}>{getCategoryLabel(item.category)}</Text>
-                          </View>
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={styles.fdItemStockLabel}>In Stock</Text>
-                          </View>
-                          {isSel && <Ionicons name="checkmark-circle" size={20} color="#00592d" style={{ marginLeft: 8 }} />}
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
+              {/* Row for Food Name, Qty, Unit, Add + */}
+              <View style={styles.fdInputRow}>
+                <View style={{ flex: 2.5 }}>
+                  <CustomDropdown
+                    selectedValue={selectedFoodName}
+                    onValueChange={(val) => setSelectedFoodName(val)}
+                    placeholder="Food Name"
+                    items={
+                      selectedCategory
+                        ? (PRESET_FOODS_BY_CATEGORY[selectedCategory] || []).map(f => ({ label: f, value: f }))
+                        : []
+                    }
+                    style={styles.fdFoodNameDropdown}
+                    disableSort={true}
+                    placeholderTextColor="#A3A3A3"
+                  />
                 </View>
-              )}
 
-              {/* Qty + Add row */}
-              {selectedItem && (
-                <View style={styles.fdAddRow}>
-                  <View style={styles.fdAddBadge}>
-                    <CatIcon cat={selectedItem.category} size={13} active={false} />
-                    <Text style={[styles.fdAddName, { marginLeft: 5 }]} numberOfLines={1}>{selectedItem.name}</Text>
-                  </View>
+                <View style={{ flex: 1.0 }}>
                   <TextInput
-                    style={styles.fdQtyInput}
+                    style={styles.fdQtyInputNew}
                     placeholder="Qty"
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor="#A3A3A3"
                     keyboardType="numeric"
                     value={itemQty}
                     onChangeText={setItemQty}
                     textAlign="center"
                   />
-                  {/* Unit selector */}
-                  <TouchableOpacity style={styles.fdUnitBtn} onPress={() => setShowUnitPicker(true)} activeOpacity={0.8}>
-                    <Text style={styles.fdUnitBtnText}>{itemUnit}</Text>
-                    <Ionicons name="chevron-down" size={11} color="#00592d" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.fdAddBtn} onPress={addFoodToList} activeOpacity={0.8}>
-                    <Ionicons name="add" size={22} color="#fff" />
-                  </TouchableOpacity>
                 </View>
-              )}
 
-              {/* Unit picker modal */}
-              <Modal visible={showUnitPicker} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalSheet}>
-                    <View style={styles.modalHeader}>
-                      <TouchableOpacity onPress={() => setShowUnitPicker(false)}>
-                        <Text style={styles.modalCancel}>Cancel</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.modalTitle}>Select Unit</Text>
-                      <View style={{ width: 60 }} />
-                    </View>
-                    <ScrollView style={{ maxHeight: 320 }}>
-                      {UNIT_OPTIONS.map(u => (
-                        <TouchableOpacity
-                          key={u}
-                          style={[styles.unitPickerRow, itemUnit === u && styles.unitPickerRowActive]}
-                          onPress={() => { setItemUnit(u); setShowUnitPicker(false); }}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={[styles.unitPickerText, itemUnit === u && styles.unitPickerTextActive]}>{u}</Text>
-                          {itemUnit === u && <Ionicons name="checkmark" size={18} color="#00592d" />}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
+                <View style={{ flex: 1.2 }}>
+                  <TextInput
+                    style={styles.fdUnitInputNew}
+                    placeholder="Unit"
+                    placeholderTextColor="#A3A3A3"
+                    value={itemUnit}
+                    onChangeText={setItemUnit}
+                    textAlign="center"
+                  />
                 </View>
-              </Modal>
+
+                <View style={{ flex: 1.0 }}>
+                  <TouchableOpacity style={styles.fdAddBtnNew} onPress={addFoodToList} activeOpacity={0.8}>
+                    <Ionicons name="add" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
 
               {/* Table header */}
               <View style={styles.fdTableHeader}>
@@ -887,48 +771,67 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: 'center', paddingVertical: 14 },
   emptyIcon: { fontSize: 26, marginBottom: 4 },
 
-  fdCatDropdown: { height: 42, borderWidth: 1, borderColor: '#C8DFD0', borderRadius: 8, backgroundColor: '#F5F9F6', paddingHorizontal: 14, marginBottom: 16, color: '#00592d' },
-
-  fdCatCard: { alignItems: 'center', marginRight: 10, backgroundColor: '#F5F9F6', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1.5, borderColor: '#C8DFD0', minWidth: 74, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 1 },
-  fdCatCardActive: { backgroundColor: '#00592d', borderColor: '#00592d', shadowColor: '#00592d', shadowOpacity: 0.25, elevation: 5 },
-  fdCatIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#EEF7F1', justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  fdCatIconWrapActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  fdCatName: { color: '#4A7A5A', fontSize: 10, fontWeight: '700', textAlign: 'center' },
-  fdCatNameActive: { color: '#FFF' },
-  fdCatBadge: { marginTop: 5, backgroundColor: '#E4F0E8', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 1 },
-  fdCatBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  fdCatBadgeText: { color: '#4A7A5A', fontSize: 9, fontWeight: '800' },
-  fdCatBadgeTextActive: { color: '#FFF' },
-
-  fdItemsWrap: { borderRadius: 12, borderWidth: 1, borderColor: '#E8EEE9', overflow: 'hidden', marginBottom: 14 },
-  fdItemsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F5F9F6', paddingHorizontal: 14, paddingVertical: 10 },
-  fdItemsTitle: { fontSize: 13, fontWeight: '800', color: '#00592d' },
-  fdItemsCount: { fontSize: 11, color: '#888' },
-  fdItemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: 14, paddingVertical: 12 },
-  fdItemRowActive: { backgroundColor: '#F0FAF4' },
-  fdItemRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F5F1' },
-  fdItemIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#EEF7F1', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  fdItemIconActive: { backgroundColor: '#D4EDDA' },
-  fdItemName: { color: '#1a1a1a', fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  fdItemNameActive: { color: '#00592d' },
-  fdItemCat: { color: '#999', fontSize: 10 },
-  fdItemStock: { color: '#4A7A5A', fontSize: 12, fontWeight: '800' },
-  fdItemStockActive: { color: '#00592d' },
-  fdItemStockLabel: { color: '#aaa', fontSize: 9, marginTop: 1 },
-
-  fdAddRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5FBF7', borderRadius: 12, padding: 10, marginBottom: 16, gap: 8, borderWidth: 1, borderColor: '#C8DFD0' },
-  fdAddBadge: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#E4F0E8', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 },
-  fdAddName: { color: '#00592d', fontSize: 11, fontWeight: '700', flex: 1 },
-  fdQtyInput: { width: 50, height: 36, borderWidth: 1, borderColor: '#C8DFD0', borderRadius: 6, color: '#1a1a1a', fontSize: 13, backgroundColor: '#FFF' },
-  fdUnitBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF7F1', borderRadius: 6, borderWidth: 1, borderColor: '#C8DFD0', paddingHorizontal: 8, paddingVertical: 6, gap: 3, minWidth: 44 },
-  fdUnitBtnText: { color: '#00592d', fontSize: 12, fontWeight: '800' },
-  fdAddBtn: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#00592d', width: 36, height: 36, borderRadius: 8 },
-  fdAddBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
-
-  unitPickerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  unitPickerRowActive: { backgroundColor: '#F0FAF4' },
-  unitPickerText: { fontSize: 15, color: '#333', fontWeight: '500' },
-  unitPickerTextActive: { color: '#00592d', fontWeight: '800' },
+  fdCatDropdown: {
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#C8DFD0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    color: '#00592d',
+  },
+  fdInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+    gap: 6,
+  },
+  fdFoodNameDropdown: {
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#C8DFD0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    color: '#00592d',
+    width: '100%',
+  },
+  fdQtyInputNew: {
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#C8DFD0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    color: '#1a1a1a',
+    fontSize: 12,
+    textAlign: 'center',
+    width: '100%',
+  },
+  fdUnitInputNew: {
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#C8DFD0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    color: '#1a1a1a',
+    fontSize: 12,
+    textAlign: 'center',
+    width: '100%',
+  },
+  fdAddBtnNew: {
+    backgroundColor: '#00592d',
+    borderRadius: 8,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  fdAddBtnTextNew: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
 
   fdTableHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F9F6', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 2 },
   fdTableCol: { fontSize: 10, fontWeight: '800', color: '#4A7A5A', textTransform: 'uppercase', letterSpacing: 0.4 },
