@@ -471,7 +471,6 @@ export default function DonorDashboard({ navigation }: any) {
                   transform: [{ translateY: drivesTranslateAnim }],
                   marginTop: 32,
                   paddingBottom: 10,
-                  marginLeft: 18,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
