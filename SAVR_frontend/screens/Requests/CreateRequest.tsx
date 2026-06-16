@@ -23,7 +23,23 @@ const CATEGORY_DISPLAY_MAP: Record<string, string> = {
 const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
   'Beverages': ["Bottled Water", "Canned Juice", "Soda", "Milk", "Coffee"],
   'Canned Goods': ["Canned Sardines", "Canned Tuna", "Canned Corned Beef", "Canned Meat Loaf"],
-  'Prepared Meals': ["Fried Chicken", "Lugaw", "Adobo Rice Meal", "Pancit", "Spaghetti"]
+  'Prepared Meals': [
+    "Arroz Caldo",
+    "Champorado",
+    "Chicken Adobo",
+    "Chicken Afritada",
+    "Egg Sandwich Filling",
+    "Fried Chicken",
+    "Giniling",
+    "Lugaw",
+    "Munggo Guisado",
+    "Sandwich",
+    "Sardines with Vegetables",
+    "Sopas",
+    "Sotanghon Soup",
+    "Tuna Veggie Mix",
+    "Veggie Stir-Fry"
+  ]
 };
 
 const getCategoryLabel = (cat: string | null) => {
@@ -80,6 +96,11 @@ export default function CreateRequest({ navigation }: any) {
   const [itemQty, setItemQty] = useState('');
   const [itemUnit, setItemUnit] = useState('kg');
   const [requestedFoods, setRequestedFoods] = useState<RequestedFood[]>([]);
+  const [dynamicFoods, setDynamicFoods] = useState<Record<string, string[]>>({
+    'Beverages': PRESET_FOODS_BY_CATEGORY['Beverages'],
+    'Canned Goods': PRESET_FOODS_BY_CATEGORY['Canned Goods'],
+    'Prepared Meals': PRESET_FOODS_BY_CATEGORY['Prepared Meals']
+  });
 
   const [form, setForm] = useState({
     title: '', financial_amount: '', population: '',
@@ -124,6 +145,66 @@ export default function CreateRequest({ navigation }: any) {
     setItemQty('');
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    if (requestType !== 'food') return;
+
+    const fetchBackendData = async () => {
+      let bevList: string[] = [];
+      let cannedList: string[] = [];
+      let prepList: string[] = [];
+
+      try {
+        const rawRes = await ApiService.getInventory();
+        if (rawRes.data?.success) {
+          const items = rawRes.data.items || [];
+          items.forEach((item: any) => {
+            const name = item.name || item.food_name;
+            const cat = (item.category || '').toLowerCase().trim();
+            if (!name) return;
+
+            if (cat.startsWith('beverage') || cat.startsWith('liquid')) {
+              bevList.push(name);
+            } else if (cat.startsWith('canned')) {
+              cannedList.push(name);
+            } else if (cat === 'prepared meals' || cat === 'prep meal') {
+              prepList.push(name);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch raw inventory:', err);
+      }
+
+      try {
+        const prepRes = await ApiService.getPreparedMeals();
+        if (prepRes.data?.success) {
+          const items = prepRes.data.items || [];
+          items.forEach((item: any) => {
+            const name = item.name || item.food_name;
+            if (name) {
+              prepList.push(name);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch prepared meals:', err);
+      }
+
+      // De-duplicate lists
+      bevList = [...new Set(bevList)].sort();
+      cannedList = [...new Set(cannedList)].sort();
+      prepList = [...new Set(prepList)].sort();
+
+      setDynamicFoods({
+        'Beverages': bevList.length > 0 ? bevList : PRESET_FOODS_BY_CATEGORY['Beverages'],
+        'Canned Goods': cannedList.length > 0 ? cannedList : PRESET_FOODS_BY_CATEGORY['Canned Goods'],
+        'Prepared Meals': prepList.length > 0 ? prepList : PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
+      });
+    };
+
+    fetchBackendData();
+  }, [requestType, refreshing]);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     // Android: dismiss fires with undefined — just close picker, don't update
@@ -634,7 +715,7 @@ export default function CreateRequest({ navigation }: any) {
                     placeholder="Food Name"
                     items={
                       selectedCategory
-                        ? (PRESET_FOODS_BY_CATEGORY[selectedCategory] || []).map(f => ({ label: f, value: f }))
+                        ? (dynamicFoods[selectedCategory] || []).map(f => ({ label: f, value: f }))
                         : []
                     }
                     style={styles.fdFoodNameDropdown}
