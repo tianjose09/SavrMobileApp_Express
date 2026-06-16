@@ -887,6 +887,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    marginBottom: 35,
   },
 
   nextBadgeTitle: {
