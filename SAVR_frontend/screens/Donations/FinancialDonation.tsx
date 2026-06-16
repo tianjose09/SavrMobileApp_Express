@@ -222,7 +222,7 @@ export default function FinancialDonation({ navigation }: any) {
           <View style={styles.titleRow}>
             <Image
               source={require('../../assets/images/cards/financialdonationicongreen.png')}
-              style={{ width: 55, height: 55, marginRight: 10, tintColor: '#000000' }}
+              style={{ width: 44, height: 44, marginRight: 10, tintColor: '#000000' }}
               resizeMode="contain"
             />
             <Text style={styles.pageTitle}>Financial Donation</Text>
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 22, paddingBottom: 60, paddingTop: 15 },
 
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, marginTop: 20 },
-  pageTitle: { fontSize: 27, fontWeight: '800', color: '#000000', letterSpacing: -0.5 },
+  pageTitle: { fontSize: 32, fontWeight: '800', color: '#000000', letterSpacing: -0.5 },
 
   greenCard: {
     backgroundColor: '#00592d',
