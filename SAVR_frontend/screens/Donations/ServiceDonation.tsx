@@ -891,13 +891,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   heroMainIconImage: {
-    width: 60,
-    height: 60,
+    width: 44,
+    height: 44,
     marginRight: 10,
     tintColor: '#000000',
   },
   mainTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
     color: '#000000',
     letterSpacing: -0.5

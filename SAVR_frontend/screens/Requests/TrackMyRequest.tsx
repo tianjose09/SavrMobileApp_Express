@@ -525,16 +525,10 @@ export default function TrackMyRequest({ route, navigation }: any) {
                     <Text style={styles.batchConfirmedText}>Received</Text>
                   </View>
                 ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <TouchableOpacity style={styles.receivedBtn} activeOpacity={0.8} onPress={() => handleReceivedRequest(req, activeBatch)}>
-                      <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.receivedBtnText}>I Received This</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.noteBtn} activeOpacity={0.8} onPress={() => setNoteModal({ visible: true, requestId: req.id, noteText: '' })}>
-                      <Ionicons name="chatbubble-outline" size={14} color="#666" style={{ marginRight: 4 }} />
-                      <Text style={styles.noteBtnText}>Note</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity style={styles.receivedBtn} activeOpacity={0.8} onPress={() => handleReceivedRequest(req, activeBatch)}>
+                    <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.receivedBtnText}>I Received This</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             </View>
