@@ -171,3 +171,22 @@ exports.optimizeMeals = async (req, res) => {
 
   return res.json({ success: true, meals: results });
 };
+
+exports.getMealIngredients = async (req, res) => {
+  const [meals] = await db.execute('SELECT id, name FROM meals ORDER BY name');
+  const [ingredients] = await db.execute(
+    'SELECT meal_id, ingredient_name, qty_per_serving, unit, is_optional FROM meal_ingredients ORDER BY meal_id, ingredient_name'
+  );
+  const byMeal = {};
+  for (const ing of ingredients) {
+    if (!byMeal[ing.meal_id]) byMeal[ing.meal_id] = [];
+    byMeal[ing.meal_id].push({
+      ingredient: ing.ingredient_name,
+      qty_per_serving: ing.qty_per_serving,
+      unit: ing.unit,
+      optional: ing.is_optional,
+    });
+  }
+  const result = meals.map(m => ({ meal: m.name, ingredients: byMeal[m.id] || [] }));
+  return res.json({ success: true, data: result });
+};

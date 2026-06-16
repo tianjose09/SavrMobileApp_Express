@@ -101,6 +101,7 @@ router.post('/inventory/store',     inventoryController.store);
 router.post('/inventory/deduct',    inventoryController.deduct);
 
 // Meal Optimization
-router.post('/meals/optimize', mealController.optimizeMeals);
+router.post('/meals/optimize',      mealController.optimizeMeals);
+router.get('/meals/ingredients',    mealController.getMealIngredients);
 
 module.exports = router;
