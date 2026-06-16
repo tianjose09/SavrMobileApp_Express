@@ -119,6 +119,12 @@ exports.optimizeMeals = async (req, res) => {
     let minDays = 999;
 
     for (const m of matchedIngredients) {
+      // Water is kept in recipes for completeness but never limits servings
+      const ingName = (m.ingredient.ingredient_name || '').toLowerCase().trim();
+      if (ingName === 'water') {
+        if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
+        continue;
+      }
       if (m.ingredient.qty_per_serving > 0) {
         const availableQty = toBaseUnit(m.selData.inputQty, m.selData.unit);
         servingCaps.push(Math.floor(availableQty / m.ingredient.qty_per_serving));
