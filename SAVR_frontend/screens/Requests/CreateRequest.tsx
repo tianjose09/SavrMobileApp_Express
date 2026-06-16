@@ -656,13 +656,14 @@ export default function CreateRequest({ navigation }: any) {
                 </View>
 
                 <View style={{ flex: 1.2 }}>
-                  <TextInput
-                    style={styles.fdUnitInputNew}
+                  <CustomDropdown
+                    selectedValue={itemUnit}
+                    onValueChange={(val) => setItemUnit(val)}
                     placeholder="Unit"
+                    items={UNIT_OPTIONS.map(u => ({ label: u, value: u }))}
+                    style={styles.fdUnitDropdownNew}
+                    disableSort={true}
                     placeholderTextColor="#A3A3A3"
-                    value={itemUnit}
-                    onChangeText={setItemUnit}
-                    textAlign="center"
                   />
                 </View>
 
@@ -808,15 +809,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
   },
-  fdUnitInputNew: {
+  fdUnitDropdownNew: {
     height: 42,
     borderWidth: 1,
     borderColor: '#C8DFD0',
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
-    color: '#1a1a1a',
-    fontSize: 12,
-    textAlign: 'center',
+    paddingHorizontal: 8,
+    color: '#00592d',
     width: '100%',
   },
   fdAddBtnNew: {

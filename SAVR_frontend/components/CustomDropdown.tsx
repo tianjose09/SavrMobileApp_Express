@@ -56,7 +56,7 @@ export default function CustomDropdown({
             styles.text,
             !selectedValue && styles.placeholderText,
             { flex: 1, paddingRight: 5 },
-            style?.color ? { color: selectedValue ? style.color : getPlaceholderColor() } : null,
+            { color: selectedValue ? (style?.color || '#FFF') : getPlaceholderColor() },
             style?.fontSize ? { fontSize: style.fontSize } : null,
             style?.fontWeight ? { fontWeight: style.fontWeight } : null,
           ]}
@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
   },
   itemText: {
     fontSize: 14,
