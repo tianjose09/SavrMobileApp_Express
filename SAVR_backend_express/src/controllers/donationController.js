@@ -1471,6 +1471,38 @@ exports.recordDisbursement = async (req, res) => {
   return res.json({ success: true, message: 'Disbursement recorded.', total_sent: totalSent, disbursements: existing });
 };
 
+// Donors: get active food/financial drives (Approved beneficiary requests)
+exports.getActiveDrives = async (req, res) => {
+  if (req.user.role !== 'donor' && req.user.role !== 'organization') {
+    return res.status(403).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  try {
+    const [requests] = await db.execute(
+      `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
+              start_date, end_date, urgency, food_items, status
+       FROM beneficiary_requests
+       WHERE status = 'Approved'
+       ORDER BY created_at DESC`
+    );
+
+    const mapped = requests.map(r => {
+      let foodItems = [];
+      try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+
+      return {
+        ...r,
+        food_items: foodItems,
+      };
+    });
+
+    return res.json({ success: true, active_drives: mapped });
+  } catch (error) {
+    console.error('[getActiveDrives] Error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
 // Staff: list all beneficiary requests with full details including banking fields
 exports.getAllBeneficiaryRequests = async (req, res) => {
   if (req.user.role === 'beneficiary' || req.user.role === 'donor') {
