@@ -151,6 +151,12 @@ export const ApiService = {
   // Notifications
   getNotifications: () => api.get('api/notifications'),
   getCriticalNotifications: () => api.get('api/notifications?critical=true'),
+  markAllNotificationsRead: () => api.post('api/notifications/mark-all-read'),
+  markNotificationRead: (id: string) => api.post(`api/notifications/${id}/mark-read`),
   deleteNotification: (id: number) => api.delete(`api/notifications/${id}`),
   deleteAllNotifications: () => api.delete('api/notifications'),
+
+  // Push token
+  registerPushToken: (token: string) => api.post('api/push-token', { token }),
+  clearPushToken: () => api.post('api/push-token/clear'),
 };

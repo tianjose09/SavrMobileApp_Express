@@ -17,7 +17,10 @@ export default function NotificationBell({ navigation, color = '#4A4A4A', size =
 
   const fetchCritical = useCallback(() => {
     ApiService.getCriticalNotifications()
-      .then(res => setCount(res?.data?.notifications?.length || 0))
+      .then(res => {
+        const all = res?.data?.notifications || [];
+        setCount(all.filter((n: any) => !n.read_at).length);
+      })
       .catch(() => {});
   }, []);
 
