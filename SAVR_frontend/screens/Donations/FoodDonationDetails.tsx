@@ -34,11 +34,20 @@ interface FoodItem {
 }
 
 export default function FoodDonationDetails({ navigation, route }: any) {
-  const driveItems: any[] = route?.params?.driveItems || [];
+  const [items, setItems] = useState<FoodItem[]>([
+    { id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null },
+  ]);
+  const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
+  const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
+  const [iosTempDate, setIosTempDate] = useState(new Date());
+  const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const buildInitialItems = (): FoodItem[] => {
+  // Pre-fill form whenever the screen receives driveItems from Support This Drive
+  useEffect(() => {
+    const driveItems: any[] = route?.params?.driveItems || [];
     if (driveItems.length > 0) {
-      return driveItems.map((di: any, idx: number) => ({
+      setItems(driveItems.map((di: any, idx: number) => ({
         id: String(idx + 1),
         name: di.food_name || '',
         quantity: di.qty != null ? String(di.qty) : '',
@@ -47,21 +56,27 @@ export default function FoodDonationDetails({ navigation, route }: any) {
         expiryDate: null,
         specialNotes: '',
         photoUri: null,
-      }));
+      })));
     }
-    return [{ id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null }];
-  };
-
-  const [items, setItems] = useState<FoodItem[]>(buildInitialItems);
-  const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
-  const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
-  const [iosTempDate, setIosTempDate] = useState(new Date());
-  const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  }, [route?.params?.driveItems]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setItems(buildInitialItems());
+    const driveItems: any[] = route?.params?.driveItems || [];
+    if (driveItems.length > 0) {
+      setItems(driveItems.map((di: any, idx: number) => ({
+        id: String(idx + 1),
+        name: di.food_name || '',
+        quantity: di.qty != null ? String(di.qty) : '',
+        unit: di.unit || 'kg',
+        category: di.category || '',
+        expiryDate: null,
+        specialNotes: '',
+        photoUri: null,
+      })));
+    } else {
+      setItems([{ id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null }]);
+    }
     setTimeout(() => setRefreshing(false), 500);
   };
 
