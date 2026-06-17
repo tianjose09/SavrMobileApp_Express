@@ -58,12 +58,14 @@ db.execute(`
 
 // Trigger: when staff portal inserts directly into service_donations_inventory,
 // mark the linked record as accepted so both tables stay in sync.
+// Also stamps notified_status so autoNotifyDonor (notificationController.js)
+// skips creating a duplicate notification — the admin portal already sent one.
 db.execute(`
   CREATE OR REPLACE FUNCTION sync_inventory_to_record_accepted()
   RETURNS TRIGGER AS $$
   BEGIN
     UPDATE service_donation_records
-      SET status = 'accepted', updated_at = NOW()
+      SET status = 'accepted', notified_status = 'accepted', updated_at = NOW()
       WHERE id = NEW.service_donation_record_id
         AND LOWER(status) NOT IN ('accepted','completed','cancelled');
     RETURN NEW;
@@ -82,12 +84,13 @@ db.execute(`
 
 // Trigger: when a record is deleted from inventory (staff declines),
 // revert the linked service_donation_record status to 'declined'.
+// Also stamps notified_status so autoNotifyDonor skips creating a duplicate.
 db.execute(`
   CREATE OR REPLACE FUNCTION sync_inventory_delete_to_record()
   RETURNS TRIGGER AS $$
   BEGIN
     UPDATE service_donation_records
-      SET status = 'declined', updated_at = NOW()
+      SET status = 'declined', notified_status = 'declined', updated_at = NOW()
       WHERE id = OLD.service_donation_record_id
         AND LOWER(status) NOT IN ('declined','rejected','cancelled','completed');
     RETURN OLD;
