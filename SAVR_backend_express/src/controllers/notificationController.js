@@ -416,6 +416,18 @@ async function autoNotifyDonor(userId) {
         );
         if (result.affectedRows === 0) continue;
 
+        // Guard against an external source that may have already sent a notification
+        // for this status change in the last 10 minutes.
+        const [recentFoodRows] = await db.execute(
+          `SELECT id FROM notifications
+           WHERE user_id = ? AND type = 'food'
+             AND (LOWER(title) LIKE ? OR LOWER(description) LIKE ?)
+             AND created_at > NOW() - INTERVAL '10 minutes'
+           LIMIT 1`,
+          [r.user_id, `%${s}%`, `%${s}%`]
+        );
+        if (recentFoodRows.length > 0) continue;
+
         await createNotification(r.user_id, 'food', foodTitles[s] || `Food Donation ${r.status}`, foodMessages[s] || `Your food donation status has been updated to "${r.status}".`, true);
 
         if (s === 'approved') {
@@ -462,6 +474,18 @@ async function autoNotifyDonor(userId) {
           [r.status, r.id, r.status]
         );
         if (result.affectedRows === 0) continue;
+
+        // Guard against an external source (admin portal / legacy DB trigger) that may
+        // have already inserted a notification for this status change in the last 10 minutes.
+        const [recentRows] = await db.execute(
+          `SELECT id FROM notifications
+           WHERE user_id = ? AND type = 'service'
+             AND (LOWER(title) LIKE ? OR LOWER(description) LIKE ?)
+             AND created_at > NOW() - INTERVAL '10 minutes'
+           LIMIT 1`,
+          [r.user_id, `%${s}%`, `%${s}%`]
+        );
+        if (recentRows.length > 0) continue;
 
         const svcName = r.service_tab || 'service';
         const svcMsg = (serviceMessages[s] || `Your service donation "[name]" status has been updated to "${r.status}".`).replace('[name]', svcName);

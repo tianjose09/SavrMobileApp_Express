@@ -108,34 +108,19 @@ db.execute(`
 db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
   .catch(() => {});
 
-// Trigger: notify donor when admin changes food donation status
+// Clean up any old service_donation_records notification triggers that may still
+// live in the database from previous versions of the code. autoNotifyDonor in
+// notificationController.js is now the single source of truth for those alerts.
+db.execute(`DROP TRIGGER IF EXISTS trg_service_donation_status_notify ON service_donation_records`).catch(() => {});
+db.execute(`DROP FUNCTION IF EXISTS notify_donor_service_donation_status() CASCADE`).catch(() => {});
+
+// Notifications for food donation status changes are handled exclusively by
+// autoNotifyDonor (notificationController.js) which uses notified_status for
+// deduplication. This trigger is kept as a no-op to avoid duplicates.
 db.execute(`
   CREATE OR REPLACE FUNCTION notify_donor_food_donation_status()
   RETURNS TRIGGER AS $$
   BEGIN
-    IF NEW.status IS DISTINCT FROM OLD.status THEN
-      IF NEW.status = 'approved' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Approved',
-          'Great news! Your food donation has been approved. We will be in touch regarding the pickup or delivery schedule. Thank you!',
-          TRUE, NOW());
-      ELSIF NEW.status = 'rejected' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Denied',
-          'We regret to inform you that your food donation has been denied. Please contact us for more details.',
-          TRUE, NOW());
-      ELSIF NEW.status = 'received' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Received',
-          'Your food donation has been successfully received and is now being processed into our inventory. Thank you for your generous contribution!',
-          TRUE, NOW());
-      ELSIF NEW.status = 'cancelled' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Cancelled',
-          'Your food donation has been cancelled. Please contact us if you have any questions.',
-          TRUE, NOW());
-      END IF;
-    END IF;
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
@@ -311,29 +296,13 @@ db.execute(`
   `)
 ).catch(() => {});
 
-// Trigger: notify donor when admin changes financial donation status
+// Financial donation notifications are sent directly in donationController.js
+// (paymongoWebhook, paymentSuccess, etc.) with proper guards to prevent
+// duplicates. This trigger is kept as a no-op to avoid double-notifications.
 db.execute(`
   CREATE OR REPLACE FUNCTION notify_donor_financial_donation_status()
   RETURNS TRIGGER AS $$
   BEGIN
-    IF NEW.status IS DISTINCT FROM OLD.status THEN
-      IF LOWER(NEW.status) IN ('approved', 'paid', 'completed') THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'financial', 'Financial Donation Confirmed',
-          'Your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been confirmed and received. Thank you for your generous contribution!',
-          TRUE, NOW());
-      ELSIF LOWER(NEW.status) IN ('rejected', 'denied') THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'financial', 'Financial Donation Denied',
-          'We regret to inform you that your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been denied. Please contact us for more details.',
-          TRUE, NOW());
-      ELSIF LOWER(NEW.status) IN ('cancelled', 'failed') THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'financial', 'Financial Donation Cancelled',
-          'Your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been cancelled. Please contact us if you have any questions.',
-          TRUE, NOW());
-      END IF;
-    END IF;
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
