@@ -33,19 +33,26 @@ interface FoodItem {
   photoUri: string | null;
 }
 
-export default function FoodDonationDetails({ navigation }: any) {
-  const [items, setItems] = useState<FoodItem[]>([
-    {
-      id: '1',
-      name: '',
-      quantity: '',
-      unit: 'kg',
-      category: '',
-      expiryDate: null,
-      specialNotes: '',
-      photoUri: null,
-    },
-  ]);
+export default function FoodDonationDetails({ navigation, route }: any) {
+  const driveItems: any[] = route?.params?.driveItems || [];
+
+  const buildInitialItems = (): FoodItem[] => {
+    if (driveItems.length > 0) {
+      return driveItems.map((di: any, idx: number) => ({
+        id: String(idx + 1),
+        name: di.food_name || '',
+        quantity: di.qty != null ? String(di.qty) : '',
+        unit: di.unit || 'kg',
+        category: di.category || '',
+        expiryDate: null,
+        specialNotes: '',
+        photoUri: null,
+      }));
+    }
+    return [{ id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null }];
+  };
+
+  const [items, setItems] = useState<FoodItem[]>(buildInitialItems);
   const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
   const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
   const [iosTempDate, setIosTempDate] = useState(new Date());
@@ -54,18 +61,7 @@ export default function FoodDonationDetails({ navigation }: any) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    setItems([
-      {
-        id: '1',
-        name: '',
-        quantity: '',
-        unit: 'kg',
-        category: '',
-        expiryDate: null,
-        specialNotes: '',
-        photoUri: null,
-      },
-    ]);
+    setItems(buildInitialItems());
     setTimeout(() => setRefreshing(false), 500);
   };
 

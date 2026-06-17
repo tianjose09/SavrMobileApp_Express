@@ -214,7 +214,7 @@ export default function DonorDashboard({ navigation }: any) {
     } else {
       navigation.navigate('Donate', {
         screen: 'FoodDonationDetails',
-        params: { driveId: drive.id, driveName: drive.request_name }
+        params: { driveId: drive.id, driveName: drive.request_name, driveItems: drive.food_items || [] }
       });
     }
   };

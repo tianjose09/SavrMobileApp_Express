@@ -1488,7 +1488,7 @@ exports.getActiveDrives = async (req, res) => {
     const driveIds = drives.map(d => d.id);
     const placeholders = driveIds.map(() => '?').join(',');
     const [items] = await db.execute(
-      `SELECT donation_drive_id, food_name, goal_qty AS qty, unit
+      `SELECT donation_drive_id, food_name, category, goal_qty AS qty, unit
        FROM donation_drive_items
        WHERE donation_drive_id IN (${placeholders})`,
       driveIds
@@ -1497,7 +1497,12 @@ exports.getActiveDrives = async (req, res) => {
     const itemsByDrive = {};
     for (const item of items) {
       if (!itemsByDrive[item.donation_drive_id]) itemsByDrive[item.donation_drive_id] = [];
-      itemsByDrive[item.donation_drive_id].push({ food_name: item.food_name, qty: item.qty, unit: item.unit });
+      itemsByDrive[item.donation_drive_id].push({
+        food_name: item.food_name,
+        category: item.category || '',
+        qty: item.qty,
+        unit: item.unit,
+      });
     }
 
     const mapped = drives.map(d => {
