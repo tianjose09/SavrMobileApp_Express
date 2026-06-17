@@ -1473,26 +1473,50 @@ exports.recordDisbursement = async (req, res) => {
 
 // Donors: get active food/financial drives (Approved beneficiary requests)
 exports.getActiveDrives = async (req, res) => {
-  if (req.user.role !== 'donor' && req.user.role !== 'organization') {
-    return res.status(403).json({ success: false, message: 'Unauthorized.' });
-  }
-
   try {
-    const [requests] = await db.execute(
-      `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
-              start_date, end_date, urgency, food_items, status
-       FROM beneficiary_requests
-       WHERE status = 'Approved'
-       ORDER BY created_at DESC`
+    const [drives] = await db.execute(
+      `SELECT dd.id, dd.drive_title AS request_name, dd.type, dd.start_date, dd.end_date, dd.goal,
+              br.urgency, br.amount AS request_amount
+       FROM donation_drives dd
+       LEFT JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
+       WHERE dd.status = 'OnGoing'
+       ORDER BY dd.created_at DESC`
     );
 
-    const mapped = requests.map(r => {
-      let foodItems = [];
-      try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+    if (!drives.length) return res.json({ success: true, active_drives: [] });
 
+    const driveIds = drives.map(d => d.id);
+    const placeholders = driveIds.map(() => '?').join(',');
+    const [items] = await db.execute(
+      `SELECT donation_drive_id, food_name, goal_qty AS qty, unit
+       FROM donation_drive_items
+       WHERE donation_drive_id IN (${placeholders})`,
+      driveIds
+    );
+
+    const itemsByDrive = {};
+    for (const item of items) {
+      if (!itemsByDrive[item.donation_drive_id]) itemsByDrive[item.donation_drive_id] = [];
+      itemsByDrive[item.donation_drive_id].push({ food_name: item.food_name, qty: item.qty, unit: item.unit });
+    }
+
+    const mapped = drives.map(d => {
+      const driveType = d.type
+        ? d.type.charAt(0).toUpperCase() + d.type.slice(1).toLowerCase()
+        : 'Food';
+      const urgency = d.urgency
+        ? d.urgency.charAt(0).toUpperCase() + d.urgency.slice(1).toLowerCase()
+        : 'Medium';
+      const isFinancial = driveType === 'Financial';
       return {
-        ...r,
-        food_items: foodItems,
+        id: d.id,
+        request_name: d.request_name || 'Unnamed Drive',
+        type: driveType,
+        urgency,
+        start_date: d.start_date,
+        end_date: d.end_date,
+        food_items: isFinancial ? [] : (itemsByDrive[d.id] || []),
+        amount: isFinancial ? (parseFloat(d.goal) || parseFloat(d.request_amount) || 0) : null,
       };
     });
 
