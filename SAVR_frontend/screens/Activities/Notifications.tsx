@@ -14,13 +14,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
 
 type NotificationItem = {
-  id: string;
+  id: number;
   type: 'financial' | 'food' | 'service' | 'badge' | 'system';
   title: string;
   message: string;
-  is_critical: boolean;
-  read_at: string | null;
-  created_at: string;
+  time: string;
 };
 
 function getTypeConfig(type: NotificationItem['type']) {
@@ -74,20 +72,19 @@ export default function Notifications({ navigation }: any) {
     }
   };
 
-  const handleRead = async (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+  const handleRead = async (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
     try {
-      await ApiService.markNotificationRead(id);
+      await ApiService.deleteNotification(id);
     } catch {
       fetchNotifications(false);
     }
   };
 
   const handleMarkAllRead = async () => {
-    const now = new Date().toISOString();
-    setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? now })));
+    setNotifications([]);
     try {
-      await ApiService.markAllNotificationsRead();
+      await ApiService.deleteAllNotifications();
     } catch {
       fetchNotifications(false);
     }
@@ -119,12 +116,9 @@ export default function Notifications({ navigation }: any) {
 
           <Text style={styles.pageTitle}>Notifications</Text>
           <Text style={styles.pageSubtitle}>
-            {(() => {
-              const unread = notifications.filter(n => !n.read_at).length;
-              return unread > 0
-                ? `You have ${unread} unread notification${unread > 1 ? 's' : ''}`
-                : 'No new notifications.';
-            })()}
+            {notifications.length > 0
+              ? `You have ${notifications.length} unread notification${notifications.length > 1 ? 's' : ''}`
+              : 'No new notifications.'}
           </Text>
         </View>
 
@@ -151,7 +145,6 @@ export default function Notifications({ navigation }: any) {
             >
               {notifications.map((item) => {
                 const cfg = getTypeConfig(item.type);
-                const isRead = !!item.read_at;
 
                 const isMissed = item.title?.toLowerCase().includes('missed');
                 const fallbackMsg = `Dear Donor,\n\nWe sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.\n\nThank you for your understanding and cooperation.`;
@@ -160,24 +153,12 @@ export default function Notifications({ navigation }: any) {
                   displayMsg = displayMsg.replace(/\n\nHow to reschedule:[\s\S]*?(?=\n\nThank you|$)/, '');
                 }
 
-                const timeAgo = item.created_at
-                  ? (() => {
-                      const diff = Date.now() - new Date(item.created_at).getTime();
-                      const mins = Math.floor(diff / 60000);
-                      if (mins < 1) return 'just now';
-                      if (mins < 60) return `${mins}m ago`;
-                      const hrs = Math.floor(mins / 60);
-                      if (hrs < 24) return `${hrs}h ago`;
-                      return `${Math.floor(hrs / 24)}d ago`;
-                    })()
-                  : '';
-
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.card, isRead && { opacity: 0.5 }]}
+                    style={styles.card}
                     activeOpacity={0.75}
-                    onPress={() => !isRead && handleRead(item.id)}
+                    onPress={() => handleRead(item.id)}
                   >
                     <View style={[styles.iconCircle, { backgroundColor: cfg.bg }]}>
                       <Ionicons name={cfg.icon as any} size={22} color={cfg.color} />
@@ -185,13 +166,13 @@ export default function Notifications({ navigation }: any) {
 
                     <View style={styles.cardBody}>
                       <View style={styles.cardTopRow}>
-                        <Text style={[styles.cardTitle, isRead && { fontWeight: '400' }]} numberOfLines={1}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
                           {item.title}
                         </Text>
-                        <Text style={styles.cardTime}>{timeAgo}</Text>
+                        <Text style={styles.cardTime}>{item.time}</Text>
                       </View>
                       <Text style={styles.cardDesc}>{displayMsg}</Text>
-                      {!isRead && <Text style={styles.tapHint}>Tap to dismiss</Text>}
+                      <Text style={styles.tapHint}>Tap to dismiss</Text>
                     </View>
                   </TouchableOpacity>
                 );

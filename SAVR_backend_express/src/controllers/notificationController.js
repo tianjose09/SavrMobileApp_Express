@@ -558,18 +558,17 @@ exports.getNotifications = async (req, res) => {
     }
 
     const sql = criticalOnly
-      ? 'SELECT id, type, title, description, is_critical, read_at, created_at FROM notifications WHERE user_id = ? AND is_critical = TRUE ORDER BY created_at DESC LIMIT 50'
-      : 'SELECT id, type, title, description, is_critical, read_at, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50';
+      ? 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? AND is_critical = TRUE ORDER BY created_at DESC LIMIT 50'
+      : 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50';
 
     const [rows] = await db.execute(sql, [uid]);
     const notifications = rows.map(n => ({
-      id: `db-${n.id}`,
+      id: n.id,
       type: n.type,
       title: n.title,
       message: n.description || '',
       is_critical: !!n.is_critical,
-      read_at: n.read_at || null,
-      created_at: n.created_at ? new Date(n.created_at).toISOString() : null,
+      time: dayjs(n.created_at).fromNow(),
     }));
     return res.json({ success: true, notifications });
   } catch (e) {
