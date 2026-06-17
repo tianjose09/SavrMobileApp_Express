@@ -346,18 +346,25 @@ async function autoNotifyBeneficiary(userId) {
               msg = `Some items for your request "${name}" have been delivered. Please confirm what you received in the app. More deliveries may follow until your request is fully fulfilled.`;
             }
           } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
-            title = 'Delivery Missed';
-            msg = stop.staff_message ||
-`Dear Beneficiary,
-
-We sincerely apologize for not being able to meet the scheduled delivery date. If possible, we kindly ask you to reschedule your preferred date and time.
-
-How to reschedule:
-1. Log in to your account
-2. Click Create Request
-3. Fill up to make another new request
-
-Thank you for your understanding and cooperation.`;
+            // Web backend already created the notification row with the staff's message.
+            // We only need to fire the push — creating another row would duplicate the bell entry.
+            const [existingNotif] = await db.execute(
+              `SELECT title, description FROM notifications
+               WHERE user_id = ? AND type = 'service' AND is_critical = TRUE
+               ORDER BY created_at DESC LIMIT 1`,
+              [stop.user_id]
+            );
+            const pushTitle = existingNotif[0]?.title || 'Delivery Missed';
+            const pushBody  = existingNotif[0]?.description
+              || stop.staff_message
+              || `Your scheduled delivery for "${name}" was missed. Please create a new request to reschedule.`;
+            const [tokenRows] = await db.execute(
+              'SELECT token FROM user_push_tokens WHERE user_id = ?', [stop.user_id]
+            );
+            if (tokenRows.length > 0) {
+              sendExpoPush(tokenRows[0].token, pushTitle, pushBody).catch(() => {});
+            }
+            continue; // skip createNotification — web already wrote the row
           } else {
             continue;
           }
