@@ -11,34 +11,17 @@ dayjs.extend(relativeTime);
 db.execute(`DROP TRIGGER IF EXISTS trg_prevent_inventory_without_approval ON service_donations_inventory`).catch(() => {});
 db.execute(`DROP FUNCTION IF EXISTS prevent_inventory_without_approval()`).catch(() => {});
 
-// Trigger: when service_donation_records.status changes, keep inventory in sync:
-// - accepted  → insert into inventory (if not already there)
-// - declined/rejected → delete from inventory
+// Trigger: when service_donation_records.status is declined/rejected/cancelled,
+// remove the linked inventory row.
+// NOTE: the accept direction is intentionally NOT handled here — the admin portal
+// is the source of truth for service_donations_inventory inserts (it also creates
+// SD### truck rows for Transportation). sync_inventory_to_record_accepted handles
+// the reverse: inventory insert → flip record to accepted.
 db.execute(`
   CREATE OR REPLACE FUNCTION sync_service_donation_inventory()
   RETURNS TRIGGER AS $$
   BEGIN
-    IF LOWER(NEW.status) = 'accepted' AND LOWER(COALESCE(OLD.status,'')) != 'accepted' THEN
-      IF NOT EXISTS (
-        SELECT 1 FROM service_donations_inventory WHERE service_donation_record_id = NEW.id
-      ) THEN
-        INSERT INTO service_donations_inventory (
-          service_donation_record_id, user_id, service_tab, frequency,
-          date, day_of_week, all_day, starts_at, ends_at, address, quantity,
-          vehicle_type, capacity, max_distance, transport_categories,
-          headcount, preferred_work, skill_categories,
-          first_name, last_name, email, notes,
-          status, created_at, updated_at
-        ) VALUES (
-          NEW.id, NEW.user_id, NEW.service_tab, NEW.frequency,
-          NEW.date, NEW.day_of_week, NEW.all_day, NEW.starts_at, NEW.ends_at, NEW.address, NEW.quantity,
-          NEW.vehicle_type, NEW.capacity, NEW.max_distance, NEW.transport_categories,
-          NEW.headcount, NEW.preferred_work, NEW.skill_categories,
-          NEW.first_name, NEW.last_name, NEW.email, NEW.notes,
-          'Active', NOW(), NOW()
-        );
-      END IF;
-    ELSIF LOWER(NEW.status) IN ('declined','rejected','cancelled') THEN
+    IF LOWER(NEW.status) IN ('declined','rejected','cancelled') THEN
       DELETE FROM service_donations_inventory WHERE service_donation_record_id = NEW.id;
     END IF;
     RETURN NEW;
