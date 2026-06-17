@@ -1476,7 +1476,7 @@ exports.getActiveDrives = async (req, res) => {
   try {
     const [drives] = await db.execute(
       `SELECT dd.id, dd.drive_title AS request_name, dd.type, dd.start_date, dd.end_date, dd.goal,
-              br.urgency, br.amount AS request_amount
+              br.urgency, br.amount AS request_amount, br.food_items AS br_food_items
        FROM donation_drives dd
        LEFT JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
        WHERE dd.status = 'OnGoing'
@@ -1487,7 +1487,7 @@ exports.getActiveDrives = async (req, res) => {
 
     const driveIds = drives.map(d => d.id);
     const placeholders = driveIds.map(() => '?').join(',');
-    const [items] = await db.execute(
+    const [driveItemRows] = await db.execute(
       `SELECT donation_drive_id, food_name, category, goal_qty AS qty, unit
        FROM donation_drive_items
        WHERE donation_drive_id IN (${placeholders})`,
@@ -1495,7 +1495,7 @@ exports.getActiveDrives = async (req, res) => {
     );
 
     const itemsByDrive = {};
-    for (const item of items) {
+    for (const item of driveItemRows) {
       if (!itemsByDrive[item.donation_drive_id]) itemsByDrive[item.donation_drive_id] = [];
       itemsByDrive[item.donation_drive_id].push({
         food_name: item.food_name,
@@ -1513,6 +1513,23 @@ exports.getActiveDrives = async (req, res) => {
         ? d.urgency.charAt(0).toUpperCase() + d.urgency.slice(1).toLowerCase()
         : 'Medium';
       const isFinancial = driveType === 'Financial';
+
+      let foodItems = itemsByDrive[d.id] || [];
+      // Fall back to beneficiary_request food_items when donation_drive_items is empty
+      if (!isFinancial && foodItems.length === 0 && d.br_food_items) {
+        try {
+          const raw = typeof d.br_food_items === 'string' ? JSON.parse(d.br_food_items) : d.br_food_items;
+          if (Array.isArray(raw)) {
+            foodItems = raw.map(i => ({
+              food_name: i.food_name || i.name || '',
+              category: i.food_type || i.category || '',
+              qty: i.qty || i.quantity || 0,
+              unit: i.unit || '',
+            })).filter(i => i.food_name);
+          }
+        } catch {}
+      }
+
       return {
         id: d.id,
         request_name: d.request_name || 'Unnamed Drive',
@@ -1520,7 +1537,7 @@ exports.getActiveDrives = async (req, res) => {
         urgency,
         start_date: d.start_date,
         end_date: d.end_date,
-        food_items: isFinancial ? [] : (itemsByDrive[d.id] || []),
+        food_items: isFinancial ? [] : foodItems,
         amount: isFinancial ? (parseFloat(d.goal) || parseFloat(d.request_amount) || 0) : null,
       };
     });
