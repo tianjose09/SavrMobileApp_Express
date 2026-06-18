@@ -1,6 +1,35 @@
 const db = require('../db');
 const dayjs = require('dayjs');
 
+// Seed missing meal descriptions — only updates rows where comment_desc is NULL.
+// Meals that already have a description are never overwritten.
+const MEAL_DESCRIPTIONS = [
+  { id: 31, desc: 'A comforting rice porridge with chicken and spices that provides a warm and filling meal for beneficiaries.' },
+  { id: 39, desc: 'A sweet chocolate rice porridge that is easy to prepare in large batches and enjoyed by all ages.' },
+  { id:  4, desc: 'A Filipino staple that keeps well and pairs with steamed rice for a complete meal.' },
+  { id: 33, desc: 'A hearty tomato-based chicken stew with vegetables that offers balanced nutrition and satisfying portions.' },
+  { id: 35, desc: 'A protein-rich sandwich filling that can be prepared quickly and served as a convenient meal option.' },
+  { id: 37, desc: 'A familiar and crowd-pleasing dish that pairs well with rice and is suitable for large feeding activities.' },
+  { id: 30, desc: 'A versatile ground meat dish mixed with vegetables that stretches ingredients while remaining nutritious.' },
+  { id:  1, desc: 'Lugaw is highly scalable and uses minimal ingredients, making it ideal for serving the largest number of people with available donations.' },
+  { id: 32, desc: 'A nutritious mung bean stew rich in protein and vegetables, making it ideal for community feeding programs.' },
+  { id: 21, desc: 'A ready-to-serve option requiring no cooking, ideal for quick distribution scenarios.' },
+  { id: 12, desc: 'A quick and affordable dish using canned sardines extended with available donated vegetables.' },
+  { id: 13, desc: 'A creamy macaroni soup that is especially suitable for children and families during feeding programs.' },
+  { id: 34, desc: 'A light noodle soup with vegetables and protein that is easy to prepare and distribute in large quantities.' },
+  { id: 38, desc: 'A nutritious combination of tuna and vegetables that provides a simple and balanced ready-to-serve meal.' },
+  { id: 36, desc: 'A healthy vegetable-based dish that maximizes donated produce while providing essential nutrients and variety.' },
+];
+
+Promise.all(
+  MEAL_DESCRIPTIONS.map(({ id, desc }) =>
+    db.execute(
+      'UPDATE meals SET comment_desc = ? WHERE id = ? AND (comment_desc IS NULL OR comment_desc = \'\')',
+      [desc, id]
+    )
+  )
+).catch(err => console.error('[meal descriptions seed]', err.message));
+
 // Convert g→kg, ml→L, pcs→kg (1 pc = 400g) so inputQty matches the recipe's base unit (kg / L)
 function toBaseUnit(qty, unit) {
   const u = (unit || '').toLowerCase().trim();
