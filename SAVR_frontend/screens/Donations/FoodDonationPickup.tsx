@@ -307,7 +307,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
         {/* ADDRESS SECTION */}
         <View style={styles.addressSection}>
-          <Text style={styles.inputLabel}>{scheduleType === 'pickup' ? 'Pickup Address' : 'Drop-off Address'}</Text>
+          <Text style={styles.inputLabel}>{scheduleType === 'pickup' ? 'Pickup Address' : 'Drop-off Address'}<Text style={{ color: '#E4B63F' }}> *</Text></Text>
 
           {scheduleType === 'pickup' ? (
             <View style={styles.addressInputRow}>

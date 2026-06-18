@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
 import NotificationBell from '../../components/NotificationBell';
+import { usePhilippineAddress } from '../../hooks/usePhilippineAddress';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
@@ -102,6 +103,19 @@ export default function CreateRequest({ navigation }: any) {
   const [endDateObj, setEndDateObj] = useState(new Date());
   const isSubmitting = useRef(false);
 
+  const {
+    provinces,
+    cities,
+    barangays,
+    handleProvinceChange,
+    handleCityChange,
+    isLoadingProvinces,
+    isLoadingCities,
+    isLoadingBarangays
+  } = usePhilippineAddress();
+
+  const [selectedProvince, setSelectedProvince] = useState('');
+
   // Food request details state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedFoodName, setSelectedFoodName] = useState<string>('');
@@ -136,6 +150,7 @@ export default function CreateRequest({ navigation }: any) {
     setSelectedCategory(null);
     setSelectedFoodName('');
     setItemQty('');
+    setSelectedProvince('');
     setDateObj(new Date());
     setEndDateObj(new Date());
     isSubmitting.current = false;
@@ -155,6 +170,7 @@ export default function CreateRequest({ navigation }: any) {
     setSelectedCategory(null);
     setSelectedFoodName('');
     setItemQty('');
+    setSelectedProvince('');
     setRefreshing(false);
   };
 
@@ -513,12 +529,49 @@ export default function CreateRequest({ navigation }: any) {
 
                 {/* Address */}
                 <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Brgy." placeholderTextColor="#A5D1B8" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
+                <View style={{ marginBottom: 10 }}>
+                  <CustomDropdown
+                    selectedValue={selectedProvince}
+                    onValueChange={(val) => {
+                      setSelectedProvince(val);
+                      handleProvinceChange(val);
+                      updateForm('city_municipality', '');
+                      updateForm('barangay', '');
+                    }}
+                    placeholder={isLoadingProvinces ? "Loading Provinces..." : "Select Province / Region"}
+                    items={provinces}
+                    style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
+                    placeholderTextColor="#A5D1B8"
+                  />
+                </View>
+                <View style={[styles.rowInputsNoMargin, { marginBottom: 10 }]}>
+                  <View style={{ flex: 1.2, marginRight: 6 }}>
+                    <CustomDropdown
+                      selectedValue={form.city_municipality}
+                      onValueChange={(val) => {
+                        updateForm('city_municipality', val);
+                        handleCityChange(val);
+                        updateForm('barangay', '');
+                      }}
+                      placeholder={isLoadingCities ? "Loading..." : "City/Municipality"}
+                      items={cities}
+                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
+                      placeholderTextColor="#A5D1B8"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <CustomDropdown
+                      selectedValue={form.barangay}
+                      onValueChange={(val) => updateForm('barangay', val)}
+                      placeholder={isLoadingBarangays ? "Loading..." : "Barangay"}
+                      items={barangays}
+                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
+                      placeholderTextColor="#A5D1B8"
+                    />
+                  </View>
                 </View>
                 <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
                   <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="ZIP" placeholderTextColor="#A5D1B8" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
                 </View>
               </View>
@@ -542,12 +595,49 @@ export default function CreateRequest({ navigation }: any) {
 
                 {/* Address */}
                 <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 8 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Brgy." placeholderTextColor="#A5D1B8" value={form.barangay} onChangeText={(val) => updateForm('barangay', val)} />
+                <View style={{ marginBottom: 10 }}>
+                  <CustomDropdown
+                    selectedValue={selectedProvince}
+                    onValueChange={(val) => {
+                      setSelectedProvince(val);
+                      handleProvinceChange(val);
+                      updateForm('city_municipality', '');
+                      updateForm('barangay', '');
+                    }}
+                    placeholder={isLoadingProvinces ? "Loading Provinces..." : "Select Province / Region"}
+                    items={provinces}
+                    style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
+                    placeholderTextColor="#A5D1B8"
+                  />
+                </View>
+                <View style={[styles.rowInputsNoMargin, { marginBottom: 10 }]}>
+                  <View style={{ flex: 1.2, marginRight: 6 }}>
+                    <CustomDropdown
+                      selectedValue={form.city_municipality}
+                      onValueChange={(val) => {
+                        updateForm('city_municipality', val);
+                        handleCityChange(val);
+                        updateForm('barangay', '');
+                      }}
+                      placeholder={isLoadingCities ? "Loading..." : "City/Municipality"}
+                      items={cities}
+                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
+                      placeholderTextColor="#A5D1B8"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <CustomDropdown
+                      selectedValue={form.barangay}
+                      onValueChange={(val) => updateForm('barangay', val)}
+                      placeholder={isLoadingBarangays ? "Loading..." : "Barangay"}
+                      items={barangays}
+                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
+                      placeholderTextColor="#A5D1B8"
+                    />
+                  </View>
                 </View>
                 <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="City / Municipality" placeholderTextColor="#A5D1B8" value={form.city_municipality} onChangeText={(val) => updateForm('city_municipality', val)} />
+                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
                   <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="ZIP Code" placeholderTextColor="#A5D1B8" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
                 </View>
               </View>
