@@ -440,7 +440,7 @@ export default function DonorDashboard({ navigation }: any) {
                   {ongoingDrives.map((drive, idx) => {
                     const isFinancial = drive.type === 'Financial';
                     // Alternating solid colors: flat yellow first (even indices), flat orange second (odd indices)
-                    const gradientColors = idx % 2 === 0 
+                    const gradientColors: [string, string] = idx % 2 === 0 
                       ? ['#E29C20', '#E29C20'] // Flat golden yellow
                       : ['#D87A38', '#D87A38']; // Flat terracotta orange (matches top cards)
                     return (
@@ -455,13 +455,7 @@ export default function DonorDashboard({ navigation }: any) {
                             colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
                             style={StyleSheet.absoluteFillObject}
                           />
-                          <View style={styles.watermarkContainer}>
-                            <FontAwesome5 
-                              name={isFinancial ? "coins" : "apple-alt"} 
-                              size={100} 
-                              color="rgba(255, 255, 255, 0.08)" 
-                            />
-                          </View>
+
                           <View style={styles.driveCardContent}>
                             <View>
                               <Text style={styles.driveName} numberOfLines={2}>{drive.request_name}</Text>
