@@ -690,12 +690,11 @@ exports.submitSchedule = async (req, res) => {
 
 exports.submitService = async (req, res) => {
   const {
-    service_type, quantity, frequency, service_date, service_time, address,
+    service_type, quantity, frequency, service_date, return_date, service_time, address,
     contact_first_name, contact_last_name, contact_email, description,
     vehicle_type, capacity, max_distance, transport_categories,
     headcount, preferred_work, skill_categories,
     all_day, starts_at, ends_at, day_of_week,
-    return_date,
   } = req.body;
 
   if (!service_type || !contact_first_name || !contact_last_name || !contact_email) {
@@ -724,8 +723,11 @@ exports.submitService = async (req, res) => {
     try { endsAt = dayjs(`1970-01-01 ${cleanTime(ends_at)}`).format('HH:mm:ss'); } catch {}
   }
 
-  const finalDate = service_date || null;
-  const finalReturnDate = isTransportation ? (return_date || null) : null;
+  // deliver_at / return_at are the actual DB column names (varchar)
+  const deliverAt = isTransportation ? (service_date || null) : null;
+  const returnAt  = isTransportation ? (return_date  || null) : null;
+  // For Volunteer Work the existing `date` column stores the preferred date
+  const finalDate = !isTransportation ? (service_date || null) : null;
 
   const transportCatsJson = transport_categories
     ? (typeof transport_categories === 'string' ? transport_categories : JSON.stringify(transport_categories))
@@ -742,19 +744,20 @@ exports.submitService = async (req, res) => {
   await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS headcount INTEGER DEFAULT NULL`).catch(() => {});
   await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS preferred_work VARCHAR(255) DEFAULT NULL`).catch(() => {});
   await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS skill_categories JSON DEFAULT NULL`).catch(() => {});
-  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS return_date DATE DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS deliver_at VARCHAR(50) DEFAULT NULL`).catch(() => {});
+  await db.execute(`ALTER TABLE service_donation_records ADD COLUMN IF NOT EXISTS return_at VARCHAR(50) DEFAULT NULL`).catch(() => {});
 
   const [result] = await db.execute(
     `INSERT INTO service_donation_records
-       (user_id, service_tab, quantity, frequency, date, return_date, day_of_week, starts_at, ends_at, all_day, address,
+       (user_id, service_tab, quantity, frequency, date, deliver_at, return_at, day_of_week, starts_at, ends_at, all_day, address,
         first_name, last_name, email, notes,
         vehicle_type, capacity, max_distance, transport_categories,
         headcount, preferred_work, skill_categories,
         status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
     [
       req.user.id, service_type, parseInt(quantity) || null, frequency,
-      finalDate, finalReturnDate, day_of_week || null, startsAt, endsAt, isAllDay ? 1 : 0,
+      finalDate, deliverAt, returnAt, day_of_week || null, startsAt, endsAt, isAllDay ? 1 : 0,
       isTransportation ? 'Transportation' : (address || 'Volunteer'),
       contact_first_name, contact_last_name, contact_email, description || null,
       vehicle_type || null, parseInt(capacity) || null, parseInt(max_distance) || null, transportCatsJson,
