@@ -148,7 +148,14 @@ exports.optimizeMeals = async (req, res) => {
     });
   }
 
-  plans.sort((a, b) => b.finalScore - a.finalScore);
+  // Full matches (no missing ingredients) always rank above partial/suggested meals.
+  // Within each group, rank by finalScore descending.
+  plans.sort((a, b) => {
+    const aFull = a.missing.length === 0 ? 1 : 0;
+    const bFull = b.missing.length === 0 ? 1 : 0;
+    if (bFull !== aFull) return bFull - aFull;
+    return b.finalScore - a.finalScore;
+  });
 
   const results = plans.map((plan, rank) => {
     const rankNum = rank + 1;
