@@ -162,7 +162,7 @@ export default function EditProfile({ route, navigation }: any) {
               <Field label="Suffix" value={formData.suffix} onChangeText={(t) => handleChange('suffix', t)} />
               <Field label="Date of Birth (YYYY-MM-DD)" value={formData.date_of_birth} onChangeText={(t) => handleChange('date_of_birth', t)} />
               <Field label="Gender" value={formData.gender} onChangeText={(t) => handleChange('gender', t)} />
-              <Field label="House #" value={formData.house_no} onChangeText={(t) => handleChange('house_no', t)} keyboardType="number-pad" />
+              <Field label="House Number" value={formData.house_no} onChangeText={(t) => handleChange('house_no', t)} keyboardType="number-pad" />
               <Field label="Street" value={formData.street} onChangeText={(t) => handleChange('street', t)} />
               <Field label="Brgy." value={formData.barangay} onChangeText={(t) => handleChange('barangay', t)} />
               <Field label="City / Municipality" value={formData.city_municipality} onChangeText={(t) => handleChange('city_municipality', t)} />

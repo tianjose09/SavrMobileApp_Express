@@ -271,7 +271,7 @@ export default function Profile({ navigation }: any) {
             {!!suff && <View style={styles.pillBox}><Text style={styles.pillLabel}>Suffix</Text><Text style={styles.pillValue}>{suff}</Text></View>}
             {!!dob && dob !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Date of Birth</Text><Text style={styles.pillValue}>{dob}</Text></View>}
             {!!gender && gender !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Gender</Text><Text style={styles.pillValue}>{gender}</Text></View>}
-            {!!houseNo && <View style={styles.pillBox}><Text style={styles.pillLabel}>House #</Text><Text style={styles.pillValue}>{houseNo}</Text></View>}
+            {!!houseNo && <View style={styles.pillBox}><Text style={styles.pillLabel}>House Number</Text><Text style={styles.pillValue}>{houseNo}</Text></View>}
             {!!street && street !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Street</Text><Text style={styles.pillValue}>{street}</Text></View>}
             {!!brgy && brgy !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>Brgy.</Text><Text style={styles.pillValue}>{brgy}</Text></View>}
             {!!city && city !== 'Not Specified' && <View style={styles.pillBox}><Text style={styles.pillLabel}>City / Municipality</Text><Text style={styles.pillValue}>{city}</Text></View>}

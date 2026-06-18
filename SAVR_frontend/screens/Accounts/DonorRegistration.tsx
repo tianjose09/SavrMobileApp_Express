@@ -434,10 +434,10 @@ export default function DonorRegistration({ navigation }: any) {
                   </View>
 
                   <View style={styles.addressRow}>
-                    <View style={[styles.addressCol, { flex: 0.9 }]}>
-                      {renderLineInput('House #', 'house_no', { keyboardType: 'numeric', isRequired: true })}
+                    <View style={[styles.addressCol, { flex: 1.3 }]}>
+                      {renderLineInput('House Number', 'house_no', { keyboardType: 'numeric', isRequired: true })}
                     </View>
-                    <View style={[styles.addressCol, { flex: 1.5 }]}>
+                    <View style={[styles.addressCol, { flex: 1.1 }]}>
                       {renderLineInput('Street', 'street', { isRequired: true })}
                     </View>
                     <View style={[styles.addressCol, { flex: 1.7 }]}>
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   },
 
   labelContainer: {
-    height: 16,
+    minHeight: 16,
     justifyContent: 'flex-end',
     marginBottom: 2,
   },
