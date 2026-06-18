@@ -222,37 +222,37 @@ export default function ServiceDonation({ navigation }: any) {
 
     setIsLoading(true);
     try {
-      const startsAtStr = activeTab === 'TRANSPORTATION'
-        ? (startsAt ? formatDateString(startsAt) : null)
-        : (allDay || !startsAt ? null : formatTimeWithAMPM(startsAt));
-      const endsAtStr = activeTab === 'TRANSPORTATION'
-        ? (endsAt ? formatDateString(endsAt) : null)
-        : (allDay || !endsAt ? null : formatTimeWithAMPM(endsAt));
-
       const serviceTypeLabel = activeTab === 'TRANSPORTATION' ? 'Transportation' : 'Volunteer Work';
+
+      const startsAtStr = allDay || !startsAt ? null : formatTimeWithAMPM(startsAt);
+      const endsAtStr   = allDay || !endsAt   ? null : formatTimeWithAMPM(endsAt);
+
       const payload: any = {
         service_type: serviceTypeLabel,
-        frequency: activeTab === 'TRANSPORTATION' ? 'One-Time' : (frequency || 'One-Time'),
-        day_of_week: activeTab === 'TRANSPORTATION' ? null : (frequency === 'Weekly' ? (dayOfWeek || null) : null),
-        service_date: activeTab === 'TRANSPORTATION'
-          ? (startsAt ? startsAt.toISOString().split('T')[0] : null)
-          : (date ? date.toISOString().split('T')[0] : null),
-        service_time: activeTab === 'TRANSPORTATION' ? `${startsAtStr} - ${endsAtStr}` : (startsAtStr || 'All Day'),
-        all_day: activeTab === 'TRANSPORTATION' ? false : allDay,
-        starts_at: startsAtStr,
-        ends_at: endsAtStr,
-        address: activeTab === 'TRANSPORTATION' ? 'Transportation' : (address || 'Volunteer'),
         contact_first_name: firstName,
         contact_last_name: lastName,
         contact_email: email,
         description,
         ...(activeTab === 'TRANSPORTATION' ? {
+          // Transportation: date-based fields, no time parsing
+          frequency: 'One-Time',
+          service_date: startsAt ? startsAt.toISOString().split('T')[0] : null,
+          return_date:  endsAt   ? endsAt.toISOString().split('T')[0]   : null,
+          all_day: false,
           quantity: parseInt(quantity) || 1,
           vehicle_type: vehicleType || null,
           capacity: capacity || null,
           max_distance: '0',
           transport_categories: selectedCategories.length > 0 ? selectedCategories : null,
         } : {
+          // Volunteer Work: time-based fields
+          frequency: frequency || 'One-Time',
+          day_of_week: frequency === 'Weekly' ? (dayOfWeek || null) : null,
+          service_date: date ? date.toISOString().split('T')[0] : null,
+          all_day: allDay,
+          starts_at: startsAtStr,
+          ends_at: endsAtStr,
+          address: address || 'Volunteer',
           headcount: parseInt(headcount) || 1,
           preferred_work: preferredWork || null,
           skill_categories: selectedSkills.length > 0 ? selectedSkills : null,
