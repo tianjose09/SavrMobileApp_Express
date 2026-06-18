@@ -17,8 +17,8 @@ type NotificationItem = {
   id: number;
   type: 'financial' | 'food' | 'service' | 'badge' | 'system';
   title: string;
+  message: string;
   time: string;
-  desc: string;
 };
 
 function getTypeConfig(type: NotificationItem['type']) {
@@ -145,14 +145,8 @@ export default function Notifications({ navigation }: any) {
             >
               {notifications.map((item) => {
                 const cfg = getTypeConfig(item.type);
-                
-                const isMissed = item.title?.toLowerCase().includes('missed');
-                const fallbackMsg = `Dear Donor,\n\nWe sincerely apologize for not being able to meet the scheduled pickup date. If possible, we kindly ask you to reschedule your preferred date and time.\n\nThank you for your understanding and cooperation.`;
-                let displayDesc = (isMissed && (!item.desc || item.desc.trim() === '')) ? fallbackMsg : (item.desc || '');
 
-                if (displayDesc && displayDesc.includes('How to reschedule:')) {
-                  displayDesc = displayDesc.replace(/\n\nHow to reschedule:[\s\S]*?(?=\n\nThank you|$)/, '');
-                }
+                const displayMsg = item.message || '';
 
                 return (
                   <TouchableOpacity
@@ -172,7 +166,7 @@ export default function Notifications({ navigation }: any) {
                         </Text>
                         <Text style={styles.cardTime}>{item.time}</Text>
                       </View>
-                      <Text style={styles.cardDesc}>{displayDesc}</Text>
+                      <Text style={styles.cardDesc}>{displayMsg}</Text>
                       <Text style={styles.tapHint}>Tap to dismiss</Text>
                     </View>
                   </TouchableOpacity>

@@ -74,6 +74,9 @@ db.execute(`
 db.execute(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_critical BOOLEAN DEFAULT FALSE`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read_at TIMESTAMP DEFAULT NULL`)
+  .catch(() => {});
+
 db.execute(`ALTER TABLE food_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
   .catch(() => {});
 
@@ -343,18 +346,25 @@ async function autoNotifyBeneficiary(userId) {
               msg = `Some items for your request "${name}" have been delivered. Please confirm what you received in the app. More deliveries may follow until your request is fully fulfilled.`;
             }
           } else if (['missed', 'notified'].includes((stop.status || '').toLowerCase())) {
-            title = 'Delivery Missed';
-            msg = stop.staff_message ||
-`Dear Beneficiary,
-
-We sincerely apologize for not being able to meet the scheduled delivery date. If possible, we kindly ask you to reschedule your preferred date and time.
-
-How to reschedule:
-1. Log in to your account
-2. Click Create Request
-3. Fill up to make another new request
-
-Thank you for your understanding and cooperation.`;
+            // Web backend already created the notification row with the staff's message.
+            // We only need to fire the push — creating another row would duplicate the bell entry.
+            const [existingNotif] = await db.execute(
+              `SELECT title, description FROM notifications
+               WHERE user_id = ? AND type = 'service' AND is_critical = TRUE
+               ORDER BY created_at DESC LIMIT 1`,
+              [stop.user_id]
+            );
+            const pushTitle = existingNotif[0]?.title || 'Delivery Missed';
+            const pushBody  = existingNotif[0]?.description
+              || stop.staff_message
+              || `Your scheduled delivery for "${name}" was missed. Please create a new request to reschedule.`;
+            const [tokenRows] = await db.execute(
+              'SELECT token FROM user_push_tokens WHERE user_id = ?', [stop.user_id]
+            );
+            if (tokenRows.length > 0) {
+              sendExpoPush(tokenRows[0].token, pushTitle, pushBody).catch(() => {});
+            }
+            continue; // skip createNotification — web already wrote the row
           } else {
             continue;
           }
@@ -406,6 +416,18 @@ async function autoNotifyDonor(userId) {
         );
         if (result.affectedRows === 0) continue;
 
+        // Guard against an external source that may have already sent a notification
+        // for this status change in the last 10 minutes.
+        const [recentFoodRows] = await db.execute(
+          `SELECT id FROM notifications
+           WHERE user_id = ? AND type = 'food'
+             AND (LOWER(title) LIKE ? OR LOWER(description) LIKE ?)
+             AND created_at > NOW() - INTERVAL '10 minutes'
+           LIMIT 1`,
+          [r.user_id, `%${s}%`, `%${s}%`]
+        );
+        if (recentFoodRows.length > 0) continue;
+
         await createNotification(r.user_id, 'food', foodTitles[s] || `Food Donation ${r.status}`, foodMessages[s] || `Your food donation status has been updated to "${r.status}".`, true);
 
         if (s === 'approved') {
@@ -452,6 +474,18 @@ async function autoNotifyDonor(userId) {
           [r.status, r.id, r.status]
         );
         if (result.affectedRows === 0) continue;
+
+        // Guard against an external source (admin portal / legacy DB trigger) that may
+        // have already inserted a notification for this status change in the last 10 minutes.
+        const [recentRows] = await db.execute(
+          `SELECT id FROM notifications
+           WHERE user_id = ? AND type = 'service'
+             AND (LOWER(title) LIKE ? OR LOWER(description) LIKE ?)
+             AND created_at > NOW() - INTERVAL '10 minutes'
+           LIMIT 1`,
+          [r.user_id, `%${s}%`, `%${s}%`]
+        );
+        if (recentRows.length > 0) continue;
 
         const svcName = r.service_tab || 'service';
         const svcMsg = (serviceMessages[s] || `Your service donation "[name]" status has been updated to "${r.status}".`).replace('[name]', svcName);
@@ -555,15 +589,15 @@ exports.getNotifications = async (req, res) => {
     }
 
     const sql = criticalOnly
-      ? 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? AND is_critical = TRUE ORDER BY created_at DESC'
-      : 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC';
+      ? 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? AND is_critical = TRUE ORDER BY created_at DESC LIMIT 50'
+      : 'SELECT id, type, title, description, is_critical, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50';
 
     const [rows] = await db.execute(sql, [uid]);
     const notifications = rows.map(n => ({
       id: n.id,
       type: n.type,
       title: n.title,
-      desc: n.description,
+      message: n.description || '',
       is_critical: !!n.is_critical,
       time: dayjs(n.created_at).fromNow(),
     }));
@@ -596,6 +630,35 @@ exports.deleteAllNotifications = async (req, res) => {
   } catch (e) {
     console.error('[deleteAllNotifications]', e);
     return res.status(500).json({ success: false, message: 'Failed to delete notifications.' });
+  }
+};
+
+// POST /api/notifications/mark-all-read
+exports.markAllRead = async (req, res) => {
+  try {
+    await db.execute(
+      'UPDATE notifications SET read_at = NOW() WHERE user_id = ? AND read_at IS NULL',
+      [req.user.id]
+    );
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('[markAllRead]', e);
+    return res.status(500).json({ success: false, message: 'Failed to mark notifications read.' });
+  }
+};
+
+// POST /api/notifications/:id/mark-read
+exports.markOneRead = async (req, res) => {
+  try {
+    const rawId = String(req.params.id).replace(/^db-/, '');
+    await db.execute(
+      'UPDATE notifications SET read_at = NOW() WHERE id = ? AND user_id = ? AND read_at IS NULL',
+      [rawId, req.user.id]
+    );
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('[markOneRead]', e);
+    return res.status(500).json({ success: false, message: 'Failed to mark notification read.' });
   }
 };
 

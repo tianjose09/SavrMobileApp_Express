@@ -78,6 +78,18 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
 // ─── Common units ─────────────────────────────────────────────────────────────
 const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
+const CATEGORY_UNIT_MAP: Record<string, string> = {
+  'Canned Goods':    'pcs',
+  'Prepared Meals':  'meal',
+  'Beverages':       'L',
+};
+
+function getAllowedUnits(category: string | null): string[] {
+  if (!category) return UNIT_OPTIONS;
+  const locked = CATEGORY_UNIT_MAP[category];
+  return locked ? [locked] : UNIT_OPTIONS;
+}
+
 export default function CreateRequest({ navigation }: any) {
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
   const [isLoading, setIsLoading] = useState(false);
@@ -685,15 +697,7 @@ export default function CreateRequest({ navigation }: any) {
                   setSelectedCategory(val || null);
                   setSelectedFoodName('');
                   setItemQty('');
-                  if (val === 'Canned Goods') {
-                    setItemUnit('pcs');
-                  } else if (val === 'Prepared Meals') {
-                    setItemUnit('meal');
-                  } else if (val === 'Beverages') {
-                    setItemUnit('pcs');
-                  } else {
-                    setItemUnit('');
-                  }
+                  setItemUnit(CATEGORY_UNIT_MAP[val] ?? 'kg');
                 }}
                 placeholder="Food Category"
                 items={[
@@ -741,7 +745,7 @@ export default function CreateRequest({ navigation }: any) {
                     selectedValue={itemUnit}
                     onValueChange={(val) => setItemUnit(val)}
                     placeholder="Unit"
-                    items={UNIT_OPTIONS.map(u => ({ label: u, value: u }))}
+                    items={getAllowedUnits(selectedCategory).map(u => ({ label: u, value: u }))}
                     style={styles.fdUnitDropdownNew}
                     disableSort={true}
                     placeholderTextColor="#A3A3A3"

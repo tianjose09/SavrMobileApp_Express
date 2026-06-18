@@ -53,28 +53,34 @@ function getEffectiveStatus(req: any): string {
   return 'Pending';
 }
 
-const ACTIVE_STATUSES = ['pending', 'accepted', 'in_transit', 'delivered'];
+// Spec §3: in_transit/delivered are always active; pending/accepted only when date has arrived
+function batchIsInTransit(batch: any): boolean {
+  const s = (batch.status || '').toLowerCase();
+  if (['in_transit', 'delivered'].includes(s)) return true;
+  if (['pending', 'accepted'].includes(s)) {
+    if (!batch.delivery_date) return false;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return batch.delivery_date.slice(0, 10) <= todayStr;
+  }
+  return false;
+}
 
-// Spec: missed = staff flagged it, OR active batch whose date is strictly before today
+// Spec §3: missed = staff flagged it, OR in-transit batch whose date is strictly past
 function isMissedBatch(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
   if (['notified', 'missed'].includes(s)) return true;
-  const isActive = ACTIVE_STATUSES.includes(s);
-  if (!isActive || !batch.delivery_date) return false;
-  const batchDay = new Date(batch.delivery_date.slice(0, 10) + 'T00:00:00');
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  return batchDay < today;
+  if (!batch.delivery_date) return false;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  return batchIsInTransit(batch) && batch.delivery_date.slice(0, 10) < todayStr;
 }
 
-// In Transit = active + not missed (show all active batches immediately, matching web)
-// Delivery Missed = missed or date passed without completion
-// null = completed/cancelled
+// In Transit = active + not missed | Delivery Missed = missed | null = done/future/cancelled
 function getBatchEffectiveStatus(batch: any): 'In Transit' | 'Delivery Missed' | null {
   const s = (batch.status || '').toLowerCase();
   if (['completed', 'cancelled'].includes(s)) return null;
   if (isMissedBatch(batch)) return 'Delivery Missed';
-  if (!ACTIVE_STATUSES.includes(s)) return null;
-  return 'In Transit';
+  if (batchIsInTransit(batch)) return 'In Transit';
+  return null; // future-dated pending/accepted — stays in Approved
 }
 
 function getStatusColor(effectiveStatus: string): string {

@@ -33,18 +33,9 @@ interface FoodItem {
   photoUri: string | null;
 }
 
-export default function FoodDonationDetails({ navigation }: any) {
+export default function FoodDonationDetails({ navigation, route }: any) {
   const [items, setItems] = useState<FoodItem[]>([
-    {
-      id: '1',
-      name: '',
-      quantity: '',
-      unit: 'kg',
-      category: '',
-      expiryDate: null,
-      specialNotes: '',
-      photoUri: null,
-    },
+    { id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null },
   ]);
   const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
   const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
@@ -52,20 +43,40 @@ export default function FoodDonationDetails({ navigation }: any) {
   const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setItems([
-      {
-        id: '1',
-        name: '',
-        quantity: '',
-        unit: 'kg',
-        category: '',
+  // Pre-fill form whenever the screen receives driveItems from Support This Drive
+  useEffect(() => {
+    const driveItems: any[] = route?.params?.driveItems || [];
+    if (driveItems.length > 0) {
+      setItems(driveItems.map((di: any, idx: number) => ({
+        id: String(idx + 1),
+        name: di.food_name || '',
+        quantity: di.qty != null ? String(di.qty) : '',
+        unit: di.unit || 'kg',
+        category: di.category || '',
         expiryDate: null,
         specialNotes: '',
         photoUri: null,
-      },
-    ]);
+      })));
+    }
+  }, [route?.params?.driveItems]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    const driveItems: any[] = route?.params?.driveItems || [];
+    if (driveItems.length > 0) {
+      setItems(driveItems.map((di: any, idx: number) => ({
+        id: String(idx + 1),
+        name: di.food_name || '',
+        quantity: di.qty != null ? String(di.qty) : '',
+        unit: di.unit || 'kg',
+        category: di.category || '',
+        expiryDate: null,
+        specialNotes: '',
+        photoUri: null,
+      })));
+    } else {
+      setItems([{ id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null }]);
+    }
     setTimeout(() => setRefreshing(false), 500);
   };
 

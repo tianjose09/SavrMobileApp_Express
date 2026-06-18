@@ -11,10 +11,12 @@ function formatAmount(amount) {
   return parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 }
 
-async function logActivity(userId, type, title, description, icon = 'financialiconyellow') {
+db.execute(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS reference_id INTEGER DEFAULT NULL`).catch(() => {});
+
+async function logActivity(userId, type, title, description, icon = 'financialiconyellow', referenceId = null) {
   await db.execute(
-    'INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-    [userId, type, title, description, icon]
+    'INSERT INTO activity_logs (user_id, type, title, description, icon, reference_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
+    [userId, type, title, description, icon, referenceId]
   );
 }
 
@@ -647,7 +649,7 @@ exports.submitFood = async (req, res) => {
   }
 
   const modeLabel = schedule_type === 'delivery' ? 'drop-off' : 'pickup';
-  await logActivity(req.user.id, 'food', 'Food Donation Submitted', `${foodItems.length} item(s) submitted and pending admin confirmation`, 'truckicon');
+  await logActivity(req.user.id, 'food', 'Food Donation Submitted', `${foodItems.length} item(s) submitted and pending admin confirmation`, 'truckicon', donationId);
   await createNotification(req.user.id, 'food', 'Food Donation Submitted', `Your food donation of ${foodItems.length} item(s) has been submitted and scheduled for ${modeLabel}. Thank you!`);
   await recalculateBadges(req.user.id);
 
@@ -752,7 +754,7 @@ exports.submitService = async (req, res) => {
   const [donation] = await db.execute('SELECT * FROM service_donation_records WHERE id = ?', [result.insertId]);
 
   const qtyLabel = service_type === 'Volunteer Work' ? `${headcount} volunteer(s)` : `${quantity} vehicle(s)`;
-  await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${qtyLabel}`, 'truckicon');
+  await logActivity(req.user.id, 'service', 'Service Donation Submitted', `${service_type} - ${qtyLabel}`, 'truckicon', result.insertId);
   await createNotification(req.user.id, 'service', 'Service Donation Submitted', `Your ${service_type} service donation has been submitted and is now awaiting approval from our team. We will notify you once it has been reviewed. Thank you for volunteering!`);
   await recalculateBadges(req.user.id);
 
@@ -932,24 +934,80 @@ const ACTIVITY_STATUS = {
   inventory: 'Processed',
 };
 
+function liveServiceStatus(dbStatus) {
+  const s = (dbStatus || '').toLowerCase();
+  if (s === 'accepted' || s === 'confirmed') return 'Accepted';
+  if (s === 'completed') return 'Completed';
+  if (s === 'declined' || s === 'rejected') return 'Rejected';
+  if (s === 'cancelled') return 'Cancelled';
+  return 'Submitted';
+}
+
+function liveFoodStatus(dbStatus) {
+  const s = (dbStatus || '').toLowerCase();
+  if (s === 'approved') return 'Approved';
+  if (s === 'received' || s === 'completed') return 'Completed';
+  if (s === 'rejected') return 'Denied';
+  if (s === 'cancelled') return 'Cancelled';
+  return 'Pending';
+}
+
 exports.getActivities = async (req, res) => {
+  const uid = req.user.id;
   const [activities] = await db.execute(
     'SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC',
-    [req.user.id]
+    [uid]
   );
+
+  // Collect reference IDs so we can fetch live statuses in bulk
+  const foodRefIds = activities
+    .filter(a => a.type === 'food' && a.reference_id && (a.title || '').toLowerCase().includes('submitted'))
+    .map(a => a.reference_id);
+  const serviceRefIds = activities
+    .filter(a => a.type === 'service' && a.reference_id && (a.title || '').toLowerCase().includes('submitted'))
+    .map(a => a.reference_id);
+
+  const foodStatusMap = {};
+  if (foodRefIds.length > 0) {
+    const placeholders = foodRefIds.map(() => '?').join(',');
+    const [foodRows] = await db.execute(
+      `SELECT id, status FROM food_donation_records WHERE id IN (${placeholders})`,
+      foodRefIds
+    );
+    foodRows.forEach(r => { foodStatusMap[r.id] = r.status; });
+  }
+
+  const serviceStatusMap = {};
+  if (serviceRefIds.length > 0) {
+    const placeholders = serviceRefIds.map(() => '?').join(',');
+    const [svcRows] = await db.execute(
+      `SELECT id, status FROM service_donation_records WHERE id IN (${placeholders})`,
+      serviceRefIds
+    );
+    svcRows.forEach(r => { serviceStatusMap[r.id] = r.status; });
+  }
 
   return res.json({
     success: true,
     activities: activities.map(a => {
       const titleLower = (a.title || '').toLowerCase();
       let status = ACTIVITY_STATUS[a.type] || 'Updated';
+
       if (a.type === 'food') {
-        if (titleLower.includes('approved')) status = 'Approved';
+        if (titleLower.includes('submitted') && a.reference_id && foodStatusMap[a.reference_id] !== undefined) {
+          status = liveFoodStatus(foodStatusMap[a.reference_id]);
+        } else if (titleLower.includes('approved')) status = 'Approved';
         else if (titleLower.includes('received') || titleLower.includes('completed')) status = 'Completed';
         else if (titleLower.includes('rejected') || titleLower.includes('denied')) status = 'Denied';
         else status = 'Pending';
       }
+
+      if (a.type === 'service' && titleLower.includes('submitted') && a.reference_id && serviceStatusMap[a.reference_id] !== undefined) {
+        status = liveServiceStatus(serviceStatusMap[a.reference_id]);
+      }
+
       if (titleLower.includes('missed')) status = 'Missed';
+
       return {
         id: a.id,
         type: a.type,
@@ -1473,26 +1531,72 @@ exports.recordDisbursement = async (req, res) => {
 
 // Donors: get active food/financial drives (Approved beneficiary requests)
 exports.getActiveDrives = async (req, res) => {
-  if (req.user.role !== 'donor' && req.user.role !== 'organization') {
-    return res.status(403).json({ success: false, message: 'Unauthorized.' });
-  }
-
   try {
-    const [requests] = await db.execute(
-      `SELECT id, user_id, request_name, type, food_type, quantity, unit, amount,
-              start_date, end_date, urgency, food_items, status
-       FROM beneficiary_requests
-       WHERE status = 'Approved'
-       ORDER BY created_at DESC`
+    const [drives] = await db.execute(
+      `SELECT dd.id, dd.drive_title AS request_name, dd.type, dd.start_date, dd.end_date, dd.goal,
+              br.urgency, br.amount AS request_amount, br.food_items AS br_food_items
+       FROM donation_drives dd
+       LEFT JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
+       WHERE dd.status = 'OnGoing'
+       ORDER BY dd.created_at DESC`
     );
 
-    const mapped = requests.map(r => {
-      let foodItems = [];
-      try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
+    if (!drives.length) return res.json({ success: true, active_drives: [] });
+
+    const driveIds = drives.map(d => d.id);
+    const placeholders = driveIds.map(() => '?').join(',');
+    const [driveItemRows] = await db.execute(
+      `SELECT donation_drive_id, food_name, category, goal_qty AS qty, unit
+       FROM donation_drive_items
+       WHERE donation_drive_id IN (${placeholders})`,
+      driveIds
+    );
+
+    const itemsByDrive = {};
+    for (const item of driveItemRows) {
+      if (!itemsByDrive[item.donation_drive_id]) itemsByDrive[item.donation_drive_id] = [];
+      itemsByDrive[item.donation_drive_id].push({
+        food_name: item.food_name,
+        category: item.category || '',
+        qty: item.qty,
+        unit: item.unit,
+      });
+    }
+
+    const mapped = drives.map(d => {
+      const driveType = d.type
+        ? d.type.charAt(0).toUpperCase() + d.type.slice(1).toLowerCase()
+        : 'Food';
+      const urgency = d.urgency
+        ? d.urgency.charAt(0).toUpperCase() + d.urgency.slice(1).toLowerCase()
+        : 'Medium';
+      const isFinancial = driveType === 'Financial';
+
+      let foodItems = itemsByDrive[d.id] || [];
+      // Fall back to beneficiary_request food_items when donation_drive_items is empty
+      if (!isFinancial && foodItems.length === 0 && d.br_food_items) {
+        try {
+          const raw = typeof d.br_food_items === 'string' ? JSON.parse(d.br_food_items) : d.br_food_items;
+          if (Array.isArray(raw)) {
+            foodItems = raw.map(i => ({
+              food_name: i.food_name || i.name || '',
+              category: i.food_type || i.category || '',
+              qty: i.qty || i.quantity || 0,
+              unit: i.unit || '',
+            })).filter(i => i.food_name);
+          }
+        } catch {}
+      }
 
       return {
-        ...r,
-        food_items: foodItems,
+        id: d.id,
+        request_name: d.request_name || 'Unnamed Drive',
+        type: driveType,
+        urgency,
+        start_date: d.start_date,
+        end_date: d.end_date,
+        food_items: isFinancial ? [] : foodItems,
+        amount: isFinancial ? (parseFloat(d.goal) || parseFloat(d.request_amount) || 0) : null,
       };
     });
 

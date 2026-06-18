@@ -86,9 +86,11 @@ router.get('/badges',     donationController.getBadges);
 router.get('/activities', donationController.getActivities);
 
 // Notifications
-router.get('/notifications',         notificationController.getNotifications);
-router.delete('/notifications/:id',  notificationController.deleteNotification);
-router.delete('/notifications',      notificationController.deleteAllNotifications);
+router.get('/notifications',                    notificationController.getNotifications);
+router.post('/notifications/mark-all-read',     notificationController.markAllRead);
+router.post('/notifications/:id/mark-read',     notificationController.markOneRead);
+router.delete('/notifications/:id',             notificationController.deleteNotification);
+router.delete('/notifications',                 notificationController.deleteAllNotifications);
 
 // Push token
 router.post('/push-token',           notificationController.savePushToken);

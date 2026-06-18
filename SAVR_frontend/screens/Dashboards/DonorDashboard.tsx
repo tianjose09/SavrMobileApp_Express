@@ -157,54 +157,13 @@ export default function DonorDashboard({ navigation }: any) {
         setUnreadCount(critRes?.data?.notifications?.length || 0);
       } catch { }
 
-      const dummyDrives = [
-        {
-          id: 'dummy1',
-          request_name: 'Tondo Relief Drive',
-          type: 'Food',
-          urgency: 'High',
-          start_date: '2026-06-10T00:00:00.000Z',
-          end_date: '2026-06-30T00:00:00.000Z',
-          food_items: [
-            { food_name: 'Rice', qty: 200, unit: 'kg' },
-            { food_name: 'Canned Sardines', qty: 500, unit: 'pcs' }
-          ]
-        },
-        {
-          id: 'dummy2',
-          request_name: 'Typhoon Victims Fund',
-          type: 'Financial',
-          urgency: 'High',
-          start_date: '2026-06-01T00:00:00.000Z',
-          end_date: '2026-07-01T00:00:00.000Z',
-          amount: 50000
-        },
-        {
-          id: 'dummy3',
-          request_name: 'Community Feeding Program',
-          type: 'Food',
-          urgency: 'Medium',
-          start_date: '2026-06-15T00:00:00.000Z',
-          end_date: '2026-07-15T00:00:00.000Z',
-          food_items: [
-            { food_name: 'Lugaw', qty: 300, unit: 'plate' },
-            { food_name: 'Bread', qty: 150, unit: 'pcs' },
-            { food_name: 'Water', qty: 100, unit: 'L' }
-          ]
-        }
-      ];
-
       try {
         const drivesRes = await ApiService.getActiveDrives();
         if (drivesRes?.data?.success) {
-          const drives = drivesRes.data.active_drives || [];
-          setOngoingDrives(drives.length > 0 ? drives : dummyDrives);
-        } else {
-          setOngoingDrives(dummyDrives);
+          setOngoingDrives(drivesRes.data.active_drives || []);
         }
       } catch (err) {
-        console.log('Failed to fetch active drives, using dummy data', err);
-        setOngoingDrives(dummyDrives);
+        console.log('Failed to fetch active drives', err);
       }
     } catch (error) {
       console.error('Dashboard load failed', error);
@@ -255,7 +214,7 @@ export default function DonorDashboard({ navigation }: any) {
     } else {
       navigation.navigate('Donate', {
         screen: 'FoodDonationDetails',
-        params: { driveId: drive.id, driveName: drive.request_name }
+        params: { driveId: drive.id, driveName: drive.request_name, driveItems: drive.food_items || [] }
       });
     }
   };

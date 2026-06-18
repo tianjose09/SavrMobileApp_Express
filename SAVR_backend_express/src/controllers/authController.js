@@ -11,34 +11,17 @@ dayjs.extend(relativeTime);
 db.execute(`DROP TRIGGER IF EXISTS trg_prevent_inventory_without_approval ON service_donations_inventory`).catch(() => {});
 db.execute(`DROP FUNCTION IF EXISTS prevent_inventory_without_approval()`).catch(() => {});
 
-// Trigger: when service_donation_records.status changes, keep inventory in sync:
-// - accepted  → insert into inventory (if not already there)
-// - declined/rejected → delete from inventory
+// Trigger: when service_donation_records.status is declined/rejected/cancelled,
+// remove the linked inventory row.
+// NOTE: the accept direction is intentionally NOT handled here — the admin portal
+// is the source of truth for service_donations_inventory inserts (it also creates
+// SD### truck rows for Transportation). sync_inventory_to_record_accepted handles
+// the reverse: inventory insert → flip record to accepted.
 db.execute(`
   CREATE OR REPLACE FUNCTION sync_service_donation_inventory()
   RETURNS TRIGGER AS $$
   BEGIN
-    IF LOWER(NEW.status) = 'accepted' AND LOWER(COALESCE(OLD.status,'')) != 'accepted' THEN
-      IF NOT EXISTS (
-        SELECT 1 FROM service_donations_inventory WHERE service_donation_record_id = NEW.id
-      ) THEN
-        INSERT INTO service_donations_inventory (
-          service_donation_record_id, user_id, service_tab, frequency,
-          date, day_of_week, all_day, starts_at, ends_at, address, quantity,
-          vehicle_type, capacity, max_distance, transport_categories,
-          headcount, preferred_work, skill_categories,
-          first_name, last_name, email, notes,
-          status, created_at, updated_at
-        ) VALUES (
-          NEW.id, NEW.user_id, NEW.service_tab, NEW.frequency,
-          NEW.date, NEW.day_of_week, NEW.all_day, NEW.starts_at, NEW.ends_at, NEW.address, NEW.quantity,
-          NEW.vehicle_type, NEW.capacity, NEW.max_distance, NEW.transport_categories,
-          NEW.headcount, NEW.preferred_work, NEW.skill_categories,
-          NEW.first_name, NEW.last_name, NEW.email, NEW.notes,
-          'Active', NOW(), NOW()
-        );
-      END IF;
-    ELSIF LOWER(NEW.status) IN ('declined','rejected','cancelled') THEN
+    IF LOWER(NEW.status) IN ('declined','rejected','cancelled') THEN
       DELETE FROM service_donations_inventory WHERE service_donation_record_id = NEW.id;
     END IF;
     RETURN NEW;
@@ -58,12 +41,14 @@ db.execute(`
 
 // Trigger: when staff portal inserts directly into service_donations_inventory,
 // mark the linked record as accepted so both tables stay in sync.
+// Also stamps notified_status so autoNotifyDonor (notificationController.js)
+// skips creating a duplicate notification — the admin portal already sent one.
 db.execute(`
   CREATE OR REPLACE FUNCTION sync_inventory_to_record_accepted()
   RETURNS TRIGGER AS $$
   BEGIN
     UPDATE service_donation_records
-      SET status = 'accepted', updated_at = NOW()
+      SET status = 'accepted', notified_status = 'accepted', updated_at = NOW()
       WHERE id = NEW.service_donation_record_id
         AND LOWER(status) NOT IN ('accepted','completed','cancelled');
     RETURN NEW;
@@ -82,12 +67,13 @@ db.execute(`
 
 // Trigger: when a record is deleted from inventory (staff declines),
 // revert the linked service_donation_record status to 'declined'.
+// Also stamps notified_status so autoNotifyDonor skips creating a duplicate.
 db.execute(`
   CREATE OR REPLACE FUNCTION sync_inventory_delete_to_record()
   RETURNS TRIGGER AS $$
   BEGIN
     UPDATE service_donation_records
-      SET status = 'declined', updated_at = NOW()
+      SET status = 'declined', notified_status = 'declined', updated_at = NOW()
       WHERE id = OLD.service_donation_record_id
         AND LOWER(status) NOT IN ('declined','rejected','cancelled','completed');
     RETURN OLD;
@@ -108,34 +94,19 @@ db.execute(`
 db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
   .catch(() => {});
 
-// Trigger: notify donor when admin changes food donation status
+// Clean up any old service_donation_records notification triggers that may still
+// live in the database from previous versions of the code. autoNotifyDonor in
+// notificationController.js is now the single source of truth for those alerts.
+db.execute(`DROP TRIGGER IF EXISTS trg_service_donation_status_notify ON service_donation_records`).catch(() => {});
+db.execute(`DROP FUNCTION IF EXISTS notify_donor_service_donation_status() CASCADE`).catch(() => {});
+
+// Notifications for food donation status changes are handled exclusively by
+// autoNotifyDonor (notificationController.js) which uses notified_status for
+// deduplication. This trigger is kept as a no-op to avoid duplicates.
 db.execute(`
   CREATE OR REPLACE FUNCTION notify_donor_food_donation_status()
   RETURNS TRIGGER AS $$
   BEGIN
-    IF NEW.status IS DISTINCT FROM OLD.status THEN
-      IF NEW.status = 'approved' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Approved',
-          'Great news! Your food donation has been approved. We will be in touch regarding the pickup or delivery schedule. Thank you!',
-          TRUE, NOW());
-      ELSIF NEW.status = 'rejected' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Denied',
-          'We regret to inform you that your food donation has been denied. Please contact us for more details.',
-          TRUE, NOW());
-      ELSIF NEW.status = 'received' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Received',
-          'Your food donation has been successfully received and is now being processed into our inventory. Thank you for your generous contribution!',
-          TRUE, NOW());
-      ELSIF NEW.status = 'cancelled' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'food', 'Food Donation Cancelled',
-          'Your food donation has been cancelled. Please contact us if you have any questions.',
-          TRUE, NOW());
-      END IF;
-    END IF;
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
@@ -311,29 +282,13 @@ db.execute(`
   `)
 ).catch(() => {});
 
-// Trigger: notify donor when admin changes financial donation status
+// Financial donation notifications are sent directly in donationController.js
+// (paymongoWebhook, paymentSuccess, etc.) with proper guards to prevent
+// duplicates. This trigger is kept as a no-op to avoid double-notifications.
 db.execute(`
   CREATE OR REPLACE FUNCTION notify_donor_financial_donation_status()
   RETURNS TRIGGER AS $$
   BEGIN
-    IF NEW.status IS DISTINCT FROM OLD.status THEN
-      IF LOWER(NEW.status) IN ('approved', 'paid', 'completed') THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'financial', 'Financial Donation Confirmed',
-          'Your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been confirmed and received. Thank you for your generous contribution!',
-          TRUE, NOW());
-      ELSIF LOWER(NEW.status) IN ('rejected', 'denied') THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'financial', 'Financial Donation Denied',
-          'We regret to inform you that your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been denied. Please contact us for more details.',
-          TRUE, NOW());
-      ELSIF LOWER(NEW.status) IN ('cancelled', 'failed') THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'financial', 'Financial Donation Cancelled',
-          'Your financial donation of PHP ' || TO_CHAR(NEW.amount, 'FM999,999,999.00') || ' has been cancelled. Please contact us if you have any questions.',
-          TRUE, NOW());
-      END IF;
-    END IF;
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
