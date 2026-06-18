@@ -162,7 +162,7 @@ export default function Login({ navigation }: any) {
             <Text style={styles.subtitle}>Please enter your details</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email or Username</Text>
+              <Text style={styles.label}>Email or Username<Text style={{ color: COLORS.yellow }}> *</Text></Text>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -176,7 +176,7 @@ export default function Login({ navigation }: any) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>Password<Text style={{ color: COLORS.yellow }}> *</Text></Text>
 
               <View style={styles.passwordContainer}>
                 <TextInput
