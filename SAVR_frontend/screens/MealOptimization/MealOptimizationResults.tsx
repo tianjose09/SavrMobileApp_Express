@@ -621,15 +621,6 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                     ))}
                   </>
                 )}
-
-                {/* Recalculate Button */}
-                <TouchableOpacity
-                  style={styles.btnReset}
-                  activeOpacity={0.8}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Text style={styles.btnResetText}>Recalculate New Meal</Text>
-                </TouchableOpacity>
               </>
             )}
 
