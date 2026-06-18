@@ -169,7 +169,7 @@ export default function Profile({ navigation }: any) {
       return;
     }
     if (!newPassword || newPassword.length < 8) {
-      Alert.alert('Weak Password', 'New password must be at least 8 characters.');
+      Alert.alert('Weak Password', 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -178,9 +178,11 @@ export default function Profile({ navigation }: any) {
     }
     setPwLoading(true);
     try {
+      // Step 1: verify OTP — this marks the token as VERIFIED in the DB
+      await ApiService.verifyResetCode({ email: profile?.email, code: otpCode.trim() });
+      // Step 2: reset password — backend checks for VERIFIED token, then hashes and saves
       await ApiService.resetPassword({
         email: profile?.email,
-        code: otpCode.trim(),
         password: newPassword,
         password_confirmation: confirmPassword,
       });
