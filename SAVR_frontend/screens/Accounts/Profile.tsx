@@ -20,7 +20,8 @@ export default function Profile({ navigation }: any) {
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
-  const [otpSentMsg, setOtpSentMsg] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
 
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -144,53 +145,56 @@ export default function Profile({ navigation }: any) {
     setOtpCode('');
     setNewPassword('');
     setConfirmPassword('');
-    setOtpSentMsg('');
+    setPwError('');
+    setPwSuccess(false);
     setShowPasswordModal(false);
   };
 
   const handleSendOtp = async () => {
     const email = profile?.email;
     if (!email) return;
+    setPwError('');
     setPwLoading(true);
     try {
       await ApiService.forgotPassword({ email });
-      setOtpSentMsg('OTP sent to your email.');
       setPasswordStep(2);
+      setPwError('');
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || 'Failed to send OTP. Please try again.');
+      setPwError(e?.response?.data?.message || 'Failed to send OTP. Please try again.');
     } finally {
       setPwLoading(false);
     }
   };
 
   const handleChangePassword = async () => {
+    setPwError('');
     if (!otpCode.trim() || otpCode.length < 6) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit OTP sent to your email.');
+      setPwError('Please enter the 6-digit OTP sent to your email.');
       return;
     }
     if (!newPassword || newPassword.length < 8) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.');
+      setPwError('Password must be at least 8 characters with uppercase, lowercase, a number, and a special character.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Mismatch', 'Passwords do not match.');
+      setPwError('Passwords do not match.');
       return;
     }
     setPwLoading(true);
     try {
-      // Step 1: verify OTP — this marks the token as VERIFIED in the DB
+      // Step 1: verify OTP — marks token as VERIFIED in DB
       await ApiService.verifyResetCode({ email: profile?.email, code: otpCode.trim() });
-      // Step 2: reset password — backend checks for VERIFIED token, then hashes and saves
+      // Step 2: reset password — backend checks VERIFIED token, hashes and saves
       await ApiService.resetPassword({
         email: profile?.email,
         password: newPassword,
         password_confirmation: confirmPassword,
       });
-      Alert.alert('Success', 'Your password has been changed successfully.', [
-        { text: 'OK', onPress: resetPasswordModal },
-      ]);
+      // Show success inside the modal then auto-close after 1.5s
+      setPwSuccess(true);
+      setTimeout(() => resetPasswordModal(), 1500);
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || 'Failed to change password. Check your OTP and try again.');
+      setPwError(e?.response?.data?.message || 'Failed to change password. Check your OTP and try again.');
     } finally {
       setPwLoading(false);
     }
@@ -393,19 +397,27 @@ export default function Profile({ navigation }: any) {
 
               <Text style={styles.modalTitle}>Change Password</Text>
 
-              {passwordStep === 1 ? (
+              {pwSuccess ? (
+                <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                  <Ionicons name="checkmark-circle" size={52} color="#00592d" style={{ marginBottom: 12 }} />
+                  <Text style={[styles.modalTitle, { color: '#00592d' }]}>Password Changed!</Text>
+                  <Text style={styles.modalBody}>Your password has been updated successfully.</Text>
+                </View>
+              ) : passwordStep === 1 ? (
                 <>
                   <Text style={styles.modalBody}>
                     We'll send a 6-digit OTP to{'\n'}
                     <Text style={styles.modalEmail}>{profile?.email}</Text>
                   </Text>
 
+                  {!!pwError && <Text style={styles.inlineError}>{pwError}</Text>}
+
                   <View style={styles.modalBtnRow}>
                     <TouchableOpacity style={styles.modalCancelBtn} onPress={resetPasswordModal}>
                       <Text style={styles.modalCancelText}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.modalPrimaryBtn} onPress={handleSendOtp} disabled={pwLoading}>
-                      {pwLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.modalPrimaryText}>Send OTP</Text>}
+                      {pwLoading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.modalPrimaryText}>Send OTP</Text>}
                     </TouchableOpacity>
                   </View>
                 </>
@@ -421,7 +433,7 @@ export default function Profile({ navigation }: any) {
                     keyboardType="number-pad"
                     maxLength={6}
                     value={otpCode}
-                    onChangeText={setOtpCode}
+                    onChangeText={t => { setOtpCode(t); setPwError(''); }}
                   />
 
                   {/* New Password */}
@@ -432,7 +444,7 @@ export default function Profile({ navigation }: any) {
                       placeholderTextColor="#BDBDBD"
                       secureTextEntry={!showNewPw}
                       value={newPassword}
-                      onChangeText={setNewPassword}
+                      onChangeText={t => { setNewPassword(t); setPwError(''); }}
                     />
                     <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowNewPw(v => !v)}>
                       <Ionicons name={showNewPw ? 'eye-off-outline' : 'eye-outline'} size={20} color="#999" />
@@ -447,21 +459,23 @@ export default function Profile({ navigation }: any) {
                       placeholderTextColor="#BDBDBD"
                       secureTextEntry={!showConfirmPw}
                       value={confirmPassword}
-                      onChangeText={setConfirmPassword}
+                      onChangeText={t => { setConfirmPassword(t); setPwError(''); }}
                     />
                     <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowConfirmPw(v => !v)}>
                       <Ionicons name={showConfirmPw ? 'eye-off-outline' : 'eye-outline'} size={20} color="#999" />
                     </TouchableOpacity>
                   </View>
 
-                  {!!otpSentMsg && <Text style={styles.otpSentMsg}>{otpSentMsg}</Text>}
+                  {!!pwError && <Text style={styles.inlineError}>{pwError}</Text>}
 
                   <View style={styles.modalBtnRow}>
                     <TouchableOpacity style={styles.modalCancelBtn} onPress={resetPasswordModal}>
                       <Text style={styles.modalCancelText}>Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.modalPrimaryBtn} onPress={handleChangePassword} disabled={pwLoading}>
-                      {pwLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.modalPrimaryText}>Change Password</Text>}
+                    <TouchableOpacity style={[styles.modalPrimaryBtn, pwLoading && { opacity: 0.7 }]} onPress={handleChangePassword} disabled={pwLoading}>
+                      {pwLoading
+                        ? <ActivityIndicator color="#FFF" size="small" />
+                        : <Text style={styles.modalPrimaryText}>Change Password</Text>}
                     </TouchableOpacity>
                   </View>
 
@@ -572,7 +586,7 @@ const styles = StyleSheet.create({
   },
   modalInputRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 14 },
   eyeBtn: { position: 'absolute', right: 0, bottom: 14 },
-  otpSentMsg: { color: '#00592d', fontWeight: '700', fontSize: 13, marginBottom: 16 },
+  inlineError: { color: '#C62828', fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 12, lineHeight: 18 },
   modalBtnRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 8, width: '100%' },
   modalCancelBtn: {
     flex: 1, paddingVertical: 13, borderRadius: 30,
