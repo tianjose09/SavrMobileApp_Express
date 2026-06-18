@@ -143,6 +143,14 @@ export default function ServiceDonation({ navigation }: any) {
     setSelectedSkills([]);
   };
 
+  const formatDateString = (d: Date | null) => {
+    if (!d) return 'dd/mm/yyyy';
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     resetForm();
@@ -167,22 +175,22 @@ export default function ServiceDonation({ navigation }: any) {
 
   const handleSubmit = async () => {
     // Basic validation
-    const hasContactDetails = address && firstName && lastName && email;
-    const hasFrequencyDate = frequency && ((frequency !== 'Monthly' && frequency !== 'One-Time') || date);
+    const hasContactDetails = firstName && lastName && email;
+    const hasFrequencyDate = activeTab === 'TRANSPORTATION' ? (startsAt && endsAt) : (frequency && ((frequency !== 'Monthly' && frequency !== 'One-Time') || date));
     const hasTabInfo = (activeTab === 'VOLUNTEER' && headcount.trim() && parseInt(headcount) > 0 && preferredWork) ||
-      (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0 && vehicleType && capacity.trim() && parseInt(capacity) > 0 && maxDistance.trim() && parseFloat(maxDistance) > 0);
+      (activeTab === 'TRANSPORTATION' && quantity.trim() && parseInt(quantity) > 0 && vehicleType && capacity.trim() && parseInt(capacity) > 0);
 
     if (!hasContactDetails || !hasFrequencyDate || !hasTabInfo) {
       Alert.alert('Error', 'Please fill out all fields to submit donation.');
       return;
     }
 
-    if (frequency === 'Weekly' && !dayOfWeek) {
+    if (activeTab === 'VOLUNTEER' && frequency === 'Weekly' && !dayOfWeek) {
       Alert.alert('Error', 'Please select a day of the week for weekly donations.');
       return;
     }
 
-    if (!allDay) {
+    if (!allDay && activeTab === 'VOLUNTEER') {
       if (!startsAt || !endsAt) {
         Alert.alert('Error', 'Please fill out all fields to submit donation.');
         return;
@@ -201,24 +209,39 @@ export default function ServiceDonation({ navigation }: any) {
         Alert.alert('Invalid Time Range', 'End time must be after start time.');
         return;
       }
+    } else if (activeTab === 'TRANSPORTATION') {
+      if (!startsAt || !endsAt) {
+        Alert.alert('Error', 'Please select delivery and return dates.');
+        return;
+      }
+      if (startsAt >= endsAt) {
+        Alert.alert('Invalid Date Range', 'Return date must be after delivery date.');
+        return;
+      }
     }
 
     setIsLoading(true);
     try {
-      const startsAtStr = allDay || !startsAt ? null : formatTimeWithAMPM(startsAt);
-      const endsAtStr = allDay || !endsAt ? null : formatTimeWithAMPM(endsAt);
+      const startsAtStr = activeTab === 'TRANSPORTATION'
+        ? (startsAt ? formatDateString(startsAt) : null)
+        : (allDay || !startsAt ? null : formatTimeWithAMPM(startsAt));
+      const endsAtStr = activeTab === 'TRANSPORTATION'
+        ? (endsAt ? formatDateString(endsAt) : null)
+        : (allDay || !endsAt ? null : formatTimeWithAMPM(endsAt));
 
       const serviceTypeLabel = activeTab === 'TRANSPORTATION' ? 'Transportation' : 'Volunteer Work';
       const payload: any = {
         service_type: serviceTypeLabel,
-        frequency: frequency || 'One-Time',
-        day_of_week: frequency === 'Weekly' ? (dayOfWeek || null) : null,
-        service_date: date ? date.toISOString().split('T')[0] : null,
-        service_time: startsAtStr || 'All Day',
-        all_day: allDay,
+        frequency: activeTab === 'TRANSPORTATION' ? 'One-Time' : (frequency || 'One-Time'),
+        day_of_week: activeTab === 'TRANSPORTATION' ? null : (frequency === 'Weekly' ? (dayOfWeek || null) : null),
+        service_date: activeTab === 'TRANSPORTATION'
+          ? (startsAt ? startsAt.toISOString().split('T')[0] : null)
+          : (date ? date.toISOString().split('T')[0] : null),
+        service_time: activeTab === 'TRANSPORTATION' ? `${startsAtStr} - ${endsAtStr}` : (startsAtStr || 'All Day'),
+        all_day: activeTab === 'TRANSPORTATION' ? false : allDay,
         starts_at: startsAtStr,
         ends_at: endsAtStr,
-        address,
+        address: activeTab === 'TRANSPORTATION' ? 'Transportation' : (address || 'Volunteer'),
         contact_first_name: firstName,
         contact_last_name: lastName,
         contact_email: email,
@@ -227,7 +250,7 @@ export default function ServiceDonation({ navigation }: any) {
           quantity: parseInt(quantity) || 1,
           vehicle_type: vehicleType || null,
           capacity: capacity || null,
-          max_distance: maxDistance || null,
+          max_distance: '0',
           transport_categories: selectedCategories.length > 0 ? selectedCategories : null,
         } : {
           headcount: parseInt(headcount) || 1,
@@ -363,223 +386,10 @@ export default function ServiceDonation({ navigation }: any) {
           {/* BIG GREEN CARD */}
           <View style={styles.greenCard}>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1.5, marginRight: 15 }]}>
-                <Text style={styles.label}>Region Coverage<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <CustomDropdown
-                  selectedValue={address}
-                  onValueChange={setAddress}
-                  placeholder="Select a Region"
-                  items={[
-                    { label: "NCR (Metro Manila)", value: "NCR" },
-                    { label: "Region I (Ilocos)", value: "Region I" },
-                    { label: "Region II (Cagayan Valley)", value: "Region II" },
-                    { label: "Region III (Central Luzon)", value: "Region III" },
-                    { label: "Region IV-A (CALABARZON)", value: "Region IV-A" },
-                    { label: "Region IV-B (MIMAROPA)", value: "Region IV-B" },
-                    { label: "Region V (Bicol)", value: "Region V" },
-                    { label: "Region VI (Western Visayas)", value: "Region VI" },
-                    { label: "Region VII (Central Visayas)", value: "Region VII" },
-                    { label: "Region VIII (Eastern Visayas)", value: "Region VIII" },
-                    { label: "Region IX (Zamboanga)", value: "Region IX" },
-                    { label: "Region X (Northern Mindanao)", value: "Region X" },
-                    { label: "Region XI (Davao)", value: "Region XI" },
-                    { label: "Region XII (SOCCSKSARGEN)", value: "Region XII" },
-                    { label: "Region XIII (Caraga)", value: "Region XIII" },
-                    { label: "BARMM", value: "BARMM" }
-                  ]}
-                  style={styles.inputBox}
-                />
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>
-                  {activeTab === 'TRANSPORTATION' ? 'Quantity' : 'Headcount'}
-                  <Text style={{ color: '#E4B63F' }}> *</Text>
-                </Text>
-                <View style={styles.inputBox}>
-                  <TextInput
-                    style={styles.inputInner}
-                    placeholder="#"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
-                    keyboardType="numeric"
-                    value={activeTab === 'TRANSPORTATION' ? quantity : headcount}
-                    onChangeText={activeTab === 'TRANSPORTATION' ? setQuantity : setHeadcount}
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Row 1: Frequency + Date (if Monthly) */}
-            <View style={[styles.row, { marginBottom: 10 }]}>
-              <View style={[styles.inputGroup, (frequency === 'Monthly' || frequency === 'Weekly' || frequency === 'Daily' || frequency === 'One-Time') ? { flex: 1.5, marginRight: 10 } : { flex: 1 }]}>
-                <Text style={styles.label}>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <CustomDropdown
-                  selectedValue={frequency}
-                  onValueChange={(val) => {
-                    setFrequency(val);
-                    if (val === 'Monthly') {
-                      setDate(null);
-                      setDayOfWeek('');
-                    } else if (val === 'Weekly') {
-                      setDate(null);
-                      setDayOfWeek('');
-                    } else if (val === 'One-Time') {
-                      setDate(null);
-                      setDayOfWeek('');
-                    } else {
-                      setDate(null);
-                      setDayOfWeek('');
-                    }
-                  }}
-                  placeholder="Select Frequency"
-                  disableSort={true}
-                  items={[
-                    { label: "Monthly", value: "Monthly" },
-                    { label: "Weekly", value: "Weekly" },
-                    { label: "Daily", value: "Daily" },
-                    { label: "One-Time", value: "One-Time" }
-                  ]}
-                  style={styles.inputBox}
-                />
-              </View>
-
-              {(frequency === 'Monthly' || frequency === 'One-Time') && (
-                <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                  <Text style={styles.label}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.inputBox,
-                      { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
-                    ]}
-                    onPress={() => {
-                      if (Platform.OS === 'ios') {
-                        setTempDate(date || new Date());
-                        setShowIOSDate(true);
-                      } else {
-                        setDatePickerMode('date');
-                      }
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
-                      {formatDateMMDDYYYY(date)}
-                    </Text>
-                    <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {frequency === 'Weekly' && (
-                <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                  <Text style={styles.label}>Day of Week<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                  <CustomDropdown
-                    selectedValue={dayOfWeek}
-                    onValueChange={setDayOfWeek}
-                    placeholder="Select Day"
-                    disableSort={true}
-                    items={[
-                      { label: "Monday", value: "Monday" },
-                      { label: "Tuesday", value: "Tuesday" },
-                      { label: "Wednesday", value: "Wednesday" },
-                      { label: "Thursday", value: "Thursday" },
-                      { label: "Friday", value: "Friday" },
-                      { label: "Saturday", value: "Saturday" },
-                      { label: "Sunday", value: "Sunday" }
-                    ]}
-                    style={styles.inputBox}
-                  />
-                </View>
-              )}
-
-              {frequency === 'Daily' && (
-                <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                  <Text style={styles.label}>Schedule</Text>
-                  <View style={[styles.inputBox, { justifyContent: 'center', alignItems: 'center' }]}>
-                    <Text style={{ flex: 0, textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: 'rgba(255,255,255,0.9)' }}>
-                      Repeats Every Day
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            {/* All Day checkbox */}
-            <TouchableOpacity
-              style={[styles.checkboxRow, { marginBottom: 15 }]}
-              onPress={() => setAllDay(!allDay)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.checkbox}>
-                {allDay && <Ionicons name="checkmark" size={16} color="#00592d" />}
-              </View>
-              <Text style={styles.checkboxLabel}>All Day</Text>
-            </TouchableOpacity>
-
-            {/* Row 2: Starts At + Ends At */}
-            <View style={[styles.row, { marginBottom: 20 }]}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
-                <Text style={styles.label}>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <TouchableOpacity
-                  style={[
-                    styles.inputBox,
-                    { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
-                    allDay && { opacity: 0.5 }
-                  ]}
-                  onPress={() => {
-                    if (allDay) return;
-                    if (Platform.OS === 'ios') {
-                      const d = startsAt || new Date();
-                      if (!startsAt) d.setHours(8, 0, 0, 0);
-                      setTempStartsAt(d);
-                      setShowIOSStartsAt(true);
-                    } else {
-                      setDatePickerMode('starts_at');
-                    }
-                  }}
-                  disabled={allDay}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
-                    {allDay ? '-- : --' : formatTimeWithAMPM(startsAt)}
-                  </Text>
-                  {!allDay && <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />}
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <TouchableOpacity
-                  style={[
-                    styles.inputBox,
-                    { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
-                    allDay && { opacity: 0.5 }
-                  ]}
-                  onPress={() => {
-                    if (allDay) return;
-                    if (Platform.OS === 'ios') {
-                      const d = endsAt || new Date();
-                      if (!endsAt) d.setHours(17, 0, 0, 0);
-                      setTempEndsAt(d);
-                      setShowIOSEndsAt(true);
-                    } else {
-                      setDatePickerMode('ends_at');
-                    }
-                  }}
-                  disabled={allDay}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
-                    {allDay ? '-- : --' : formatTimeWithAMPM(endsAt)}
-                  </Text>
-                  {!allDay && <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />}
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {activeTab === 'TRANSPORTATION' ? (
-              <View>
-                <View style={[styles.inputGroup, { marginBottom: 15 }]}>
+              <>
+                {/* Row 1: Type of Vehicle */}
+                <View style={[styles.inputGroup, { width: '100%', marginBottom: 15 }]}>
                   <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Type of Vehicle<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                   <CustomDropdown
                     selectedValue={vehicleType}
@@ -608,13 +418,14 @@ export default function ServiceDonation({ navigation }: any) {
                   />
                 </View>
 
-                <View style={styles.row}>
+                {/* Row 2: Capacity (kg), Quantity */}
+                <View style={[styles.row, { marginBottom: 15 }]}>
                   <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
-                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Capacity<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Capacity (kg)<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <View style={styles.inputBox}>
                       <TextInput
                         style={styles.inputInner}
-                        placeholder="##"
+                        placeholder="No."
                         placeholderTextColor="rgba(255,255,255,0.5)"
                         keyboardType="numeric"
                         value={capacity}
@@ -624,44 +435,271 @@ export default function ServiceDonation({ navigation }: any) {
                   </View>
 
                   <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Max Distance<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                    <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center', paddingRight: 10 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Quantity<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <View style={styles.inputBox}>
                       <TextInput
-                        style={[styles.inputInner, { flex: 1 }]}
-                        placeholder="### km"
+                        style={styles.inputInner}
+                        placeholder="Qty."
                         placeholderTextColor="rgba(255,255,255,0.5)"
                         keyboardType="numeric"
-                        value={maxDistance}
-                        onChangeText={setMaxDistance}
+                        value={quantity}
+                        onChangeText={setQuantity}
                       />
-                      {maxDistance.trim().length > 0 && (
-                        <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700', marginLeft: 4 }}>km</Text>
-                      )}
                     </View>
                   </View>
                 </View>
-              </View>
+
+                {/* Row 3: To Deliver At, To Return At */}
+                <View style={[styles.row, { marginBottom: 15 }]}>
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
+                    <Text style={styles.label}>To Deliver At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.inputBox,
+                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
+                      ]}
+                      onPress={() => {
+                        if (Platform.OS === 'ios') {
+                          setTempStartsAt(startsAt || new Date());
+                          setShowIOSStartsAt(true);
+                        } else {
+                          setDatePickerMode('starts_at');
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                        {startsAt ? formatDateString(startsAt) : 'dd/mm/yyyy'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>To Return At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.inputBox,
+                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
+                      ]}
+                      onPress={() => {
+                        if (Platform.OS === 'ios') {
+                          setTempEndsAt(endsAt || new Date());
+                          setShowIOSEndsAt(true);
+                        } else {
+                          setDatePickerMode('ends_at');
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                        {endsAt ? formatDateString(endsAt) : 'dd/mm/yyyy'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
             ) : (
-              <View style={[styles.inputGroup, { width: '100%' }]}>
-                <Text style={styles.label}>Preferred Work<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <CustomDropdown
-                  selectedValue={preferredWork}
-                  onValueChange={setPreferredWork}
-                  placeholder="Select Work Type"
-                  disableSort={true}
-                  items={[
-                    { label: "Cook / Food Prep", value: "Cook / Food Prep" },
-                    { label: "Packing / Sorting", value: "Packing / Sorting" },
-                    { label: "Delivery / Distribution", value: "Delivery / Distribution" },
-                    { label: "Logistics / Warehouse", value: "Logistics / Warehouse" },
-                    { label: "Event / Community Assistance", value: "Event / Community Assistance" },
-                    { label: "Admin / Documentation", value: "Admin / Documentation" },
-                    { label: "Medical Assistance", value: "Medical Assistance" }
-                  ]}
-                  style={styles.inputBox}
-                />
-              </View>
+              <>
+                {/* Row 1: Preferred Work, Headcount */}
+                <View style={[styles.row, { marginBottom: 15 }]}>
+                  <View style={[styles.inputGroup, { flex: 2.5, marginRight: 15 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Preferred Work<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <CustomDropdown
+                      selectedValue={preferredWork}
+                      onValueChange={setPreferredWork}
+                      placeholder="Select Work Type"
+                      disableSort={true}
+                      items={[
+                        { label: "Cook / Food Prep", value: "Cook / Food Prep" },
+                        { label: "Packing / Sorting", value: "Packing / Sorting" },
+                        { label: "Delivery / Distribution", value: "Delivery / Distribution" },
+                        { label: "Logistics / Warehouse", value: "Logistics / Warehouse" },
+                        { label: "Event / Community Assistance", value: "Event / Community Assistance" },
+                        { label: "Admin / Documentation", value: "Admin / Documentation" },
+                        { label: "Medical Assistance", value: "Medical Assistance" }
+                      ]}
+                      style={styles.inputBox}
+                    />
+                  </View>
+
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Headcount<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <View style={styles.inputBox}>
+                      <TextInput
+                        style={styles.inputInner}
+                        placeholder="No."
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        keyboardType="numeric"
+                        value={headcount}
+                        onChangeText={setHeadcount}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </>
             )}
+
+            {activeTab === 'VOLUNTEER' && (
+              <>
+                {/* Row 2: Frequency + Starts At + Ends At */}
+                <View style={[styles.row, { marginBottom: 15 }]}>
+                  <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
+                    <Text style={styles.label}>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <CustomDropdown
+                      selectedValue={frequency}
+                      onValueChange={(val) => {
+                        setFrequency(val);
+                        setDate(null);
+                        setDayOfWeek('');
+                      }}
+                      placeholder="Select Frequency"
+                      disableSort={true}
+                      items={[
+                        { label: "Monthly", value: "Monthly" },
+                        { label: "Weekly", value: "Weekly" },
+                        { label: "Daily", value: "Daily" },
+                        { label: "One-Time", value: "One-Time" }
+                      ]}
+                      style={styles.inputBox}
+                    />
+                  </View>
+
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                    <Text style={styles.label}>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.inputBox,
+                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
+                        allDay && { opacity: 0.5 }
+                      ]}
+                      onPress={() => {
+                        if (allDay) return;
+                        if (Platform.OS === 'ios') {
+                          const d = startsAt || new Date();
+                          if (!startsAt) d.setHours(8, 0, 0, 0);
+                          setTempStartsAt(d);
+                          setShowIOSStartsAt(true);
+                        } else {
+                          setDatePickerMode('starts_at');
+                        }
+                      }}
+                      disabled={allDay}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                        {allDay ? '-- : --' : formatTimeWithAMPM(startsAt)}
+                      </Text>
+                      <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.inputBox,
+                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
+                        allDay && { opacity: 0.5 }
+                      ]}
+                      onPress={() => {
+                        if (allDay) return;
+                        if (Platform.OS === 'ios') {
+                          const d = endsAt || new Date();
+                          if (!endsAt) d.setHours(17, 0, 0, 0);
+                          setTempEndsAt(d);
+                          setShowIOSEndsAt(true);
+                        } else {
+                          setDatePickerMode('ends_at');
+                        }
+                      }}
+                      disabled={allDay}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                        {allDay ? '-- : --' : formatTimeWithAMPM(endsAt)}
+                      </Text>
+                      <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* All Day checkbox */}
+                <TouchableOpacity
+                  style={[styles.checkboxRow, { marginBottom: 15 }]}
+                  onPress={() => setAllDay(!allDay)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.checkbox}>
+                    {allDay && <Ionicons name="checkmark" size={16} color="#00592d" />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>All Day</Text>
+                </TouchableOpacity>
+
+                {/* Conditional Date / Schedule inputs below All Day */}
+                {(frequency === 'Monthly' || frequency === 'One-Time') && (
+                  <View style={[styles.inputGroup, { width: '100%', marginBottom: 15 }]}>
+                    <Text style={styles.label}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.inputBox,
+                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
+                      ]}
+                      onPress={() => {
+                        if (Platform.OS === 'ios') {
+                          setTempDate(date || new Date());
+                          setShowIOSDate(true);
+                        } else {
+                          setDatePickerMode('date');
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                        {formatDateMMDDYYYY(date)}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {frequency === 'Weekly' && (
+                  <View style={[styles.inputGroup, { width: '100%', marginBottom: 15 }]}>
+                    <Text style={styles.label}>Day of Week<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <CustomDropdown
+                      selectedValue={dayOfWeek}
+                      onValueChange={setDayOfWeek}
+                      placeholder="Select Day"
+                      disableSort={true}
+                      items={[
+                        { label: "Monday", value: "Monday" },
+                        { label: "Tuesday", value: "Tuesday" },
+                        { label: "Wednesday", value: "Wednesday" },
+                        { label: "Thursday", value: "Thursday" },
+                        { label: "Friday", value: "Friday" },
+                        { label: "Saturday", value: "Saturday" },
+                        { label: "Sunday", value: "Sunday" }
+                      ]}
+                      style={styles.inputBox}
+                    />
+                  </View>
+                )}
+
+                {frequency === 'Daily' && (
+                  <View style={[styles.inputGroup, { width: '100%', marginBottom: 15 }]}>
+                    <Text style={styles.label}>Schedule</Text>
+                    <View style={[styles.inputBox, { justifyContent: 'center', alignItems: 'center' }]}>
+                      <Text style={{ flex: 0, textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: 'rgba(255,255,255,0.9)' }}>
+                        Repeats Every Day
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+
+
 
             {/* CATEGORIES / SKILLS */}
             <View style={{ marginTop: 5, marginBottom: 20 }}>
@@ -692,30 +730,34 @@ export default function ServiceDonation({ navigation }: any) {
             {/* CONTACT PERSON */}
             <Text style={styles.boldSectionTitle}>Contact Person<Text style={{ color: '#E4B63F' }}> *</Text></Text>
             <View style={styles.row}>
-              <View style={[styles.inputBox, { flex: 1, marginRight: 15 }]}>
-                <TextInput
-                  style={styles.inputInner}
-                  placeholder="Input First Name"
-                  placeholderTextColor="#FFF"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                />
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
+                <View style={styles.inputBox}>
+                  <TextInput
+                    style={styles.inputInner}
+                    placeholder="Input First Name"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                  />
+                </View>
               </View>
-              <View style={[styles.inputBox, { flex: 1 }]}>
-                <TextInput
-                  style={styles.inputInner}
-                  placeholder="Input Last Name"
-                  placeholderTextColor="#FFF"
-                  value={lastName}
-                  onChangeText={setLastName}
-                />
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <View style={styles.inputBox}>
+                  <TextInput
+                    style={styles.inputInner}
+                    placeholder="Input Last Name"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    value={lastName}
+                    onChangeText={setLastName}
+                  />
+                </View>
               </View>
             </View>
             <View style={[styles.inputBox, { marginTop: 15 }]}>
               <TextInput
                 style={styles.inputInner}
                 placeholder="Input Email"
-                placeholderTextColor="#FFF"
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
@@ -734,7 +776,7 @@ export default function ServiceDonation({ navigation }: any) {
                   !description && { fontStyle: 'italic' }
                 ]}
                 placeholder="Input Address / Coverage"
-                placeholderTextColor="#FFF"
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 multiline
                 numberOfLines={4}
                 value={description}
@@ -780,10 +822,14 @@ export default function ServiceDonation({ navigation }: any) {
             datePickerMode === 'date'
               ? (date || new Date())
               : datePickerMode === 'starts_at'
-                ? (startsAt || (() => { const d = new Date(); d.setHours(8, 0, 0, 0); return d; })())
-                : (endsAt || (() => { const d = new Date(); d.setHours(17, 0, 0, 0); return d; })())
+                ? (startsAt || (activeTab === 'TRANSPORTATION' ? new Date() : (() => { const d = new Date(); d.setHours(8, 0, 0, 0); return d; })()))
+                : (endsAt || (activeTab === 'TRANSPORTATION' ? new Date() : (() => { const d = new Date(); d.setHours(17, 0, 0, 0); return d; })()))
           }
-          mode={datePickerMode === 'date' ? 'date' : 'time'}
+          mode={
+            datePickerMode === 'date' || (activeTab === 'TRANSPORTATION' && (datePickerMode === 'starts_at' || datePickerMode === 'ends_at'))
+              ? 'date'
+              : 'time'
+          }
           display="default"
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
@@ -819,11 +865,18 @@ export default function ServiceDonation({ navigation }: any) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowIOSStartsAt(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
-              <Text style={styles.modalTitle}>Select Start Time</Text>
+              <Text style={styles.modalTitle}>{activeTab === 'TRANSPORTATION' ? 'Select Delivery Date' : 'Select Start Time'}</Text>
               <TouchableOpacity onPress={() => { setStartsAt(tempStartsAt); setShowIOSStartsAt(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-              <DateTimePicker value={tempStartsAt} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempStartsAt(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker
+                value={tempStartsAt}
+                mode={activeTab === 'TRANSPORTATION' ? 'date' : 'time'}
+                display="spinner"
+                onChange={(_, d) => { if (d) setTempStartsAt(d); }}
+                style={{ width: '100%', alignSelf: 'center' }}
+                textColor="#1a1a1a"
+              />
             </View>
           </View>
         </View>
@@ -835,11 +888,18 @@ export default function ServiceDonation({ navigation }: any) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowIOSEndsAt(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
-              <Text style={styles.modalTitle}>Select End Time</Text>
+              <Text style={styles.modalTitle}>{activeTab === 'TRANSPORTATION' ? 'Select Return Date' : 'Select End Time'}</Text>
               <TouchableOpacity onPress={() => { setEndsAt(tempEndsAt); setShowIOSEndsAt(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-              <DateTimePicker value={tempEndsAt} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempEndsAt(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker
+                value={tempEndsAt}
+                mode={activeTab === 'TRANSPORTATION' ? 'date' : 'time'}
+                display="spinner"
+                onChange={(_, d) => { if (d) setTempEndsAt(d); }}
+                style={{ width: '100%', alignSelf: 'center' }}
+                textColor="#1a1a1a"
+              />
             </View>
           </View>
         </View>
