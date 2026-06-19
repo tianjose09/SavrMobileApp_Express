@@ -171,12 +171,12 @@ export default function FoodDonationDetails({ navigation, route }: any) {
     }
 
     for (let i = 0; i < items.length; i++) {
-       const item = items[i];
-       if (!item.name.trim() || !item.quantity.trim() || !item.category || !item.unit) {
-         Alert.alert('Error', 'Please fill out all fields to submit donation.');
-         return;
-       }
-     }
+      const item = items[i];
+      if (!item.name.trim() || !item.quantity.trim() || !item.category || !item.unit || !item.expiryDate || !item.photoUri) {
+        Alert.alert('Error', 'Please fill out all fields to submit donation.');
+        return;
+      }
+    }
 
     navigation.navigate('FoodDonationPickup', {
       initialScheduleType: method,
@@ -314,7 +314,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Expiration Date</Text>
+                <Text style={styles.label}>Expiration Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <TouchableOpacity
                   style={styles.dateInput}
                   onPress={() => {
@@ -355,6 +355,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
               </View>
 
               <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                <Text style={styles.label}>Photo<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                 <TouchableOpacity style={styles.uploadBtn} onPress={() => pickImage(item.id)} activeOpacity={0.8}>
                   {item.photoUri ? (
                     <Image
