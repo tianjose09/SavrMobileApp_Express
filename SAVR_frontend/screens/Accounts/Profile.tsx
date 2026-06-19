@@ -320,8 +320,6 @@ export default function Profile({ navigation }: any) {
           <>
             {!!profile?.kitchen_name && <View style={styles.pillBox}><Text style={styles.pillLabel}>Kitchen Name</Text><Text style={styles.pillValue}>{profile.kitchen_name}</Text></View>}
             {!!profile?.contact_person && <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Person</Text><Text style={styles.pillValue}>{profile.contact_person}</Text></View>}
-            {!!profile?.position_role && <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile.position_role}</Text></View>}
-            {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
           </>
         ) : isOrgType ? (
           /* Donor Organization or Beneficiary Organization */
