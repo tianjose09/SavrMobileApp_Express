@@ -142,8 +142,6 @@ export default function EditProfile({ route, navigation }: any) {
             <>
               <Field label="Kitchen Name" value={formData.kitchen_name} onChangeText={(t) => handleChange('kitchen_name', t)} />
               <Field label="Contact Person" value={formData.contact_person} onChangeText={(t) => handleChange('contact_person', t)} />
-              <Field label="Position / Role" value={formData.position_role} onChangeText={(t) => handleChange('position_role', t)} />
-              <Field label="Website URL" value={formData.website_url} onChangeText={(t) => handleChange('website_url', t)} keyboardType="url" />
             </>
           ) : isOrgType ? (
             <>
