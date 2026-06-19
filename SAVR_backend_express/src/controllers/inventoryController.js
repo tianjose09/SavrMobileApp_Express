@@ -55,6 +55,13 @@ db.execute(`
   WHERE category = 'Prepared Meals'
 `).catch(err => console.error('[migration] prepared meals catch-all fix failed:', err.message));
 
+// Any row with unit='meal' must be a Prep Meal — fix stale rows that slipped through.
+db.execute(`
+  UPDATE food_inventory
+  SET meal_type = 'Prep Meal', updated_at = NOW()
+  WHERE LOWER(unit) = 'meal' AND meal_type != 'Prep Meal'
+`).catch(err => console.error('[migration] meal unit fix failed:', err.message));
+
 exports.index = async (req, res) => {
   const [items] = await db.execute(
     "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) AND LOWER(unit) IN ('kg', 'pcs', 'l') ORDER BY food_name"
@@ -94,10 +101,14 @@ exports.store = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Quantity must be at least 0.' });
   }
 
+  const resolvedMealType = (unit || '').toLowerCase() === 'meal'
+    ? 'Prep Meal'
+    : (meal_type || 'Raw Ingredients');
+
   const [result] = await db.execute(
     `INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [food_name, category, quantity, unit, expiration_date || null, meal_type || 'Raw Ingredients']
+    [food_name, category, quantity, unit, expiration_date || null, resolvedMealType]
   );
 
   const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [result.insertId]);
