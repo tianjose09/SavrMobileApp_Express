@@ -22,33 +22,29 @@ db.execute(`
 db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal' WHERE meal_type = 'Prepared Meals'")
   .catch(err => console.error('[migration] meal_type fix failed:', err.message));
 
-// Fix categories for existing prepared-meal rows based on meal name.
-// Runs every startup — safe because it only touches Prep Meal rows.
+// Fix categories for all known prepared-meal rows based on food_name.
+// No meal_type filter — catches donated rows and any other origin.
+// Also stamps meal_type='Prep Meal' so future deduct lookups find them.
 db.execute(`
-  UPDATE food_inventory SET category = 'Grains & Cereals', updated_at = NOW()
-  WHERE meal_type = 'Prep Meal'
-    AND (
-      LOWER(food_name) LIKE '%lugaw%' OR
-      LOWER(food_name) LIKE '%arroz caldo%' OR
-      LOWER(food_name) LIKE '%champorado%' OR
-      LOWER(food_name) LIKE '%sopas%'
-    )
+  UPDATE food_inventory
+  SET category = 'Grains & Cereals', meal_type = 'Prep Meal', updated_at = NOW()
+  WHERE LOWER(food_name) IN ('lugaw','arroz caldo','champorado','sopas')
 `).catch(err => console.error('[migration] grains category fix failed:', err.message));
 
 db.execute(`
-  UPDATE food_inventory SET category = 'Vegetables', updated_at = NOW()
-  WHERE meal_type = 'Prep Meal'
-    AND (
-      LOWER(food_name) LIKE '%munggo%' OR
-      LOWER(food_name) LIKE '%veggie%' OR
-      LOWER(food_name) LIKE '%sotanghon%'
-    )
+  UPDATE food_inventory
+  SET category = 'Vegetables', meal_type = 'Prep Meal', updated_at = NOW()
+  WHERE LOWER(food_name) IN ('munggo guisado','veggie stir-fry','sotanghon soup')
 `).catch(err => console.error('[migration] vegetables category fix failed:', err.message));
 
 db.execute(`
-  UPDATE food_inventory SET category = 'Meat', updated_at = NOW()
-  WHERE meal_type = 'Prep Meal'
-    AND (category IS NULL OR category = 'Prepared Meals')
+  UPDATE food_inventory
+  SET category = 'Meat', meal_type = 'Prep Meal', updated_at = NOW()
+  WHERE LOWER(food_name) IN (
+    'chicken adobo','chicken afritada','giniling','fried chicken',
+    'egg sandwich filling','sardines with vegetables','tuna veggie mix',
+    'sandwich'
+  )
 `).catch(err => console.error('[migration] meat category fix failed:', err.message));
 
 exports.index = async (req, res) => {
