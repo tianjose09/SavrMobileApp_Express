@@ -458,7 +458,7 @@ export default function CreateRequest({ navigation }: any) {
                 <Text style={styles.inputLabel}>Amount of Money Needed (₱) <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="e.g. 5000"
+                  placeholder="₱5000"
                   placeholderTextColor="#A5D1B8"
                   keyboardType="numeric"
                   value={form.financial_amount}
