@@ -129,7 +129,13 @@ export default function MealPreparationSummary({ navigation }: any) {
         </View>
         <View style={styles.paxInfo}>
           <Text style={styles.paxQty}>{item.pax}</Text>
-          <Text style={styles.paxLabel}>{item.pax === 1 ? 'Serving' : 'Servings'}</Text>
+          <Text 
+            style={styles.paxLabel} 
+            numberOfLines={1} 
+            adjustsFontSizeToFit
+          >
+            {item.pax === 1 ? 'Serving' : 'Servings'}
+          </Text>
         </View>
         <TouchableOpacity 
           style={[styles.statusPill, getStatusStyle(item.status)]}
@@ -331,7 +337,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50,
+    width: 70,
   },
   paxQty: {
     fontSize: 18,
