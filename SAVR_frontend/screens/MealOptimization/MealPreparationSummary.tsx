@@ -44,9 +44,17 @@ export default function MealPreparationSummary({ navigation }: any) {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 const expiryDate = tomorrow.toISOString().split('T')[0];
+
+                const nameLower = (meal.mealName || '').toLowerCase();
+                const GRAINS = ['lugaw', 'arroz caldo', 'champorado', 'sopas'];
+                const VEGGIES = ['munggo guisado', 'veggie stir-fry', 'sotanghon soup'];
+                let mealCategory = 'Meat';
+                if (GRAINS.some(m => nameLower.includes(m))) mealCategory = 'Grains & Cereals';
+                else if (VEGGIES.some(m => nameLower.includes(m))) mealCategory = 'Vegetables';
+
                 await ApiService.addInventory({
                   food_name: meal.mealName,
-                  category: 'Prepared Meals',
+                  category: mealCategory,
                   quantity: meal.pax || 1,
                   unit: 'meal',
                   meal_type: 'Prep Meal',
