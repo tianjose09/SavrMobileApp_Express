@@ -24,7 +24,7 @@ db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal' WHERE meal_type = 
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
-    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) ORDER BY food_name"
+    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) AND LOWER(unit) IN ('kg', 'pcs', 'l') ORDER BY food_name"
   );
 
   return res.json({
