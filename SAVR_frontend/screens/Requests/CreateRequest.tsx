@@ -478,7 +478,7 @@ export default function CreateRequest({ navigation }: any) {
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                   <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
                     <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="e.g. 200" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
                   <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                     <Text style={styles.inputLabel}>Age Range</Text>
@@ -581,7 +581,7 @@ export default function CreateRequest({ navigation }: any) {
                 <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                   <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
                     <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="##" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="e.g. 200" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
                   </View>
                   <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                     <Text style={styles.inputLabel}>Age Range</Text>
