@@ -290,11 +290,12 @@ export default function DonorDashboard({ navigation }: any) {
                   transform: [{ translateY: titleTranslateAnim }],
                 }}
               >
-                <Text style={styles.dashboardTitle}>Donor Dashboard</Text>
+                <Text style={styles.dashboardTitle}>Good Day!</Text>
+
+                <Text style={styles.dashboardName}>{userName}</Text>
 
                 <Text style={styles.subtitle}>
-                  Welcome back, <Text style={styles.subtitleBold}>{splitName}!</Text>{' '}
-                  Here’s your activity overview - keep making an impact
+                  Here’s your donor dashboard — keep making an impact!
                 </Text>
               </Animated.View>
 
@@ -698,12 +699,21 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  dashboardName: {
+    textAlign: 'center',
+    color: '#08532F',
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 2,
+    letterSpacing: -0.3,
+  },
+
   subtitle: {
     textAlign: 'center',
     color: '#424242',
     fontSize: 16,
     lineHeight: 22,
-    marginTop: 10,
+    marginTop: 8,
     marginBottom: 25,
     paddingHorizontal: 15,
   },
