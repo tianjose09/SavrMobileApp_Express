@@ -18,11 +18,9 @@ db.execute(`
     ) < (SELECT goal_value FROM badges WHERE id = ub.badge_id)
 `).catch(err => console.error('[migration] badge reset failed:', err.message));
 
-// Ensure all prep meal rows use meal_type='Prep Meal' and category='Prepared Meals'
+// Normalize any legacy rows that still carry meal_type='Prepared Meals' → 'Prep Meal'
 db.execute("UPDATE food_inventory SET meal_type = 'Prep Meal' WHERE meal_type = 'Prepared Meals'")
   .catch(err => console.error('[migration] meal_type fix failed:', err.message));
-db.execute("UPDATE food_inventory SET category = 'Prepared Meals' WHERE category = 'Prep Meal'")
-  .catch(err => console.error('[migration] category fix failed:', err.message));
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
