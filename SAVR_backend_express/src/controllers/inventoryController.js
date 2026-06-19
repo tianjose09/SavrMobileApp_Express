@@ -47,6 +47,14 @@ db.execute(`
   )
 `).catch(err => console.error('[migration] meat category fix failed:', err.message));
 
+// Catch-all: any row still carrying 'Prepared Meals' as category
+// gets defaulted to 'Meat' and meal_type stamped as 'Prep Meal'.
+db.execute(`
+  UPDATE food_inventory
+  SET category = 'Meat', meal_type = 'Prep Meal', updated_at = NOW()
+  WHERE category = 'Prepared Meals'
+`).catch(err => console.error('[migration] prepared meals catch-all fix failed:', err.message));
+
 exports.index = async (req, res) => {
   const [items] = await db.execute(
     "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) AND LOWER(unit) IN ('kg', 'pcs', 'l') ORDER BY food_name"
