@@ -61,6 +61,7 @@ export default function EditProfile({ route, navigation }: any) {
     contact_person: profile.contact_person || '',
     position_role: profile.position_role || '',
     // Shared
+    email: profile.email || '',
     contact_number: (profile.contact_number || '').replace(/^\+63/, ''),
   });
 
@@ -168,6 +169,9 @@ export default function EditProfile({ route, navigation }: any) {
               <Field label="Postal / ZIP Code" value={formData.postal_zip_code} onChangeText={(t) => handleChange('postal_zip_code', t)} keyboardType="number-pad" />
             </>
           )}
+
+          {/* Email — shared by all roles */}
+          <Field label="Email Address" value={formData.email} onChangeText={(t) => handleChange('email', t)} keyboardType="email-address" />
 
           {/* Contact number — shared by all roles */}
           <View style={styles.pillBox}>
