@@ -165,6 +165,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 { label: "Fats & Oils: Non-Perishable", value: "Fats & Oils" },
                 { label: "Fruits: Perishable", value: "Fruits" },
                 { label: "Grains & Cereals: Non-Perishable", value: "Grains & Cereals" },
+                { label: "Liquid Goods: Non-Perishable", value: "Liquid Goods" },
                 { label: "Beverages: Non-Perishable", value: "Beverages" },
                 { label: "Meat: Perishable", value: "Meat" },
                 { label: "Sugars & Sweets: Non-Perishable", value: "Sugars & Sweets" },
