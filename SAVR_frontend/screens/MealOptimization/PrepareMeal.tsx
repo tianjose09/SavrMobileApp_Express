@@ -70,7 +70,7 @@ export default function PrepareMeal({ route, navigation }: any) {
         .map((ing: any) => ({ id: ing.id, qty_used: parseFloat(ing.inputQty) }));
 
       if (deductions.length > 0) {
-        await ApiService.deductInventory({ deductions, meal_name: meal.name });
+        await ApiService.deductInventory({ deductions, meal_name: meal.name, servings: mealPax });
       }
 
       navigation.reset({

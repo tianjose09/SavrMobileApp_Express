@@ -112,12 +112,13 @@ exports.categories = async (req, res) => {
 };
 
 exports.deduct = async (req, res) => {
-  const { deductions, meal_name } = req.body;
+  const { deductions, meal_name, servings } = req.body;
 
   if (!Array.isArray(deductions) || !deductions.length) {
     return res.status(422).json({ success: false, message: 'Deductions array is required.' });
   }
 
+  // Deduct raw ingredients
   for (const deduction of deductions) {
     const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
     const item = rows[0];
@@ -128,7 +129,7 @@ exports.deduct = async (req, res) => {
   }
 
   if (meal_name && req.user) {
-    // Build ingredient summary from deductions
+    // Build ingredient summary
     const ingredientLines = [];
     for (const deduction of deductions) {
       const [rows] = await db.execute('SELECT food_name, unit FROM food_inventory WHERE id = ?', [deduction.id]);
@@ -139,6 +140,26 @@ exports.deduct = async (req, res) => {
     const ingredientSummary = ingredientLines.length > 0
       ? `\n\nIngredients used:\n${ingredientLines.join('\n')}`
       : '';
+
+    // Add the prepared meal to food_inventory as a Prep Meal row.
+    // If a row for this meal already exists, add to its quantity instead.
+    const prepQty = parseFloat(servings) || 1;
+    const [existing] = await db.execute(
+      "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) AND meal_type = 'Prep Meal'",
+      [meal_name]
+    );
+    if (existing.length > 0) {
+      const newQty = parseFloat(existing[0].quantity) + prepQty;
+      await db.execute(
+        "UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?",
+        [newQty, existing[0].id]
+      );
+    } else {
+      await db.execute(
+        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, 'Prepared Meals', ?, 'servings', NULL, 'Prep Meal', NOW(), NOW())",
+        [meal_name, prepQty]
+      );
+    }
 
     const description = `Prepared meal: ${meal_name}${ingredientSummary}`;
 
