@@ -766,7 +766,7 @@ export default function CreateRequest({ navigation }: any) {
                 selectedValue={form.urgency_level}
                 onValueChange={(val) => updateForm('urgency_level', val)}
                 placeholder="Select Level"
-                items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
+                items={[{ label: 'Low', value: 'LOW' }, { label: 'Medium', value: 'MEDIUM' }, { label: 'High', value: 'HIGH' }]}
                 style={[styles.inputBox, { marginBottom: 0 }]}
               />
             </View>
