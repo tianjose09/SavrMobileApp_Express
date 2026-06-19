@@ -381,7 +381,7 @@ export default function OrgDashboard({ navigation }: any) {
                       <Text style={styles.badgesTitle}>Achievement Badges</Text>
                       <TouchableOpacity
                         style={styles.viewAllButton}
-                        onPress={() => navigation.navigate?.('AchievementBadges')}
+                        onPress={() => navigation.navigate?.('Badges')}
                       >
                         <Text style={styles.viewAllText}>View All</Text>
                       </TouchableOpacity>

@@ -55,24 +55,21 @@ export default function Sidebar(props: any) {
 
         {(role === 'donor' || role === 'organization') && (
           <>
+            <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('Donate')}>
+              <View style={styles.iconWrap}><Ionicons name="gift-outline" size={20} color="#1B5B39" /></View>
+              <Text style={styles.navText}>Donate Now</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('Activities')}>
               <View style={styles.iconWrap}><Ionicons name="receipt-outline" size={20} color="#1B5B39" /></View>
               <Text style={styles.navText}>Activity History</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('AchievementBadges')}>
+            <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('Badges')}>
               <View style={styles.iconWrap}><Ionicons name="ribbon-outline" size={20} color="#1B5B39" /></View>
               <Text style={styles.navText}>My Achievements</Text>
             </TouchableOpacity>
           </>
-        )}
-
-        {/* Dynamic Action */}
-        {(role === 'donor' || role === 'organization') && (
-          <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('Donate')}>
-            <View style={styles.iconWrap}><Ionicons name="gift-outline" size={20} color="#1B5B39" /></View>
-            <Text style={styles.navText}>Donate Now</Text>
-          </TouchableOpacity>
         )}
 
         {/* Beneficiary Links */}
