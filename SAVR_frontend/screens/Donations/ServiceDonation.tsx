@@ -545,8 +545,8 @@ export default function ServiceDonation({ navigation }: any) {
               <>
                 {/* Row 2: Frequency + Starts At + Ends At */}
                 <View style={[styles.row, { marginBottom: 15 }]}>
-                  <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
-                    <Text style={styles.label}>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                  <View style={[styles.inputGroup, { flex: 1.8, marginRight: 8 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <CustomDropdown
                       selectedValue={frequency}
                       onValueChange={(val) => {
@@ -566,12 +566,12 @@ export default function ServiceDonation({ navigation }: any) {
                     />
                   </View>
 
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                    <Text style={styles.label}>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                  <View style={[styles.inputGroup, { flex: 1.1, marginRight: 8 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <TouchableOpacity
                       style={[
                         styles.inputBox,
-                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
+                        { paddingLeft: 6, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
                         allDay && { opacity: 0.5 }
                       ]}
                       onPress={() => {
@@ -588,19 +588,23 @@ export default function ServiceDonation({ navigation }: any) {
                       disabled={allDay}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                      <Text
+                        style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 10, paddingRight: 14 }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
                         {allDay ? '-- : --' : formatTimeWithAMPM(startsAt)}
                       </Text>
-                      <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                      <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
                     </TouchableOpacity>
                   </View>
 
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.label}>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                  <View style={[styles.inputGroup, { flex: 1.1 }]}>
+                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <TouchableOpacity
                       style={[
                         styles.inputBox,
-                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
+                        { paddingLeft: 6, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
                         allDay && { opacity: 0.5 }
                       ]}
                       onPress={() => {
@@ -617,10 +621,14 @@ export default function ServiceDonation({ navigation }: any) {
                       disabled={allDay}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
+                      <Text
+                        style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 10, paddingRight: 14 }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
                         {allDay ? '-- : --' : formatTimeWithAMPM(endsAt)}
                       </Text>
-                      <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
+                      <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
                     </TouchableOpacity>
                   </View>
                 </View>
