@@ -197,7 +197,7 @@ exports.deduct = async (req, res) => {
       );
     } else {
       await db.execute(
-        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'servings', NULL, 'Prep Meal', NOW(), NOW())",
+        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'meal', NULL, 'Prep Meal', NOW(), NOW())",
         [meal_name, prepCategory, prepQty]
       );
     }
