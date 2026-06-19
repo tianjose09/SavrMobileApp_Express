@@ -177,16 +177,18 @@ exports.deduct = async (req, res) => {
     else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
 
     // Add the prepared meal to food_inventory as a Prep Meal row.
-    // If a row for this meal already exists, add to its quantity instead.
+    // Search by food_name only (no meal_type filter) so we adopt any existing
+    // row regardless of how it was created (e.g. donated via admin portal with
+    // unit='meal'). This prevents duplicate rows for the same dish.
     const prepQty = parseFloat(servings) || 1;
     const [existing] = await db.execute(
-      "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) AND meal_type = 'Prep Meal'",
+      "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?)",
       [meal_name]
     );
     if (existing.length > 0) {
       const newQty = parseFloat(existing[0].quantity) + prepQty;
       await db.execute(
-        "UPDATE food_inventory SET category = ?, quantity = ?, updated_at = NOW() WHERE id = ?",
+        "UPDATE food_inventory SET category = ?, meal_type = 'Prep Meal', quantity = ?, updated_at = NOW() WHERE id = ?",
         [prepCategory, newQty, existing[0].id]
       );
     } else {
