@@ -141,6 +141,14 @@ exports.deduct = async (req, res) => {
       ? `\n\nIngredients used:\n${ingredientLines.join('\n')}`
       : '';
 
+    // Determine category based on meal name
+    const mealLower = (meal_name || '').toLowerCase();
+    const GRAINS_MEALS = ['lugaw', 'arroz caldo', 'champorado', 'sopas'];
+    const VEGGIE_MEALS = ['munggo guisado', 'veggie stir-fry', 'sotanghon soup'];
+    let prepCategory = 'Meat';
+    if (GRAINS_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Grains & Cereals';
+    else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
+
     // Add the prepared meal to food_inventory as a Prep Meal row.
     // If a row for this meal already exists, add to its quantity instead.
     const prepQty = parseFloat(servings) || 1;
@@ -151,13 +159,13 @@ exports.deduct = async (req, res) => {
     if (existing.length > 0) {
       const newQty = parseFloat(existing[0].quantity) + prepQty;
       await db.execute(
-        "UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?",
-        [newQty, existing[0].id]
+        "UPDATE food_inventory SET category = ?, quantity = ?, updated_at = NOW() WHERE id = ?",
+        [prepCategory, newQty, existing[0].id]
       );
     } else {
       await db.execute(
-        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, 'Prepared Meals', ?, 'servings', NULL, 'Prep Meal', NOW(), NOW())",
-        [meal_name, prepQty]
+        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'servings', NULL, 'Prep Meal', NOW(), NOW())",
+        [meal_name, prepCategory, prepQty]
       );
     }
 
