@@ -71,7 +71,7 @@ export default function Sidebar(props: any) {
         {(role === 'donor' || role === 'organization') && (
           <TouchableOpacity style={styles.navItem} onPress={() => navigateTo('Donate')}>
             <View style={styles.iconWrap}><Ionicons name="gift-outline" size={20} color="#1B5B39" /></View>
-            <Text style={styles.navText}>{role === 'donor' ? 'Donate Now' : 'Request Resources'}</Text>
+            <Text style={styles.navText}>Donate Now</Text>
           </TouchableOpacity>
         )}
 
