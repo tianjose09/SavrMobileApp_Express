@@ -55,6 +55,13 @@ db.execute(`
   WHERE category = 'Prepared Meals'
 `).catch(err => console.error('[migration] prepared meals catch-all fix failed:', err.message));
 
+// Any row with unit='meal' must be a Prep Meal — fix stale rows that slipped through.
+db.execute(`
+  UPDATE food_inventory
+  SET meal_type = 'Prep Meal', updated_at = NOW()
+  WHERE LOWER(unit) = 'meal' AND meal_type != 'Prep Meal'
+`).catch(err => console.error('[migration] meal unit fix failed:', err.message));
+
 exports.index = async (req, res) => {
   const [items] = await db.execute(
     "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) AND LOWER(unit) IN ('kg', 'pcs', 'l') ORDER BY food_name"
@@ -94,10 +101,14 @@ exports.store = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Quantity must be at least 0.' });
   }
 
+  const resolvedMealType = (unit || '').toLowerCase() === 'meal'
+    ? 'Prep Meal'
+    : (meal_type || 'Raw Ingredients');
+
   const [result] = await db.execute(
     `INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [food_name, category, quantity, unit, expiration_date || null, meal_type || 'Raw Ingredients']
+    [food_name, category, quantity, unit, expiration_date || null, resolvedMealType]
   );
 
   const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [result.insertId]);
@@ -180,21 +191,35 @@ exports.deduct = async (req, res) => {
     if (GRAINS_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Grains & Cereals';
     else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
 
-    // Add the prepared meal to food_inventory as a Prep Meal row.
-    // Search by food_name only (no meal_type filter) so we adopt any existing
-    // row regardless of how it was created (e.g. donated via admin portal with
-    // unit='meal'). This prevents duplicate rows for the same dish.
+    // Upsert the prepared meal into food_inventory.
+    // Fetch ALL rows with this food_name, merge quantities into the first,
+    // and delete any duplicates — so only one row ever exists per meal.
     const prepQty = parseFloat(servings) || 1;
-    const [existing] = await db.execute(
-      "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?)",
+    const [allRows] = await db.execute(
+      "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) ORDER BY id ASC",
       [meal_name]
     );
-    if (existing.length > 0) {
-      const newQty = parseFloat(existing[0].quantity) + prepQty;
+
+    if (allRows.length > 0) {
+      const keepRow = allRows[0];
+      // Sum quantities from all duplicate rows and add the new servings
+      const totalExisting = allRows.reduce((sum, r) => sum + parseFloat(r.quantity || 0), 0);
+      const newQty = totalExisting + prepQty;
+
+      // Update the kept row with merged quantity, correct category and meal_type
       await db.execute(
         "UPDATE food_inventory SET category = ?, meal_type = 'Prep Meal', quantity = ?, updated_at = NOW() WHERE id = ?",
-        [prepCategory, newQty, existing[0].id]
+        [prepCategory, newQty, keepRow.id]
       );
+
+      // Delete all duplicate rows (everything except the kept row)
+      if (allRows.length > 1) {
+        const duplicateIds = allRows.slice(1).map(r => r.id);
+        await db.execute(
+          `DELETE FROM food_inventory WHERE id IN (${duplicateIds.map(() => '?').join(',')})`,
+          duplicateIds
+        );
+      }
     } else {
       await db.execute(
         "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'meal', NULL, 'Prep Meal', NOW(), NOW())",
