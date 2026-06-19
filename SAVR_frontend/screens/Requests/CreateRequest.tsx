@@ -792,7 +792,6 @@ export default function CreateRequest({ navigation }: any) {
                 placeholder="Food Category"
                 items={[
                   { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
-                  { label: 'Prepared Meals: Perishable', value: 'Prepared Meals' },
                   { label: 'Beverages: Non-Perishable', value: 'Beverages' }
                 ]}
                 style={styles.fdCatDropdown}
