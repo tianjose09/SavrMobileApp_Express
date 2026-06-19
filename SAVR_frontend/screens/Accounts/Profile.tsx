@@ -372,7 +372,6 @@ export default function Profile({ navigation }: any) {
 
         {/* Change Password */}
         <TouchableOpacity style={styles.changePwWrapper} onPress={() => { resetPasswordModal(); setShowPasswordModal(true); }}>
-          <Ionicons name="lock-closed-outline" size={16} color="#00592d" style={{ marginRight: 8 }} />
           <Text style={styles.changePwText}>Change Password</Text>
         </TouchableOpacity>
 

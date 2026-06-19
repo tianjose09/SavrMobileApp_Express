@@ -1954,11 +1954,27 @@ exports.updateProfile = async (req, res) => {
 };
 
 exports.deleteAccount = async (req, res) => {
+  const uid = req.user.id;
   try {
-    await db.execute('DELETE FROM users WHERE id = ?', [req.user.id]);
+    // Delete child records first to avoid FK constraint failures
+    await db.execute('DELETE FROM notifications          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM activity_logs          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM user_badges            WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM user_push_tokens       WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM food_donation_record_items WHERE food_donation_record_id IN (SELECT id FROM food_donation_records WHERE user_id = ?)', [uid]).catch(() => {});
+    await db.execute('DELETE FROM food_donation_records  WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM service_donations_inventory WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM service_donation_records WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM financial_donation_records WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM beneficiary_requests   WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM donors                 WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM beneficiaries          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM organizations          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM partner_kitchens       WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM users                  WHERE id      = ?', [uid]);
     return res.json({ success: true, message: 'Account deleted.' });
   } catch (error) {
     console.error('Error deleting account:', error);
-    return res.status(500).json({ success: false, message: 'Failed to delete account. Please ensure all related records are cleared or contact support.' });
+    return res.status(500).json({ success: false, message: 'Failed to delete account. Please try again.' });
   }
 };
