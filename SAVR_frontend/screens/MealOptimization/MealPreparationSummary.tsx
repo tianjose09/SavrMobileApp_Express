@@ -124,7 +124,7 @@ export default function MealPreparationSummary({ navigation }: any) {
           </TouchableOpacity>
         )}
         <View style={styles.mealInfo}>
-          <Text style={styles.mealName}>{item.mealName}</Text>
+          <Text style={styles.mealName} numberOfLines={2}>{item.mealName}</Text>
           <Text style={styles.ingredients} numberOfLines={1}>{item.ingredients}</Text>
         </View>
         <View style={styles.paxInfo}>
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     color: '#156133',
   },
   checkboxContainer: {
-    marginRight: 12,
+    marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 4,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
   deleteBtn: {
     position: 'absolute',
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   mealName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: '#156133',
     marginBottom: 4,
@@ -328,10 +328,10 @@ const styles = StyleSheet.create({
     color: '#84938a',
   },
   paxInfo: {
-    marginRight: 16,
+    marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 70,
+    width: 50,
   },
   paxQty: {
     fontSize: 18,
@@ -339,15 +339,15 @@ const styles = StyleSheet.create({
     color: '#156133',
   },
   paxLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#6c7c73',
   },
   statusPill: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     borderRadius: 999,
-    minWidth: 100,
+    minWidth: 80,
     alignItems: 'center',
   },
   statusText: {
