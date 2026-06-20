@@ -53,8 +53,6 @@ export default function DonorDashboard({ navigation }: any) {
   const badgesFadeAnim = useRef(new Animated.Value(0)).current;
   const badgesTranslateAnim = useRef(new Animated.Value(22)).current;
 
-  const nextBadgeFadeAnim = useRef(new Animated.Value(0)).current;
-  const nextBadgeTranslateAnim = useRef(new Animated.Value(22)).current;
 
   const runEntryAnimations = () => {
     if (hasAnimated.current) return;
@@ -86,10 +84,7 @@ export default function DonorDashboard({ navigation }: any) {
         Animated.timing(badgesFadeAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
         Animated.spring(badgesTranslateAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
       ]),
-      Animated.parallel([
-        Animated.timing(nextBadgeFadeAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
-        Animated.spring(nextBadgeTranslateAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
-      ]),
+
     ]).start();
   };
 
@@ -176,28 +171,15 @@ export default function DonorDashboard({ navigation }: any) {
   // Total donations made = food + financial count + service (all categories)
   const totalDonationsMade = totalFoodDonations + totalFinancialCount + totalServiceDonations;
 
-  // Progress bar: 0 to 100 donations
-  const MILESTONE = 100;
-  const goalStart = 0;
-  const goalEnd = MILESTONE;
+  const nextBadgeGoal = nextBadge ? parseFloat(nextBadge.goal_value) || 0 : 0;
+  const nextBadgeAmount = nextBadge ? parseFloat(nextBadge.progress) || 0 : 0;
+  const nextBadgePct = nextBadgeGoal > 0
+    ? Math.max(0, Math.min((nextBadgeAmount / nextBadgeGoal) * 100, 100))
+    : 100;
 
-  const progressPct = Math.max(
-    0,
-    Math.min((totalDonationsMade / MILESTONE) * 100, 100)
-  );
+  // Progress bar uses badge milestone; if all badges earned show full bar
+  const progressPct = nextBadgePct;
 
-  const nextBadgeGoal = nextBadge ? parseFloat(nextBadge.goal_value) || 0 : 100000;
-  const nextBadgeAmount = nextBadge ? parseFloat(nextBadge.progress) || 0 : donationAmount;
-  const nextBadgePct = Math.max(
-    0,
-    Math.min((nextBadgeAmount / nextBadgeGoal) * 100, 100)
-  );
-
-  const isFinancial = nextBadge && nextBadge.goal_type === 'financial_total';
-
-  const formatBadgeValue = (val: number) => {
-    return val.toLocaleString('en-US', { maximumFractionDigits: 0 });
-  };
 
   const handleSupportDrive = (drive: any) => {
     const type = (drive.type || 'Food').toLowerCase();
@@ -325,9 +307,11 @@ export default function DonorDashboard({ navigation }: any) {
 
                   <View style={styles.progressLabels}>
                     <Text style={styles.currentLabel}>
-                      {totalDonationsMade} / 100 donations
+                      {nextBadge ? nextBadgeAmount : totalDonationsMade} donations
                     </Text>
-                    <Text style={styles.goalLabel}>100</Text>
+                    <Text style={styles.goalLabel} numberOfLines={1}>
+                      {nextBadge ? `${nextBadgeGoal} donations · ${nextBadge.name}` : 'All badges earned!'}
+                    </Text>
                   </View>
                 </View>
               </Animated.View>
@@ -518,57 +502,6 @@ export default function DonorDashboard({ navigation }: any) {
                 </ScrollView>
               </Animated.View>
 
-              {nextBadge && (
-                <Animated.View
-                  style={{
-                    opacity: nextBadgeFadeAnim,
-                    transform: [{ translateY: nextBadgeTranslateAnim }],
-                  }}
-                >
-                  <View style={styles.nextBadgeSection}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <Text style={styles.nextBadgeTitle}>Next Badge Goal</Text>
-                      <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}> NOT YET EARNED</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.nextBadgeCard}>
-                      {/* Locked badge image with overlay */}
-                      <View style={{ position: 'relative', marginRight: 14 }}>
-                        <Image
-                          source={BADGE_IMAGES[nextBadge.icon]}
-                          style={[styles.nextBadgeImage, { opacity: 0.25 }]}
-                          resizeMode="contain"
-                        />
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-                          <FontAwesome5 name="lock" size={22} color="#8A8A8A" />
-                        </View>
-                      </View>
-
-                      <View style={styles.nextBadgeTextWrap}>
-                        <Text style={styles.nextBadgeName}>{nextBadge.name}</Text>
-                        <Text style={styles.nextBadgeDesc}>
-                          {nextBadge.description}
-                        </Text>
-
-                        <View style={styles.nextProgressBar}>
-                          <View
-                            style={[
-                              styles.nextProgressFill,
-                              { width: `${nextBadgePct}%` },
-                            ]}
-                          />
-                        </View>
-
-                        <Text style={styles.nextProgressText}>
-                          {isFinancial ? '₱ ' : ''}{formatBadgeValue(nextBadgeAmount)} / {isFinancial ? '₱ ' : ''}{formatBadgeValue(nextBadgeGoal)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </Animated.View>
-              )}
 
             </Animated.View>
           </ScrollView>
@@ -945,75 +878,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  nextBadgeSection: {
-    marginTop: 18,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 35,
-  },
-
-  nextBadgeTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#5B4A35',
-    marginBottom: 14,
-  },
-
-  nextBadgeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  nextBadgeImage: {
-    width: 90,
-    height: 90,
-  },
-
-  nextBadgeTextWrap: {
-    flex: 1,
-  },
-
-  nextBadgeName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#3F3328',
-    marginBottom: 4,
-  },
-
-  nextBadgeDesc: {
-    fontSize: 12,
-    color: '#7A7A7A',
-    lineHeight: 17,
-    marginBottom: 12,
-  },
-
-  nextProgressBar: {
-    width: '100%',
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: '#E5E5E5',
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-
-  nextProgressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: '#D1AC22',
-  },
-
-  nextProgressText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#00592d',
-  },
 
   drivesScroll: {
     paddingRight: 16,
