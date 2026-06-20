@@ -296,7 +296,7 @@ export default function DonorDashboard({ navigation }: any) {
                   </View>
 
                   <Text style={styles.totalAmount}>
-                    {totalDonationsMade.toLocaleString('en-US')}
+                    {(nextBadge ? nextBadgeAmount : totalFoodDonations).toLocaleString('en-US')}
                   </Text>
 
                   {/* Progress bar: flex-based for reliable RN rendering */}
@@ -306,10 +306,10 @@ export default function DonorDashboard({ navigation }: any) {
                   </View>
 
                   <View style={styles.progressLabels}>
-                    <Text style={styles.currentLabel}>
-                      {nextBadge ? nextBadgeAmount : totalDonationsMade} donations
+                    <Text style={styles.currentLabel} numberOfLines={1}>
+                      {nextBadge ? nextBadgeAmount : totalFoodDonations} donations
                     </Text>
-                    <Text style={styles.goalLabel} numberOfLines={1}>
+                    <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
                       {nextBadge ? `${nextBadgeGoal} donations · ${nextBadge.name}` : 'All badges earned!'}
                     </Text>
                   </View>
@@ -709,18 +709,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 2,
+    marginTop: 4,
   },
 
   currentLabel: {
+    flex: 1,
     color: '#00592d',
     fontSize: 12,
     fontWeight: '800',
+    textAlign: 'left',
   },
 
   goalLabel: {
+    flex: 2,
     color: '#8D8D8D',
     fontSize: 12,
     fontWeight: '800',
+    textAlign: 'right',
   },
 
   statsRow: {
