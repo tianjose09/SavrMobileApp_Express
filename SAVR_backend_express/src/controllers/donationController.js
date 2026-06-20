@@ -633,7 +633,9 @@ exports.submitFood = async (req, res) => {
         : dayjs().add(30, 'day').format('YYYY-MM-DD');
 
     let photoPath = null;
-    const toUrlPath = (file) => `storage/donations/food/${file.filename}`;
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const baseUrl = process.env.APP_URL || `${proto}://${req.get('host')}`;
+    const toUrlPath = (file) => `${baseUrl}/storage/donations/food/${file.filename}`;
     const photoFilename = item.photo_filename || item.photoFilename;
     if (photoFilename) {
       const matchedFile = files.find(f => f.originalname === photoFilename || f.originalname.endsWith(photoFilename));
