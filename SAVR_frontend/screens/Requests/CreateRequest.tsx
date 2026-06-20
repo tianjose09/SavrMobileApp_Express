@@ -6,10 +6,11 @@ import {
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
 import NotificationBell from '../../components/NotificationBell';
-import { usePhilippineAddress } from '../../hooks/usePhilippineAddress';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
@@ -80,9 +81,9 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
 const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
 const CATEGORY_UNIT_MAP: Record<string, string> = {
-  'Canned Goods':    'pcs',
-  'Prepared Meals':  'meal',
-  'Beverages':       'L',
+  'Canned Goods': 'pcs',
+  'Prepared Meals': 'meal',
+  'Beverages': 'L',
 };
 
 function getAllowedUnits(category: string | null): string[] {
@@ -103,18 +104,16 @@ export default function CreateRequest({ navigation }: any) {
   const [endDateObj, setEndDateObj] = useState(new Date());
   const isSubmitting = useRef(false);
 
-  const {
-    provinces,
-    cities,
-    barangays,
-    handleProvinceChange,
-    handleCityChange,
-    isLoadingProvinces,
-    isLoadingCities,
-    isLoadingBarangays
-  } = usePhilippineAddress();
-
-  const [selectedProvince, setSelectedProvince] = useState('');
+  const [location, setLocation] = useState({
+    latitude: 14.4445, // roughly Las Pinas
+    longitude: 120.9842,
+    latitudeDelta: 0.0422,
+    longitudeDelta: 0.0221,
+  });
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  const mapRef = useRef<MapView>(null);
+  const isProgrammaticMove = useRef(false);
 
   // Food request details state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -139,6 +138,70 @@ export default function CreateRequest({ navigation }: any) {
 
   const updateForm = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
+  const geocodeAddress = async (address: string) => {
+    if (!address.trim()) return;
+    setIsGeocoding(true);
+    try {
+      const results = await Location.geocodeAsync(address);
+      if (results.length > 0) {
+        const { latitude, longitude } = results[0];
+        const newRegion = { latitude, longitude, latitudeDelta: 0.0422, longitudeDelta: 0.0221 };
+        isProgrammaticMove.current = true;
+        setLocation(newRegion);
+        mapRef.current?.animateToRegion(newRegion, 800);
+      } else {
+        Alert.alert('Address Not Found', 'Could not locate that address. Try adding more detail (city, country).');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to locate the address. Check your connection and try again.');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    setIsReverseGeocoding(true);
+    try {
+      const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (place) {
+        const parts = [place.streetNumber, place.street, place.district, place.city, place.region, place.country]
+          .filter(Boolean);
+        const fullAddr = parts.join(', ');
+        updateForm('street', fullAddr);
+        updateForm('barangay', place.district || place.street || 'Manual');
+        updateForm('city_municipality', place.city || place.subregion || 'Manual');
+        updateForm('postal_zip_code', place.postalCode || '');
+      }
+    } catch { }
+    finally {
+      setIsReverseGeocoding(false);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      try {
+        let loc = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = loc.coords;
+        setLocation(prev => ({ ...prev, latitude, longitude }));
+
+        const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (place) {
+          const parts = [place.streetNumber, place.street, place.city, place.region, place.country]
+            .filter(Boolean);
+          const fullAddr = parts.join(', ');
+          updateForm('street', fullAddr);
+          updateForm('barangay', place.district || place.street || 'Manual');
+          updateForm('city_municipality', place.city || place.subregion || 'Manual');
+          updateForm('postal_zip_code', place.postalCode || '');
+        }
+      } catch (e) { }
+    })();
+  }, []);
+
   const resetForm = () => {
     setForm({
       title: '', financial_amount: '', population: '',
@@ -150,7 +213,6 @@ export default function CreateRequest({ navigation }: any) {
     setSelectedCategory(null);
     setSelectedFoodName('');
     setItemQty('');
-    setSelectedProvince('');
     setDateObj(new Date());
     setEndDateObj(new Date());
     isSubmitting.current = false;
@@ -170,7 +232,6 @@ export default function CreateRequest({ navigation }: any) {
     setSelectedCategory(null);
     setSelectedFoodName('');
     setItemQty('');
-    setSelectedProvince('');
     setRefreshing(false);
   };
 
@@ -452,6 +513,15 @@ export default function CreateRequest({ navigation }: any) {
               onChangeText={(val) => updateForm('title', val)}
             />
 
+            <Text style={styles.inputLabel}>Urgency Level <Text style={{ color: '#E8A835' }}>*</Text></Text>
+            <CustomDropdown
+              selectedValue={form.urgency_level}
+              onValueChange={(val) => updateForm('urgency_level', val)}
+              placeholder="Select Level"
+              items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
+              style={[styles.inputBox, { marginBottom: 18 }]}
+            />
+
             {/* ── Conditional form layout: Financial vs Food ── */}
             {requestType === 'financial' ? (
               <View>
@@ -526,54 +596,6 @@ export default function CreateRequest({ navigation }: any) {
                   value={form.account_number}
                   onChangeText={(val) => updateForm('account_number', val)}
                 />
-
-                {/* Address */}
-                <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <View style={{ marginBottom: 10 }}>
-                  <CustomDropdown
-                    selectedValue={selectedProvince}
-                    onValueChange={(val) => {
-                      setSelectedProvince(val);
-                      handleProvinceChange(val);
-                      updateForm('city_municipality', '');
-                      updateForm('barangay', '');
-                    }}
-                    placeholder={isLoadingProvinces ? "Loading Provinces..." : "Select Province / Region"}
-                    items={provinces}
-                    style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
-                    placeholderTextColor="#A5D1B8"
-                  />
-                </View>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 10 }]}>
-                  <View style={{ flex: 1.2, marginRight: 6 }}>
-                    <CustomDropdown
-                      selectedValue={form.city_municipality}
-                      onValueChange={(val) => {
-                        updateForm('city_municipality', val);
-                        handleCityChange(val);
-                        updateForm('barangay', '');
-                      }}
-                      placeholder={isLoadingCities ? "Loading..." : "City/Municipality"}
-                      items={cities}
-                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
-                      placeholderTextColor="#A5D1B8"
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <CustomDropdown
-                      selectedValue={form.barangay}
-                      onValueChange={(val) => updateForm('barangay', val)}
-                      placeholder={isLoadingBarangays ? "Loading..." : "Barangay"}
-                      items={barangays}
-                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
-                      placeholderTextColor="#A5D1B8"
-                    />
-                  </View>
-                </View>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="ZIP" placeholderTextColor="#A5D1B8" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
-                </View>
               </View>
             ) : (
               <View>
@@ -592,60 +614,57 @@ export default function CreateRequest({ navigation }: any) {
                     </View>
                   </View>
                 </View>
-
-                {/* Address */}
-                <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <View style={{ marginBottom: 10 }}>
-                  <CustomDropdown
-                    selectedValue={selectedProvince}
-                    onValueChange={(val) => {
-                      setSelectedProvince(val);
-                      handleProvinceChange(val);
-                      updateForm('city_municipality', '');
-                      updateForm('barangay', '');
-                    }}
-                    placeholder={isLoadingProvinces ? "Loading Provinces..." : "Select Province / Region"}
-                    items={provinces}
-                    style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
-                    placeholderTextColor="#A5D1B8"
-                  />
-                </View>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 10 }]}>
-                  <View style={{ flex: 1.2, marginRight: 6 }}>
-                    <CustomDropdown
-                      selectedValue={form.city_municipality}
-                      onValueChange={(val) => {
-                        updateForm('city_municipality', val);
-                        handleCityChange(val);
-                        updateForm('barangay', '');
-                      }}
-                      placeholder={isLoadingCities ? "Loading..." : "City/Municipality"}
-                      items={cities}
-                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
-                      placeholderTextColor="#A5D1B8"
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <CustomDropdown
-                      selectedValue={form.barangay}
-                      onValueChange={(val) => updateForm('barangay', val)}
-                      placeholder={isLoadingBarangays ? "Loading..." : "Barangay"}
-                      items={barangays}
-                      style={StyleSheet.flatten([styles.inputBox, { marginBottom: 0, height: 42, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', color: '#FFFFFF' }])}
-                      placeholderTextColor="#A5D1B8"
-                    />
-                  </View>
-                </View>
-                <View style={[styles.rowInputsNoMargin, { marginBottom: 18 }]}>
-                  <TextInput style={[styles.inputBox, { flex: 1.5, marginRight: 6, marginBottom: 0 }]} placeholder="Street" placeholderTextColor="#A5D1B8" value={form.street} onChangeText={(val) => updateForm('street', val)} />
-                  <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="ZIP Code" placeholderTextColor="#A5D1B8" keyboardType="numeric" value={form.postal_zip_code} onChangeText={(val) => updateForm('postal_zip_code', val)} />
-                </View>
               </View>
             )}
 
-            {/* Start & End Date */}
+            {/* Address / Coverage Row */}
+            <View style={{ marginBottom: 18 }}>
+              <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
+              <TextInput
+                style={[styles.inputBox, { height: undefined, minHeight: 42, paddingVertical: 8 }]}
+                multiline={true}
+                blurOnSubmit={true}
+                placeholder="Street, Barangay, City"
+                placeholderTextColor="#A5D1B8"
+                value={form.street}
+                onChangeText={(val) => {
+                  updateForm('street', val);
+                  updateForm('barangay', val ? (form.barangay || 'Manual') : '');
+                  updateForm('city_municipality', val ? (form.city_municipality || 'Manual') : '');
+                }}
+                onSubmitEditing={() => geocodeAddress(form.street)}
+                returnKeyType="search"
+              />
+            </View>
+
+            {/* Google Map */}
+            <View style={styles.mapContainer}>
+              <MapView
+                ref={mapRef}
+                provider={PROVIDER_GOOGLE}
+                style={styles.map}
+                region={location}
+                scrollEnabled={true}
+                zoomEnabled={true}
+                pitchEnabled={true}
+                rotateEnabled={true}
+                onRegionChangeComplete={(reg) => {
+                  setLocation(reg);
+                  if (isProgrammaticMove.current) {
+                    isProgrammaticMove.current = false;
+                  } else {
+                    reverseGeocode(reg.latitude, reg.longitude);
+                  }
+                }}
+              />
+              <View pointerEvents="none" style={styles.markerFixed}>
+                <Ionicons name="location" size={40} color="red" />
+              </View>
+            </View>
+
+            {/* Dates Row */}
             <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
+              <View style={{ flex: 1, marginRight: 10 }}>
                 <Text style={styles.inputLabel}>Start Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TouchableOpacity
                   style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
@@ -656,7 +675,7 @@ export default function CreateRequest({ navigation }: any) {
                   activeOpacity={0.8}
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }}>
+                    <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {form.needed_date || 'mm/dd/yyyy'}
                     </Text>
                     <Ionicons name="calendar-outline" size={16} color="#FFF" />
@@ -675,7 +694,7 @@ export default function CreateRequest({ navigation }: any) {
                   activeOpacity={0.8}
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: form.end_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }}>
+                    <Text style={{ color: form.end_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {form.end_date || 'mm/dd/yyyy'}
                     </Text>
                     <Ionicons name="calendar-outline" size={16} color="#FFF" />
@@ -758,18 +777,6 @@ export default function CreateRequest({ navigation }: any) {
                 </View>
               </View>
             </Modal>
-
-            {/* Urgency */}
-            <View style={{ marginBottom: 0 }}>
-              <Text style={styles.inputLabel}>Urgency Level <Text style={{ color: '#E8A835' }}>*</Text></Text>
-              <CustomDropdown
-                selectedValue={form.urgency_level}
-                onValueChange={(val) => updateForm('urgency_level', val)}
-                placeholder="Select Level"
-                items={[{ label: 'Low', value: 'LOW' }, { label: 'Medium', value: 'MEDIUM' }, { label: 'High', value: 'HIGH' }]}
-                style={[styles.inputBox, { marginBottom: 0 }]}
-              />
-            </View>
           </View>
 
           {/* ── Food Details Card (outside green card) ── */}
@@ -1053,5 +1060,26 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginLeft: 2,
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#71A987',
+    marginBottom: 18,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  map: {
+    flex: 1,
+  },
+  markerFixed: {
+    left: '50%',
+    top: '50%',
+    position: 'absolute',
+    marginLeft: -20,
+    marginTop: -40,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
 });
