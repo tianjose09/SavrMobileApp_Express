@@ -94,7 +94,9 @@ export const ApiService = {
 
   // Food Donation
   submitFoodDonation: (formData: FormData) =>
-    api.post('api/donation/food', formData),
+    api.post('api/donation/food', formData, {
+      headers: { 'Content-Type': undefined },
+    }),
   submitSchedule: (data: any) => api.post('api/donation/schedule', data),
 
   // Service Donation
