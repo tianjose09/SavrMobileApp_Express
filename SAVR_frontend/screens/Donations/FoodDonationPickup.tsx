@@ -204,9 +204,10 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       // Use plain 'food_images' field name (not indexed) so multer .array() picks them up
       foodItems.forEach((item: any) => {
         if (item.photoUri) {
-          const filename = item.photoUri.split('/').pop() || `food_photo.jpg`;
+          let filename = item.photoUri.split('/').pop() || `food_photo.jpg`;
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image/jpeg`;
+          if (!match) filename = `${filename}.jpg`;
           // @ts-ignore
           formData.append('food_images', { uri: item.photoUri, name: filename, type });
         }
