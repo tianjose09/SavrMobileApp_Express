@@ -30,6 +30,7 @@ export default function DonorDashboard({ navigation }: any) {
   const [totalServiceDonations, setTotalServiceDonations] = useState(0);
   const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
   const [nextBadge, setNextBadge] = useState<any>(null);
+  const [nextFoodBadge, setNextFoodBadge] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ongoingDrives, setOngoingDrives] = useState<any[]>([]);
   const hasAnimated = useRef(false);
@@ -145,6 +146,12 @@ export default function DonorDashboard({ navigation }: any) {
         const next = (badgesRes.data.in_progress || [])[0]
           || (badgesRes.data.all || []).find((b: any) => b.status === 'not_started');
         setNextBadge(next || null);
+        // Food-specific badge for the progress bar (never replaced by financial/service)
+        const allBadges = badgesRes.data.all || [];
+        const inProgress = badgesRes.data.in_progress || [];
+        const nextFood = inProgress.find((b: any) => b.goal_type === 'food_count')
+          || allBadges.find((b: any) => b.goal_type === 'food_count' && b.status !== 'earned');
+        setNextFoodBadge(nextFood || null);
       }
 
       try {
@@ -171,14 +178,13 @@ export default function DonorDashboard({ navigation }: any) {
   // Total donations made = food + financial count + service (all categories)
   const totalDonationsMade = totalFoodDonations + totalFinancialCount + totalServiceDonations;
 
-  const nextBadgeGoal = nextBadge ? parseFloat(nextBadge.goal_value) || 0 : 0;
-  const nextBadgeAmount = nextBadge ? parseFloat(nextBadge.progress) || 0 : 0;
-  const nextBadgePct = nextBadgeGoal > 0
+  // Progress bar is always food-donation focused
+  const nextBadgeGoal = nextFoodBadge ? parseFloat(nextFoodBadge.goal_value) || 0 : 0;
+  const nextBadgeAmount = nextFoodBadge ? parseFloat(nextFoodBadge.progress) || 0 : 0;
+  const nextBadgeName = nextFoodBadge?.name || '';
+  const progressPct = nextBadgeGoal > 0
     ? Math.max(0, Math.min((nextBadgeAmount / nextBadgeGoal) * 100, 100))
     : 100;
-
-  // Progress bar uses badge milestone; if all badges earned show full bar
-  const progressPct = nextBadgePct;
 
 
   const handleSupportDrive = (drive: any) => {
@@ -310,7 +316,7 @@ export default function DonorDashboard({ navigation }: any) {
                       {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
-                      {nextBadge ? `${nextBadgeGoal} donations · ${nextBadge.name}` : 'All badges earned!'}
+                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
                     </Text>
                   </View>
                 </View>
