@@ -94,7 +94,6 @@ export default function FoodDonationDetails({ navigation, route }: any) {
       { label: 'Sugars & Sweets: Non-Perishable', value: 'Sugars & Sweets' },
       { label: 'Protein Alternatives: Both', value: 'Protein Alternatives' },
       { label: 'Vegetables: Perishable', value: 'Vegetables' },
-      { label: 'Meals: Perishable', value: 'Meals' },
     ];
     ApiService.getInventoryCategories()
       .then(res => {

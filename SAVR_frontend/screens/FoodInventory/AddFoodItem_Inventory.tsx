@@ -62,17 +62,20 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
       return;
     }
 
-    if (expiryText) {
-      const entered = new Date(expiryText);
-      entered.setHours(0, 0, 0, 0);
-      if (isNaN(entered.getTime())) {
-        Alert.alert('Invalid Date', 'Please enter a valid expiration date (YYYY-MM-DD).');
-        return;
-      }
-      if (entered < today) {
-        Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
-        return;
-      }
+    if (!expiryText) {
+      Alert.alert('Required', 'Please enter the expiration date.');
+      return;
+    }
+
+    const entered = new Date(expiryText);
+    entered.setHours(0, 0, 0, 0);
+    if (isNaN(entered.getTime())) {
+      Alert.alert('Invalid Date', 'Please enter a valid expiration date (YYYY-MM-DD).');
+      return;
+    }
+    if (entered < today) {
+      Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
+      return;
     }
 
     setIsSubmitting(true);
@@ -137,7 +140,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
         <View style={styles.card}>
 
           <View style={styles.inputGroupOuter}>
-            <Text style={styles.label}>Food Item Name</Text>
+            <Text style={styles.label}>Food Item Name <Text style={{ color: '#F5B922' }}>*</Text></Text>
             <TextInput
               style={styles.input}
               placeholder="e.g., Rice, Canned Goods, Vegetables"
@@ -148,7 +151,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
           </View>
 
           <View style={styles.inputGroupOuter}>
-            <Text style={styles.label}>Category</Text>
+            <Text style={styles.label}>Category <Text style={{ color: '#F5B922' }}>*</Text></Text>
             <CustomDropdown
               selectedValue={category}
               onValueChange={(val) => {
@@ -178,7 +181,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
 
           <View style={styles.row}>
             <View style={[styles.inputGroupOuter, { flex: 1, marginRight: 15 }]}>
-              <Text style={styles.label}>Quantity</Text>
+              <Text style={styles.label}>Quantity <Text style={{ color: '#F5B922' }}>*</Text></Text>
               <TextInput
                 style={styles.input}
                 placeholder="10"
@@ -190,7 +193,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
             </View>
 
             <View style={[styles.inputGroupOuter, { flex: 1 }]}>
-              <Text style={styles.label}>Unit</Text>
+              <Text style={styles.label}>Unit <Text style={{ color: '#F5B922' }}>*</Text></Text>
               <CustomDropdown
                 selectedValue={unit}
                 onValueChange={setUnit}
@@ -208,7 +211,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
           </View>
 
           <View style={styles.inputGroupOuter}>
-            <Text style={styles.label}>Expiration Date (Optional)</Text>
+            <Text style={styles.label}>Expiration Date <Text style={{ color: '#F5B922' }}>*</Text></Text>
             <View style={{ position: 'relative', justifyContent: 'center' }}>
               <TextInput
                 style={[styles.input, { paddingRight: 35 }]}

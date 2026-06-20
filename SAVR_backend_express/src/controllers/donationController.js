@@ -981,6 +981,7 @@ exports.getActivities = async (req, res) => {
     .filter(a => a.type === 'service' && a.reference_id && (a.title || '').toLowerCase().includes('submitted'))
     .map(a => a.reference_id);
 
+  // Live statuses
   const foodStatusMap = {};
   if (foodRefIds.length > 0) {
     const placeholders = foodRefIds.map(() => '?').join(',');
@@ -992,13 +993,45 @@ exports.getActivities = async (req, res) => {
   }
 
   const serviceStatusMap = {};
+  const serviceDescMap = {};
   if (serviceRefIds.length > 0) {
     const placeholders = serviceRefIds.map(() => '?').join(',');
     const [svcRows] = await db.execute(
-      `SELECT id, status FROM service_donation_records WHERE id IN (${placeholders})`,
+      `SELECT id, status, service_tab, vehicle_type, quantity, headcount FROM service_donation_records WHERE id IN (${placeholders})`,
       serviceRefIds
     );
-    svcRows.forEach(r => { serviceStatusMap[r.id] = r.status; });
+    svcRows.forEach(r => {
+      serviceStatusMap[r.id] = r.status;
+      const tab = (r.service_tab || '').toLowerCase();
+      if (tab === 'transportation' && r.vehicle_type) {
+        const qty = parseInt(r.quantity) || 1;
+        serviceDescMap[r.id] = `Transportation - ${r.vehicle_type} (${qty} unit${qty !== 1 ? 's' : ''})`;
+      } else {
+        const hc = parseInt(r.headcount) || 1;
+        serviceDescMap[r.id] = `Volunteer Work - ${hc} volunteer${hc !== 1 ? 's' : ''}`;
+      }
+    });
+  }
+
+  // Food item descriptions — pull actual donated items
+  const foodItemsDescMap = {};
+  if (foodRefIds.length > 0) {
+    const placeholders = foodRefIds.map(() => '?').join(',');
+    const [itemRows] = await db.execute(
+      `SELECT food_donation_record_id, food_name, quantity, unit
+       FROM food_donation_record_items WHERE food_donation_record_id IN (${placeholders})`,
+      foodRefIds
+    );
+    const grouped = {};
+    itemRows.forEach(row => {
+      if (!grouped[row.food_donation_record_id]) grouped[row.food_donation_record_id] = [];
+      grouped[row.food_donation_record_id].push(`${row.food_name} (${row.quantity} ${row.unit})`);
+    });
+    Object.entries(grouped).forEach(([id, items]) => {
+      const shown = items.slice(0, 3);
+      const extra = items.length - shown.length;
+      foodItemsDescMap[id] = shown.join(', ') + (extra > 0 ? `, and ${extra} more` : '');
+    });
   }
 
   return res.json({
@@ -1006,18 +1039,25 @@ exports.getActivities = async (req, res) => {
     activities: activities.map(a => {
       const titleLower = (a.title || '').toLowerCase();
       let status = ACTIVITY_STATUS[a.type] || 'Updated';
+      let description = a.description;
 
       if (a.type === 'food') {
-        if (titleLower.includes('submitted') && a.reference_id && foodStatusMap[a.reference_id] !== undefined) {
-          status = liveFoodStatus(foodStatusMap[a.reference_id]);
+        if (titleLower.includes('submitted') && a.reference_id) {
+          if (foodStatusMap[a.reference_id] !== undefined)
+            status = liveFoodStatus(foodStatusMap[a.reference_id]);
+          if (foodItemsDescMap[a.reference_id])
+            description = foodItemsDescMap[a.reference_id];
         } else if (titleLower.includes('approved')) status = 'Approved';
         else if (titleLower.includes('received') || titleLower.includes('completed')) status = 'Completed';
         else if (titleLower.includes('rejected') || titleLower.includes('denied')) status = 'Denied';
         else status = 'Pending';
       }
 
-      if (a.type === 'service' && titleLower.includes('submitted') && a.reference_id && serviceStatusMap[a.reference_id] !== undefined) {
-        status = liveServiceStatus(serviceStatusMap[a.reference_id]);
+      if (a.type === 'service' && titleLower.includes('submitted') && a.reference_id) {
+        if (serviceStatusMap[a.reference_id] !== undefined)
+          status = liveServiceStatus(serviceStatusMap[a.reference_id]);
+        if (serviceDescMap[a.reference_id])
+          description = serviceDescMap[a.reference_id];
       }
 
       if (titleLower.includes('missed')) status = 'Missed';
@@ -1026,7 +1066,7 @@ exports.getActivities = async (req, res) => {
         id: a.id,
         type: a.type,
         title: a.title,
-        description: a.description,
+        description,
         icon: a.icon,
         status,
         date: dayjs(a.created_at).format('MM/DD/YYYY'),
@@ -1954,11 +1994,27 @@ exports.updateProfile = async (req, res) => {
 };
 
 exports.deleteAccount = async (req, res) => {
+  const uid = req.user.id;
   try {
-    await db.execute('DELETE FROM users WHERE id = ?', [req.user.id]);
+    // Delete child records first to avoid FK constraint failures
+    await db.execute('DELETE FROM notifications          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM activity_logs          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM user_badges            WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM user_push_tokens       WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM food_donation_record_items WHERE food_donation_record_id IN (SELECT id FROM food_donation_records WHERE user_id = ?)', [uid]).catch(() => {});
+    await db.execute('DELETE FROM food_donation_records  WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM service_donations_inventory WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM service_donation_records WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM financial_donation_records WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM beneficiary_requests   WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM donors                 WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM beneficiaries          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM organizations          WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM partner_kitchens       WHERE user_id = ?', [uid]).catch(() => {});
+    await db.execute('DELETE FROM users                  WHERE id      = ?', [uid]);
     return res.json({ success: true, message: 'Account deleted.' });
   } catch (error) {
     console.error('Error deleting account:', error);
-    return res.status(500).json({ success: false, message: 'Failed to delete account. Please ensure all related records are cleared or contact support.' });
+    return res.status(500).json({ success: false, message: 'Failed to delete account. Please try again.' });
   }
 };

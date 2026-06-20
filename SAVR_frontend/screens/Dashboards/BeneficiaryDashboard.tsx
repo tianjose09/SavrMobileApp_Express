@@ -171,7 +171,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                     </View>
                     <View style={styles.glassTextCol}>
                       <Text style={styles.glassValue}>{acceptedRequests}</Text>
-                      <Text style={styles.glassLabel}>ACCEPTED</Text>
+                      <Text style={styles.glassLabel}>ACTIVE</Text>
                       <Text style={styles.glassLabel}>REQUEST</Text>
                     </View>
                   </View>

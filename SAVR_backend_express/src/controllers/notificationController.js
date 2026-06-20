@@ -429,14 +429,8 @@ async function autoNotifyDonor(userId) {
         if (recentFoodRows.length > 0) continue;
 
         await createNotification(r.user_id, 'food', foodTitles[s] || `Food Donation ${r.status}`, foodMessages[s] || `Your food donation status has been updated to "${r.status}".`, true);
-
-        if (s === 'approved') {
-          await logFoodActivity(r.user_id, 'Food Donation Approved', 'Your food donation has been approved by our team.');
-        } else if (s === 'received' || s === 'completed') {
-          await logFoodActivity(r.user_id, 'Food Donation Received', 'Your food donation has been received. Thank you for your generosity!');
-        } else if (s === 'rejected') {
-          await logFoodActivity(r.user_id, 'Food Donation Rejected', 'Your food donation has been rejected. Please contact our team for more details.');
-        }
+        // No separate activity log entries for status changes — the original
+        // 'Food Donation Submitted' entry already shows the live status via reference_id.
       } catch (e) {
         console.error('[autoNotifyDonor food] item', r.id, e.message);
       }
