@@ -789,11 +789,11 @@ exports.getDonationStats = async (req, res) => {
     [uid]
   );
   const [[totalFoodRow]] = await db.execute(
-    'SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ?',
+    "SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ? AND status IN ('approved','received')",
     [uid]
   );
   const [[totalServiceRow]] = await db.execute(
-    'SELECT COUNT(*) AS cnt FROM service_donation_records WHERE user_id = ?',
+    "SELECT COUNT(*) AS cnt FROM service_donation_records WHERE user_id = ? AND status IN ('confirmed','completed')",
     [uid]
   );
   const totalFinancial = parseFloat(totalFinancialRow?.total) || 0;
