@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const db = require('../db');
 const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
@@ -1995,26 +1996,60 @@ exports.updateProfile = async (req, res) => {
 
 exports.deleteAccount = async (req, res) => {
   const uid = req.user.id;
+  const ts  = Date.now();
   try {
-    // Delete child records first to avoid FK constraint failures
-    await db.execute('DELETE FROM notifications          WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM activity_logs          WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM user_badges            WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM user_push_tokens       WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM food_donation_record_items WHERE food_donation_record_id IN (SELECT id FROM food_donation_records WHERE user_id = ?)', [uid]).catch(() => {});
-    await db.execute('DELETE FROM food_donation_records  WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM service_donations_inventory WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM service_donation_records WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM financial_donation_records WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM beneficiary_requests   WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM donors                 WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM beneficiaries          WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM organizations          WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM partner_kitchens       WHERE user_id = ?', [uid]).catch(() => {});
-    await db.execute('DELETE FROM users                  WHERE id      = ?', [uid]);
-    return res.json({ success: true, message: 'Account deleted.' });
+    // Soft-delete: anonymize the user row so donations/requests stay linked
+    // as "Deleted User" in reports. Email is tombstoned so it can be re-used.
+    await db.execute(
+      `UPDATE users
+       SET name           = 'Deleted User',
+           email          = ?,
+           username       = ?,
+           password       = ?,
+           updated_at     = NOW()
+       WHERE id = ?`,
+      [`deleted_${uid}_${ts}@deleted.local`, `deleted_${uid}_${ts}`, `DEACTIVATED_${crypto.randomBytes(32).toString('hex')}`, uid]
+    );
+
+    // Scrub personal info from the profile table
+    await db.execute(
+      `UPDATE donors
+       SET first_name = 'Deleted', last_name = 'User',
+           middle_name = NULL, contact_number = NULL,
+           house_no = NULL, street = NULL, barangay = NULL,
+           city_municipality = NULL, province_region = NULL,
+           postal_zip_code = NULL, date_of_birth = NULL,
+           updated_at = NOW()
+       WHERE user_id = ?`,
+      [uid]
+    ).catch(() => {});
+    await db.execute(
+      `UPDATE beneficiaries
+       SET first_name = 'Deleted', last_name = 'User',
+           contact_number = NULL, updated_at = NOW()
+       WHERE user_id = ?`,
+      [uid]
+    ).catch(() => {});
+    await db.execute(
+      `UPDATE organizations
+       SET name = 'Deleted Organization', contact_number = NULL, updated_at = NOW()
+       WHERE user_id = ?`,
+      [uid]
+    ).catch(() => {});
+    await db.execute(
+      `UPDATE partner_kitchens
+       SET kitchen_name = 'Deleted Kitchen', contact_person = NULL,
+           contact_number = NULL, updated_at = NOW()
+       WHERE user_id = ?`,
+      [uid]
+    ).catch(() => {});
+
+    // Remove push token so no further notifications are sent
+    await db.execute('DELETE FROM user_push_tokens WHERE user_id = ?', [uid]).catch(() => {});
+
+    return res.json({ success: true, message: 'Account deactivated.' });
   } catch (error) {
-    console.error('Error deleting account:', error);
-    return res.status(500).json({ success: false, message: 'Failed to delete account. Please try again.' });
+    console.error('Error deactivating account:', error);
+    return res.status(500).json({ success: false, message: 'Something went wrong, please try again.' });
   }
 };

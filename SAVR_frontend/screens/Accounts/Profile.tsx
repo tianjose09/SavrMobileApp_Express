@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ApiService } from '../../services/api';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
+import { LogoutHelper } from '../../utils/logout';
 
 export default function Profile({ navigation }: any) {
   const [profile, setProfile] = useState<any>(null);
@@ -212,10 +213,9 @@ export default function Profile({ navigation }: any) {
           onPress: async () => {
             try {
               await ApiService.deleteAccount();
-              Alert.alert('Success', 'Your account has been deleted.');
-              import('../../utils/logout').then(({ LogoutHelper }) => LogoutHelper.logout(navigation));
+              await LogoutHelper.logout(navigation);
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete account. You may need to clear your active records first.');
+              Alert.alert('Error', 'Something went wrong, please try again.');
               console.error(error);
             }
           },

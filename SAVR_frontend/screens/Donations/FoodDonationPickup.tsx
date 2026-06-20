@@ -140,12 +140,12 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     const toHours = pickupTimeTo.getHours();
     const toMinutes = pickupTimeTo.getMinutes();
 
-    if (fromHours < 7 || fromHours > 17 || (fromHours === 17 && fromMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 5:00 PM.');
+    if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
       return;
     }
-    if (toHours < 7 || toHours > 17 || (toHours === 17 && toMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 5:00 PM.');
+    if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
       return;
     }
     if (pickupTimeFrom >= pickupTimeTo) {
@@ -172,7 +172,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines');
       }
 
-      const finalDateStr = pickupDate.toISOString().split('T')[0];
+      const finalDateStr = `${pickupDate.getFullYear()}-${String(pickupDate.getMonth() + 1).padStart(2, '0')}-${String(pickupDate.getDate()).padStart(2, '0')}`;
       const fromStr = pickupTimeFrom.toTimeString().split(' ')[0].substring(0, 5);
       const toStr = pickupTimeTo.toTimeString().split(' ')[0].substring(0, 5);
       const finalTimeStr = `${fromStr} - ${toStr}`;
