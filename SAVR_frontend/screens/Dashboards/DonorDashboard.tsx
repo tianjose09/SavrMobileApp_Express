@@ -296,7 +296,7 @@ export default function DonorDashboard({ navigation }: any) {
                   </View>
 
                   <Text style={styles.totalAmount}>
-                    {(nextBadge ? nextBadgeAmount : totalFoodDonations).toLocaleString('en-US')}
+                    {totalDonationsMade.toLocaleString('en-US')}
                   </Text>
 
                   {/* Progress bar: flex-based for reliable RN rendering */}
@@ -307,7 +307,7 @@ export default function DonorDashboard({ navigation }: any) {
 
                   <View style={styles.progressLabels}>
                     <Text style={styles.currentLabel} numberOfLines={1}>
-                      {nextBadge ? nextBadgeAmount : totalFoodDonations} donations
+                      {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
                       {nextBadge ? `${nextBadgeGoal} donations · ${nextBadge.name}` : 'All badges earned!'}
