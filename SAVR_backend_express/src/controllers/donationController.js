@@ -1085,7 +1085,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
       title, type, food_type, quantity, unit, financial_amount,
       population, age_start, age_end, street, barangay,
       city_municipality, postal_zip_code, needed_date, urgency_level,
-      food_items,
+      food_items, latitude, longitude,
       account_name, account_number,
     } = req.body;
     const receiving_method = req.body.receiving_method || req.body.bank_name || null;
@@ -1110,8 +1110,8 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
     const [result] = await db.execute(
       `INSERT INTO beneficiary_requests
-       (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, start_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
+       (user_id, request_name, type, food_type, quantity, unit, amount, population, age_min, age_max, street, barangay, city, zip_code, latitude, longitude, start_date, end_date, urgency, food_items, receiving_method, account_name, account_number, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW(), NOW())`,
       [
         req.user.id,
         title,
@@ -1127,6 +1127,8 @@ exports.submitBeneficiaryRequest = async (req, res) => {
         barangay || '',
         city_municipality || '',
         postal_zip_code || '',
+        latitude ? parseFloat(latitude) : null,
+        longitude ? parseFloat(longitude) : null,
         needed_date || null,
         req.body.end_date || null,
         urgency_level || null,

@@ -152,6 +152,19 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       Alert.alert('Invalid Time Slot', 'End time must be after the start time.');
       return;
     }
+    const now = new Date();
+    const isToday =
+      pickupDate.getFullYear() === now.getFullYear() &&
+      pickupDate.getMonth() === now.getMonth() &&
+      pickupDate.getDate() === now.getDate();
+    if (isToday) {
+      const startDateTime = new Date(pickupDate);
+      startDateTime.setHours(fromHours, fromMinutes, 0, 0);
+      if (startDateTime <= now) {
+        Alert.alert('Invalid Time', 'The selected start time has already passed. Please choose a future time.');
+        return;
+      }
+    }
     if (scheduleType === 'pickup' && !pickupAddress.trim()) {
       Alert.alert('Error', 'Please enter a pickup address.');
       return;
