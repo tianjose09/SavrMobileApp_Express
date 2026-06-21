@@ -257,9 +257,12 @@ export default function DonorDashboard({ navigation }: any) {
                   )}
                 </TouchableOpacity>
 
-                <Text style={styles.profileName} numberOfLines={1}>
-                  {userName}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                  <Text style={styles.profileName} numberOfLines={1}>
+                    {userName}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -278,7 +281,7 @@ export default function DonorDashboard({ navigation }: any) {
                   transform: [{ translateY: titleTranslateAnim }],
                 }}
               >
-                <Text style={styles.dashboardTitle}>Good Day, {splitName}!</Text>
+                <Text style={styles.dashboardTitle}>Donor Dashboard</Text>
 
                 <Text style={styles.subtitle}>
                   Here’s your donor dashboard — keep making an impact!
@@ -429,7 +432,7 @@ export default function DonorDashboard({ navigation }: any) {
                   {ongoingDrives.map((drive, idx) => {
                     const isFinancial = drive.type === 'Financial';
                     // Alternating solid colors: flat yellow first (even indices), flat orange second (odd indices)
-                    const gradientColors: [string, string] = idx % 2 === 0 
+                    const gradientColors: [string, string] = idx % 2 === 0
                       ? ['#E29C20', '#E29C20'] // Flat golden yellow
                       : ['#D87A38', '#D87A38']; // Flat terracotta orange (matches top cards)
                     return (
@@ -460,7 +463,7 @@ export default function DonorDashboard({ navigation }: any) {
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                                   <FontAwesome5 name="calendar-alt" size={10} color="rgba(255,255,255,0.7)" />
                                   <Text style={[styles.driveDate, { marginBottom: 0, marginLeft: 6 }]}>
-                                    {new Date(drive.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} 
+                                    {new Date(drive.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                     {drive.end_date ? ` - ${new Date(drive.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                                   </Text>
                                 </View>
@@ -629,16 +632,16 @@ const styles = StyleSheet.create({
 
   dashboardTitle: {
     textAlign: 'center',
-    color: '#08532F',
-    fontSize: 34,
-    fontWeight: '800',
+    color: '#00592d',
+    fontSize: 28,
+    fontWeight: '900',
     letterSpacing: -0.5,
-    marginTop: 4,
+    marginTop: 6,
   },
 
   dashboardName: {
     textAlign: 'center',
-    color: '#08532F',
+    color: '#00592d',
     fontSize: 22,
     fontWeight: '800',
     marginTop: 2,
@@ -647,12 +650,12 @@ const styles = StyleSheet.create({
 
   subtitle: {
     textAlign: 'center',
-    color: '#424242',
-    fontSize: 16,
-    lineHeight: 22,
-    marginTop: 8,
-    marginBottom: 25,
-    paddingHorizontal: 15,
+    color: '#666666',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 22,
+    paddingHorizontal: 20,
   },
 
   subtitleBold: {

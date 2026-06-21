@@ -284,9 +284,12 @@ export default function OrgDashboard({ navigation }: any) {
                     <Text style={{ fontSize: 26, fontWeight: '800', color: '#00592d' }}>{initial}</Text>
                   )}
                 </TouchableOpacity>
-                <Text style={styles.profileName} numberOfLines={1}>
-                  {userName}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                  <Text style={styles.profileName} numberOfLines={1}>
+                    {userName}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -296,8 +299,7 @@ export default function OrgDashboard({ navigation }: any) {
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
 
                 <Text style={styles.subtitle}>
-                  Welcome back, <Text style={styles.subtitleBold}>{userName}!</Text> Here's
-                  your activity overview - keep making an impact
+                  Here's your activity overview — keep making an impact!
                 </Text>
               </Animated.View>
 
@@ -627,20 +629,21 @@ const styles = StyleSheet.create({
 
   dashboardTitle: {
     textAlign: 'center',
-    color: '#08532F',
-    fontSize: 30,
-    fontWeight: '800',
+    color: '#00592d',
+    fontSize: 28,
+    fontWeight: '900',
     letterSpacing: -0.5,
+    marginTop: 6,
   },
 
   subtitle: {
     textAlign: 'center',
-    color: '#424242',
-    fontSize: 16,
-    lineHeight: 22,
-    marginTop: 10,
-    marginBottom: 25,
-    paddingHorizontal: 15,
+    color: '#666666',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 22,
+    paddingHorizontal: 20,
   },
 
   subtitleBold: {
