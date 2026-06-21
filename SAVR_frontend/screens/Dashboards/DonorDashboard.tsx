@@ -290,7 +290,7 @@ export default function DonorDashboard({ navigation }: any) {
                   transform: [{ translateY: titleTranslateAnim }],
                 }}
               >
-                <Text style={styles.dashboardTitle}>Good Day!</Text>
+                <Text style={styles.dashboardTitle}>Good Day, {splitName}!</Text>
 
                 <Text style={styles.subtitle}>
                   Here’s your donor dashboard — keep making an impact!
