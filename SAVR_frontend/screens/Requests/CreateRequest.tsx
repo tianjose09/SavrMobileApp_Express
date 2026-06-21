@@ -149,6 +149,7 @@ export default function CreateRequest({ navigation }: any) {
         isProgrammaticMove.current = true;
         setLocation(newRegion);
         mapRef.current?.animateToRegion(newRegion, 800);
+        await reverseGeocode(latitude, longitude);
       } else {
         Alert.alert('Address Not Found', 'Could not locate that address. Try adding more detail (city, country).');
       }
@@ -414,6 +415,8 @@ export default function CreateRequest({ navigation }: any) {
       const payload = {
         ...form,
         type: requestType,
+        latitude: location.latitude,
+        longitude: location.longitude,
         food_items: requestedFoods.map(f => ({ id: f.id, food_name: f.name, food_type: f.category, qty: f.qty, unit: f.unit })),
       };
       const res = await ApiService.submitBeneficiaryRequest(payload);

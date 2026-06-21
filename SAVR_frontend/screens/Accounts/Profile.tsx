@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ApiService } from '../../services/api';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
+import { LogoutHelper } from '../../utils/logout';
 
 export default function Profile({ navigation }: any) {
   const [profile, setProfile] = useState<any>(null);
@@ -212,10 +213,9 @@ export default function Profile({ navigation }: any) {
           onPress: async () => {
             try {
               await ApiService.deleteAccount();
-              Alert.alert('Success', 'Your account has been deleted.');
-              import('../../utils/logout').then(({ LogoutHelper }) => LogoutHelper.logout(navigation));
+              await LogoutHelper.logout(navigation);
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete account. You may need to clear your active records first.');
+              Alert.alert('Error', 'Something went wrong, please try again.');
               console.error(error);
             }
           },
@@ -319,7 +319,11 @@ export default function Profile({ navigation }: any) {
         {isPartnerKitchen ? (
           <>
             {!!profile?.kitchen_name && <View style={styles.pillBox}><Text style={styles.pillLabel}>Kitchen Name</Text><Text style={styles.pillValue}>{profile.kitchen_name}</Text></View>}
+            {!!profile?.website_url && <View style={styles.pillBox}><Text style={styles.pillLabel}>Website URL</Text><Text style={styles.pillValue}>{profile.website_url}</Text></View>}
             {!!profile?.contact_person && <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Person</Text><Text style={styles.pillValue}>{profile.contact_person}</Text></View>}
+            {!!profile?.position_role && <View style={styles.pillBox}><Text style={styles.pillLabel}>Position / Role</Text><Text style={styles.pillValue}>{profile.position_role}</Text></View>}
+            {!!profile?.email && <View style={styles.pillBox}><Text style={styles.pillLabel}>Email Address</Text><Text style={styles.pillValue}>{profile.email}</Text></View>}
+            {!!profile?.contact_number && <View style={styles.pillBox}><Text style={styles.pillLabel}>Contact Number</Text><Text style={styles.pillValue}>{profile.contact_number.startsWith('+63') ? profile.contact_number.replace(/\s/g, '') : `+63${profile.contact_number.replace(/^0/, '')}`}</Text></View>}
           </>
         ) : isOrgType ? (
           /* Donor Organization or Beneficiary Organization */
@@ -350,14 +354,14 @@ export default function Profile({ navigation }: any) {
           </>
         )}
 
-        {!!profile?.email && (
+        {!isPartnerKitchen && !!profile?.email && (
           <View style={styles.pillBox}>
             <Text style={styles.pillLabel}>Email Address</Text>
             <Text style={styles.pillValue}>{profile.email}</Text>
           </View>
         )}
 
-        {!!profile?.contact_number && (
+        {!isPartnerKitchen && !!profile?.contact_number && (
           <View style={styles.pillBox}>
             <Text style={styles.pillLabel}>Contact Number</Text>
             <Text style={styles.pillValue}>

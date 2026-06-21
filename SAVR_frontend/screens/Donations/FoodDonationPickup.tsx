@@ -45,8 +45,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [showIOSDate, setShowIOSDate] = useState(false);
   const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
   const [showIOSDateTo, setShowIOSDateTo] = useState(false);
-  const getTomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0, 0, 0, 0); return d; };
-  const [tempPickupDate, setTempPickupDate] = useState(() => getTomorrow());
+  const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const [tempPickupDate, setTempPickupDate] = useState(() => getToday());
   const [tempPickupTimeFrom, setTempPickupTimeFrom] = useState(() => {
     const d = new Date();
     d.setHours(7, 0, 0, 0);
@@ -126,9 +126,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       Alert.alert('Error', 'Please select a preferred date.');
       return;
     }
-    const tomorrow = getTomorrow();
-    if (pickupDate < tomorrow) {
-      Alert.alert('Invalid Date', 'Please select a date starting from tomorrow onwards.');
+    const today = getToday();
+    if (pickupDate < today) {
+      Alert.alert('Invalid Date', 'Please select today or a future date.');
       return;
     }
     if (!pickupTimeFrom || !pickupTimeTo) {
@@ -140,17 +140,30 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     const toHours = pickupTimeTo.getHours();
     const toMinutes = pickupTimeTo.getMinutes();
 
-    if (fromHours < 7 || fromHours > 17 || (fromHours === 17 && fromMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 5:00 PM.');
+    if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
       return;
     }
-    if (toHours < 7 || toHours > 17 || (toHours === 17 && toMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 5:00 PM.');
+    if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
+      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
       return;
     }
     if (pickupTimeFrom >= pickupTimeTo) {
       Alert.alert('Invalid Time Slot', 'End time must be after the start time.');
       return;
+    }
+    const now = new Date();
+    const isToday =
+      pickupDate.getFullYear() === now.getFullYear() &&
+      pickupDate.getMonth() === now.getMonth() &&
+      pickupDate.getDate() === now.getDate();
+    if (isToday) {
+      const startDateTime = new Date(pickupDate);
+      startDateTime.setHours(fromHours, fromMinutes, 0, 0);
+      if (startDateTime <= now) {
+        Alert.alert('Invalid Time', 'The selected start time has already passed. Please choose a future time.');
+        return;
+      }
     }
     if (scheduleType === 'pickup' && !pickupAddress.trim()) {
       Alert.alert('Error', 'Please enter a pickup address.');
@@ -172,7 +185,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines');
       }
 
-      const finalDateStr = pickupDate.toISOString().split('T')[0];
+      const finalDateStr = `${pickupDate.getFullYear()}-${String(pickupDate.getMonth() + 1).padStart(2, '0')}-${String(pickupDate.getDate()).padStart(2, '0')}`;
       const fromStr = pickupTimeFrom.toTimeString().split(' ')[0].substring(0, 5);
       const toStr = pickupTimeTo.toTimeString().split(' ')[0].substring(0, 5);
       const finalTimeStr = `${fromStr} - ${toStr}`;
@@ -191,9 +204,10 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       // Use plain 'food_images' field name (not indexed) so multer .array() picks them up
       foodItems.forEach((item: any) => {
         if (item.photoUri) {
-          const filename = item.photoUri.split('/').pop() || `food_photo.jpg`;
+          let filename = item.photoUri.split('/').pop() || `food_photo.jpg`;
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image/jpeg`;
+          if (!match) filename = `${filename}.jpg`;
           // @ts-ignore
           formData.append('food_images', { uri: item.photoUri, name: filename, type });
         }
@@ -453,7 +467,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <Text style={styles.modalTitle}>Select Date</Text>
                 <TouchableOpacity onPress={() => { setPickupDate(tempPickupDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
-              <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={getTomorrow()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={getToday()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: 320, alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </Modal>
@@ -520,7 +534,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               : (pickupTimeTo || (() => { const d = new Date(); d.setHours(9, 0, 0, 0); return d; })())
           }
           mode={datePickerMode === 'date' ? 'date' : 'time'}
-          minimumDate={datePickerMode === 'date' ? getTomorrow() : undefined}
+          minimumDate={datePickerMode === 'date' ? getToday() : undefined}
           display="default"
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
