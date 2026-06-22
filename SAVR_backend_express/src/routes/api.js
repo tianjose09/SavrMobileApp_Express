@@ -24,6 +24,7 @@ function makeStorage(dest) {
 
 const uploadFood = multer({ storage: makeStorage('donations/food') });
 const uploadReceipt = multer({ storage: makeStorage('donations/receipts') });
+const uploadRecipe = multer({ storage: makeStorage('recipes') });
 
 // ─── Auth (public) ────────────────────────────────────────────────────────────
 
@@ -106,5 +107,10 @@ router.post('/inventory/deduct',    inventoryController.deduct);
 // Meal Optimization
 router.post('/meals/optimize',      mealController.optimizeMeals);
 router.get('/meals/ingredients',    mealController.getMealIngredients);
+router.get('/meals',                mealController.getRecipes);
+router.post('/meals/upload-image',  uploadRecipe.single('recipe_photo'), mealController.uploadRecipeImage);
+router.post('/meals',               mealController.storeMeal);
+router.delete('/meals/:id',         mealController.deleteRecipe);
+router.get('/ingredients',          mealController.getIngredientsList);
 
 module.exports = router;

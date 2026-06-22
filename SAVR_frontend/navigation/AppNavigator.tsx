@@ -47,6 +47,8 @@ import IngrMealPlanning from '../screens/MealOptimization/IngrMealPlanning';
 import MealOptimizationResults from '../screens/MealOptimization/MealOptimizationResults';
 import PrepareMeal from '../screens/MealOptimization/PrepareMeal';
 import MealPreparationSummary from '../screens/MealOptimization/MealPreparationSummary';
+import RecipesList from '../screens/Recipes/RecipesList';
+import AddRecipe from '../screens/Recipes/AddRecipe';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -169,6 +171,14 @@ function AnimatedTabIcon({
         color={focused ? '#FFF' : color}
       />
     );
+  } else if (routeName === 'Recipes') {
+    iconComponent = (
+      <Ionicons
+        name={focused ? 'restaurant' : 'restaurant-outline'}
+        size={focused ? 30 : 27}
+        color={focused ? '#FFF' : color}
+      />
+    );
   } else {
     iconComponent = <Ionicons name="alert-circle" size={27} color={color} />;
   }
@@ -232,6 +242,17 @@ function IngredientsStackNavigator() {
       <IngredientsStack.Screen name="MealPreparationSummary" component={MealPreparationSummary} />
       <IngredientsStack.Screen name="AddFoodItem_Inventory" component={AddFoodItem_Inventory} />
     </IngredientsStack.Navigator>
+  );
+}
+
+const RecipesStack = createStackNavigator();
+
+function RecipesStackNavigator() {
+  return (
+    <RecipesStack.Navigator screenOptions={{ headerShown: false }}>
+      <RecipesStack.Screen name="RecipesList" component={RecipesList} />
+      <RecipesStack.Screen name="AddRecipe" component={AddRecipe} />
+    </RecipesStack.Navigator>
   );
 }
 
@@ -303,6 +324,7 @@ function MainTabs() {
           <Tab.Screen name="Home" component={DashboardSwitcher} options={{ tabBarLabel: 'Home' }} />
           <Tab.Screen name="FoodInventory" component={InventoryStackNavigator} options={{ tabBarLabel: 'Inventory' }} />
           <Tab.Screen name="Ingredients" component={IngredientsStackNavigator} options={{ tabBarLabel: 'Ingr. & Scale' }} />
+          <Tab.Screen name="Recipes" component={RecipesStackNavigator} options={{ tabBarLabel: 'Recipes' }} />
           <Tab.Screen name="Summary" component={MealPreparationSummary} options={{ tabBarLabel: 'Summary' }} />
         </>
       ) : isBeneficiary ? (

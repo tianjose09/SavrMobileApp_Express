@@ -232,3 +232,177 @@ exports.getMealIngredients = async (req, res) => {
   const result = meals.map(m => ({ meal: m.name, ingredients: byMeal[m.id] || [] }));
   return res.json({ success: true, data: result });
 };
+
+exports.getRecipes = async (req, res) => {
+  try {
+    const [meals] = await db.execute('SELECT * FROM meals WHERE user_id IS NOT NULL ORDER BY name');
+    const [ingredients] = await db.execute(
+      'SELECT meal_id, ingredient_name, qty_per_serving, unit, is_optional FROM meal_ingredients ORDER BY meal_id, ingredient_name'
+    );
+    
+    const byMeal = {};
+    for (const ing of ingredients) {
+      if (!byMeal[ing.meal_id]) byMeal[ing.meal_id] = [];
+      byMeal[ing.meal_id].push({
+        id: ing.id,
+        ingredient_name: ing.ingredient_name,
+        qty_per_serving: ing.qty_per_serving,
+        unit: ing.unit,
+        is_optional: ing.is_optional,
+      });
+    }
+
+    const result = meals.map(m => {
+      let tags = [];
+      try {
+        tags = typeof m.tags === 'string' ? JSON.parse(m.tags) : (m.tags || []);
+      } catch (e) {
+        tags = [];
+      }
+      return {
+        id: m.id,
+        name: m.name,
+        comment_desc: m.comment_desc,
+        tags,
+        ingredients: byMeal[m.id] || [],
+        image_url: m.image_url,
+      };
+    });
+
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error: ' + error.message });
+  }
+};
+
+exports.storeMeal = async (req, res) => {
+  const { name, comment_desc, tags, ingredients, image_url } = req.body;
+
+  if (!name) {
+    return res.status(422).json({ success: false, message: 'Meal name is required.' });
+  }
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const tagsJson = tags ? JSON.stringify(tags) : '[]';
+    const [mealResult] = await conn.execute(
+      'INSERT INTO meals (name, comment_desc, tags, user_id, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+      [name, comment_desc || '', tagsJson, req.user.id, image_url || null]
+    );
+
+    const mealId = mealResult.insertId;
+
+    if (ingredients && Array.isArray(ingredients)) {
+      for (const ing of ingredients) {
+        const qty = parseFloat(ing.qty_per_serving) || 0;
+        await conn.execute(
+          'INSERT INTO meal_ingredients (meal_id, ingredient_name, qty_per_serving, unit, is_optional, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+          [mealId, ing.ingredient_name, qty, ing.unit || 'g', ing.is_optional ? true : false]
+        );
+      }
+    }
+
+    // Automatically register recipe in food_inventory as a Prepared Meal (Prep Meal) with quantity 0
+    const [existingInv] = await conn.execute(
+      "SELECT id FROM food_inventory WHERE LOWER(food_name) = LOWER(?)",
+      [name]
+    );
+    if (!existingInv.length) {
+      const mealLower = name.toLowerCase();
+      const GRAINS_MEALS = ['lugaw', 'arroz caldo', 'champorado', 'sopas'];
+      const VEGGIE_MEALS = ['munggo guisado', 'veggie stir-fry', 'sotanghon soup'];
+      let prepCategory = 'Meat';
+      if (GRAINS_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Grains & Cereals';
+      else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
+
+      await conn.execute(
+        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, 0, 'meal', NULL, 'Prep Meal', NOW(), NOW())",
+        [name, prepCategory]
+      );
+    }
+
+    await conn.commit();
+    return res.json({ success: true, message: 'Recipe added successfully!', mealId });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error storing meal:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error: ' + error.message });
+  } finally {
+    conn.release();
+  }
+};
+
+exports.getIngredientsList = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT DISTINCT TRIM(name) AS name FROM (
+        SELECT ingredient_name AS name FROM meal_ingredients
+        UNION
+        SELECT food_name AS name FROM food_inventory
+      ) AS temp
+      WHERE name IS NOT NULL AND TRIM(name) != ''
+      ORDER BY name
+    `);
+    
+    // Clean up name: strip out any trailing descriptor brackets like "(Chopped)" or "(Dried)"
+    // so we get the base ingredient name for suggestions.
+    const uniqueNames = new Set();
+    for (const row of rows) {
+      let cleaned = row.name.replace(/\s*\([^)]*\)\s*/g, '').trim(); // Remove parenthesized words
+      if (cleaned) {
+        // Capitalize words for clean presentation
+        cleaned = cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        uniqueNames.add(cleaned);
+      }
+    }
+    
+    return res.json({ success: true, data: Array.from(uniqueNames).sort() });
+  } catch (error) {
+    console.error('Error fetching ingredients list:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error: ' + error.message });
+  }
+};
+
+exports.deleteRecipe = async (req, res) => {
+  const { id } = req.params;
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.execute(
+      'SELECT id FROM meals WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: 'Recipe not found or not authorized.' });
+    }
+    await conn.execute('DELETE FROM meal_ingredients WHERE meal_id = ?', [id]);
+    await conn.execute('DELETE FROM meals WHERE id = ?', [id]);
+    await conn.commit();
+    return res.json({ success: true, message: 'Recipe deleted successfully.' });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error deleting recipe:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error: ' + error.message });
+  } finally {
+    conn.release();
+  }
+};
+
+exports.uploadRecipeImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file provided.' });
+    }
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const baseUrl = process.env.APP_URL || `${proto}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/storage/recipes/${req.file.filename}`;
+    return res.json({ success: true, image_url: imageUrl });
+  } catch (error) {
+    console.error('Error uploading recipe image:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error: ' + error.message });
+  }
+};
