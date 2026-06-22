@@ -730,12 +730,11 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
           <>
             <Text style={[styles.commentTitle, { color: '#B85C00' }]}>Heads up!</Text>
             <Text style={styles.commentText}>
-              Sorry, based on our available ingredients, we can only prepare{' '}
+              We're ready to help you prepare{' '}
               <Text style={{ fontWeight: '800', color: '#156133' }}>{mealPax} serving{mealPax === 1 ? '' : 's'}</Text>{' '}
               of this meal — not the{' '}
               <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
-              you requested. The ingredients on hand are only enough to cover{' '}
-              <Text style={{ fontWeight: '700' }}>{mealPax} out of {targetPax} servings</Text>.
+              you requested. Just a little less than you asked for, but we got you!
             </Text>
           </>
         ) : (

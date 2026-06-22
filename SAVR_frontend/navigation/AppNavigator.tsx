@@ -323,8 +323,8 @@ function MainTabs() {
         <>
           <Tab.Screen name="Home" component={DashboardSwitcher} options={{ tabBarLabel: 'Home' }} />
           <Tab.Screen name="FoodInventory" component={InventoryStackNavigator} options={{ tabBarLabel: 'Inventory' }} />
-          <Tab.Screen name="Ingredients" component={IngredientsStackNavigator} options={{ tabBarLabel: 'Ingr. & Scale' }} />
           <Tab.Screen name="Recipes" component={RecipesStackNavigator} options={{ tabBarLabel: 'Recipes' }} />
+          <Tab.Screen name="Ingredients" component={IngredientsStackNavigator} options={{ tabBarLabel: 'Ingr. & Scale' }} />
           <Tab.Screen name="Summary" component={MealPreparationSummary} options={{ tabBarLabel: 'Summary' }} />
         </>
       ) : isBeneficiary ? (
