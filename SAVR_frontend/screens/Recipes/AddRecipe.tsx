@@ -313,236 +313,245 @@ export default function AddRecipe({ navigation }: any) {
           }
         >
           {/* ── SECTION 1: RECIPE DETAILS ── */}
-          <Text style={styles.sectionTitle}>Recipe Details</Text>
-
-          <Text style={styles.fieldLabel}>Recipe Name<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-          <View style={[styles.inputBox, isNameFocused && styles.inputBoxFocused]}>
-            <TextInput
-              style={styles.inputText}
-              placeholder="Enter recipe name (e.g. Chicken Adobo)"
-              placeholderTextColor="#B0B0B0"
-              value={recipeName}
-              onChangeText={setRecipeName}
-              onFocus={() => setIsNameFocused(true)}
-              onBlur={() => setIsNameFocused(false)}
-            />
+          <View style={styles.sectionHeaderRow}>
+            <MaterialCommunityIcons name="book-open-outline" size={20} color="#156133" style={{ marginRight: 6 }} />
+            <Text style={styles.sectionTitle}>Recipe Details</Text>
           </View>
 
-          <Text style={styles.fieldLabel}>Description</Text>
-          <View style={[styles.inputBox, styles.textareaBox, isDescFocused && styles.inputBoxFocused]}>
-            <TextInput
-              style={[styles.inputText, styles.textareaText]}
-              placeholder="Provide a brief description of the recipe..."
-              placeholderTextColor="#B0B0B0"
-              multiline
-              numberOfLines={4}
-              value={commentDesc}
-              onChangeText={setCommentDesc}
-              onFocus={() => setIsDescFocused(true)}
-              onBlur={() => setIsDescFocused(false)}
-            />
-          </View>
+          <View style={styles.formCard}>
+            <Text style={[styles.fieldLabel, { marginTop: 0 }]}>Recipe Name<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+            <View style={[styles.inputBox, isNameFocused && styles.inputBoxFocused]}>
+              <TextInput
+                style={styles.inputText}
+                placeholder="Enter recipe name (e.g. Chicken Adobo)"
+                placeholderTextColor="#B0B0B0"
+                value={recipeName}
+                onChangeText={setRecipeName}
+                onFocus={() => setIsNameFocused(true)}
+                onBlur={() => setIsNameFocused(false)}
+              />
+            </View>
 
-          {/* Photo picker - optional */}
-          <Text style={styles.fieldLabel}>Recipe Photo <Text style={styles.optionalText}>(optional)</Text></Text>
-          <TouchableOpacity style={styles.photoPickerBox} onPress={pickPhoto} activeOpacity={0.85}>
-            {recipePhoto ? (
-              <>
-                <Image source={{ uri: recipePhoto }} style={styles.photoPreview} />
-                <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => setRecipePhoto(null)}>
-                  <Ionicons name="close-circle" size={22} color="#FFF" />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Ionicons name="camera" size={32} color="#C4621A" />
-                <Text style={styles.photoPlaceholderText}>Upload Recipe Photo</Text>
-                <Text style={styles.photoPlaceholderSub}>Tap to browse your photo library</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            <Text style={styles.fieldLabel}>Description</Text>
+            <View style={[styles.inputBox, styles.textareaBox, isDescFocused && styles.inputBoxFocused]}>
+              <TextInput
+                style={[styles.inputText, styles.textareaText]}
+                placeholder="Provide a brief description of the recipe..."
+                placeholderTextColor="#B0B0B0"
+                multiline
+                numberOfLines={4}
+                value={commentDesc}
+                onChangeText={setCommentDesc}
+                onFocus={() => setIsDescFocused(true)}
+                onBlur={() => setIsDescFocused(false)}
+              />
+            </View>
+
+            {/* Photo picker - optional */}
+            <Text style={styles.fieldLabel}>Recipe Photo <Text style={styles.optionalText}>(optional)</Text></Text>
+            <TouchableOpacity style={styles.photoPickerBox} onPress={pickPhoto} activeOpacity={0.85}>
+              {recipePhoto ? (
+                <>
+                  <Image source={{ uri: recipePhoto }} style={styles.photoPreview} />
+                  <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => setRecipePhoto(null)}>
+                    <Ionicons name="close-circle" size={22} color="#FFF" />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="camera" size={32} color="#C4621A" />
+                  <Text style={styles.photoPlaceholderText}>Upload Recipe Photo</Text>
+                  <Text style={styles.photoPlaceholderSub}>Tap to browse your photo library</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
           {/* ── SECTION 2: ADD INGREDIENTS ── */}
-          <Text style={[styles.sectionTitle, styles.sectionTitleLarge, { marginTop: 28 }]}>Add Ingredients</Text>
+          <View style={styles.sectionHeaderRow}>
+            <MaterialCommunityIcons name="food-apple-outline" size={20} color="#156133" style={{ marginRight: 6 }} />
+            <Text style={styles.sectionTitle}>Add Ingredients</Text>
+          </View>
 
-          <Text style={styles.selectIngLabel}>Select the ingredients<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+          <View style={styles.formCard}>
+            <Text style={styles.selectIngLabel}>Select the ingredients<Text style={{ color: '#E4B63F' }}> *</Text></Text>
 
-          {/* Search bar */}
-          <View style={{ zIndex: 20, marginBottom: 4 }}>
-            <View style={styles.searchBar}>
-              <TextInput
-                style={styles.searchBarInput}
-                placeholder="Search for an ingredient..."
-                placeholderTextColor="#B0B0B0"
-                value={ingredientSearch}
-                onChangeText={(val) => {
-                  setIngredientSearch(val);
-                  setShowSuggestions(val.trim().length > 0);
-                }}
-                onFocus={() => setShowSuggestions(ingredientSearch.trim().length > 0)}
-              />
-              {ingredientSearch.length > 0 ? (
-                <TouchableOpacity onPress={() => { setIngredientSearch(''); setShowSuggestions(false); }}>
-                  <Ionicons name="close-circle" size={20} color="#B0B0B0" style={{ marginRight: 4 }} />
-                </TouchableOpacity>
-              ) : null}
-              <Ionicons name="search" size={22} color="#222" style={{ marginRight: 2 }} />
+            {/* Search bar */}
+            <View style={{ zIndex: 20, marginBottom: 4 }}>
+              <View style={styles.searchBar}>
+                <TextInput
+                  style={styles.searchBarInput}
+                  placeholder="Search for an ingredient..."
+                  placeholderTextColor="#B0B0B0"
+                  value={ingredientSearch}
+                  onChangeText={(val) => {
+                    setIngredientSearch(val);
+                    setShowSuggestions(val.trim().length > 0);
+                  }}
+                  onFocus={() => setShowSuggestions(ingredientSearch.trim().length > 0)}
+                />
+                {ingredientSearch.length > 0 ? (
+                  <TouchableOpacity onPress={() => { setIngredientSearch(''); setShowSuggestions(false); }}>
+                    <Ionicons name="close-circle" size={20} color="#B0B0B0" style={{ marginRight: 4 }} />
+                  </TouchableOpacity>
+                ) : null}
+                <Ionicons name="search" size={22} color="#222" style={{ marginRight: 2 }} />
+              </View>
+
+              {/* Suggestions dropdown */}
+              {showSuggestions && (
+                <View style={styles.suggestionsContainer}>
+                  <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
+                    {filteredSuggestions.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.suggestionRow}
+                        onPress={() => addIngredientItem(item)}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <View style={[styles.suggestionIconDot, { backgroundColor: getIngredientIcon(item).color + '22' }]}>
+                            <MaterialCommunityIcons name={getIngredientIcon(item).name as any} size={14} color={getIngredientIcon(item).color} />
+                          </View>
+                          <Text style={styles.suggestionText}>{item}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                    {ingredientSearch.trim().length > 0 && (
+                      <TouchableOpacity
+                        style={styles.suggestionRow}
+                        onPress={() => addIngredientItem(ingredientSearch.trim())}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <View style={[styles.suggestionIconDot, { backgroundColor: '#15613322' }]}>
+                            <Ionicons name="add" size={14} color="#156133" />
+                          </View>
+                          <Text style={[styles.suggestionText, { color: '#156133', fontWeight: '700' }]}>
+                            Add "{ingredientSearch.trim()}"
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+                </View>
+              )}
             </View>
 
-            {/* Suggestions dropdown */}
-            {showSuggestions && (
-              <View style={styles.suggestionsContainer}>
-                <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
-                  {filteredSuggestions.map((item, idx) => (
+            {/* Ingredients List */}
+            {ingredientsList.length === 0 ? (
+              <View style={styles.emptyIngredientsWrap}>
+                <MaterialCommunityIcons name="silverware-clean" size={40} color="#D0D0D0" />
+                <Text style={styles.emptyIngredientsText}>No ingredients added yet.</Text>
+                <Text style={styles.emptyIngredientsSubtext}>Search above to add ingredients.</Text>
+              </View>
+            ) : (
+              <View style={styles.addedListContainer}>
+                {/* Column header labels */}
+                <View style={styles.ingColumnHeader}>
+                  <Text style={styles.ingColLabel}>Ingredients</Text>
+                  <Text style={styles.ingColLabelCenter}>Qty</Text>
+                  <Text style={styles.ingColLabelRight}>Unit</Text>
+                </View>
+                {ingredientsList.map((item) => {
+                  const iconDetail = getIngredientIcon(item.baseName);
+
+                  const renderRightActions = () => (
                     <TouchableOpacity
-                      key={idx}
-                      style={styles.suggestionRow}
-                      onPress={() => addIngredientItem(item)}
+                      style={styles.swipeDeleteAction}
+                      onPress={() => removeIngredientItem(item.id)}
+                      activeOpacity={0.85}
                     >
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={[styles.suggestionIconDot, { backgroundColor: getIngredientIcon(item).color + '22' }]}>
-                          <MaterialCommunityIcons name={getIngredientIcon(item).name as any} size={14} color={getIngredientIcon(item).color} />
-                        </View>
-                        <Text style={styles.suggestionText}>{item}</Text>
-                      </View>
+                      <Ionicons name="trash" size={22} color="#FFF" />
+                      <Text style={styles.swipeDeleteText}>Delete</Text>
                     </TouchableOpacity>
-                  ))}
-                  {ingredientSearch.trim().length > 0 && (
-                    <TouchableOpacity
-                      style={styles.suggestionRow}
-                      onPress={() => addIngredientItem(ingredientSearch.trim())}
+                  );
+
+                  return (
+                    <Swipeable
+                      key={item.id}
+                      renderRightActions={renderRightActions}
+                      overshootRight={false}
+                      friction={2}
                     >
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={[styles.suggestionIconDot, { backgroundColor: '#15613322' }]}>
-                          <Ionicons name="add" size={14} color="#156133" />
+                      <View style={styles.ingredientCardSelected}>
+                        {/* SINGLE ROW: Icon+Name | Qty | Unit */}
+                        <View style={styles.ingRowMain}>
+
+                          {/* LEFT: icon + name */}
+                          <View style={styles.ingRowLeft}>
+                            <View style={styles.iconCircleBgSelected}>
+                              <MaterialCommunityIcons name={iconDetail.name as any} size={18} color="#FFF" />
+                            </View>
+                            <Text style={styles.ingredientCardNameSelected} numberOfLines={1}>{item.baseName}</Text>
+                          </View>
+
+                          {/* MIDDLE: qty stepper */}
+                          <View style={styles.ingRowQty}>
+                            <TouchableOpacity onPress={() => decrementIngredientQty(item.id)} activeOpacity={0.7} style={styles.inlineQtyBtn}>
+                              <Ionicons name="remove" size={14} color="#db7a2f" />
+                            </TouchableOpacity>
+                            <TextInput
+                              style={styles.inlineQtyInput}
+                              keyboardType="decimal-pad"
+                              value={item.qty}
+                              onChangeText={(val) => updateIngredientItem(item.id, 'qty', val.replace(/[^0-9.]/g, ''))}
+                              maxLength={5}
+                              selectTextOnFocus
+                            />
+                            <TouchableOpacity onPress={() => incrementIngredientQty(item.id)} activeOpacity={0.7} style={styles.inlineQtyBtn}>
+                              <Ionicons name="add" size={14} color="#db7a2f" />
+                            </TouchableOpacity>
+                          </View>
+
+                          {/* RIGHT: unit pill */}
+                          <TouchableOpacity
+                            onPress={() => setOpenUnitPickerId(openUnitPickerId === item.id ? null : item.id)}
+                            activeOpacity={0.8}
+                            style={styles.ingUnitPill}
+                          >
+                            <Text style={styles.ingUnitPillText}>{item.unit}</Text>
+                            <Ionicons name="chevron-down" size={10} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
+                          </TouchableOpacity>
                         </View>
-                        <Text style={[styles.suggestionText, { color: '#156133', fontWeight: '700' }]}>
-                          Add "{ingredientSearch.trim()}"
-                        </Text>
+
+                        {/* Unit picker pills (expand below when tapped) */}
+                        {openUnitPickerId === item.id && (
+                          <View style={styles.inlineUnitPickerRow}>
+                            {UNIT_OPTIONS.map((u) => (
+                              <TouchableOpacity
+                                key={u.value}
+                                onPress={() => {
+                                  updateIngredientItem(item.id, 'unit', u.value);
+                                  setOpenUnitPickerId(null);
+                                }}
+                                style={[
+                                  styles.inlineUnitPill,
+                                  item.unit === u.value ? styles.inlineUnitPillActive : styles.inlineUnitPillInactive
+                                ]}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={[
+                                  styles.inlineUnitPillText,
+                                  item.unit === u.value ? styles.inlineUnitPillTextActive : styles.inlineUnitPillTextInactive
+                                ]}>{u.label}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
                       </View>
-                    </TouchableOpacity>
-                  )}
-                </ScrollView>
+                    </Swipeable>
+                  );
+                })}
+
+                <TouchableOpacity
+                  style={styles.addAnotherBtn}
+                  onPress={() => setIngredientSearch('')}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color="#156133" style={{ marginRight: 6 }} />
+                  <Text style={styles.addAnotherText}>Add Another Ingredient</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
-
-          {/* Ingredients List */}
-          {ingredientsList.length === 0 ? (
-            <View style={styles.emptyIngredientsWrap}>
-              <MaterialCommunityIcons name="silverware-clean" size={40} color="#D0D0D0" />
-              <Text style={styles.emptyIngredientsText}>No ingredients added yet.</Text>
-              <Text style={styles.emptyIngredientsSubtext}>Search above to add ingredients.</Text>
-            </View>
-          ) : (
-            <View style={styles.addedListContainer}>
-              {/* Column header labels */}
-              <View style={styles.ingColumnHeader}>
-                <Text style={styles.ingColLabel}>Ingredients</Text>
-                <Text style={styles.ingColLabelCenter}>Qty</Text>
-                <Text style={styles.ingColLabelRight}>Unit</Text>
-              </View>
-              {ingredientsList.map((item) => {
-                const iconDetail = getIngredientIcon(item.baseName);
-
-                const renderRightActions = () => (
-                  <TouchableOpacity
-                    style={styles.swipeDeleteAction}
-                    onPress={() => removeIngredientItem(item.id)}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="trash" size={22} color="#FFF" />
-                    <Text style={styles.swipeDeleteText}>Delete</Text>
-                  </TouchableOpacity>
-                );
-
-                return (
-                  <Swipeable
-                    key={item.id}
-                    renderRightActions={renderRightActions}
-                    overshootRight={false}
-                    friction={2}
-                  >
-                    <View style={styles.ingredientCardSelected}>
-                      {/* SINGLE ROW: Icon+Name | Qty | Unit */}
-                      <View style={styles.ingRowMain}>
-
-                        {/* LEFT: icon + name */}
-                        <View style={styles.ingRowLeft}>
-                          <View style={styles.iconCircleBgSelected}>
-                            <MaterialCommunityIcons name={iconDetail.name as any} size={18} color="#FFF" />
-                          </View>
-                          <Text style={styles.ingredientCardNameSelected} numberOfLines={1}>{item.baseName}</Text>
-                        </View>
-
-                        {/* MIDDLE: qty stepper */}
-                        <View style={styles.ingRowQty}>
-                          <TouchableOpacity onPress={() => decrementIngredientQty(item.id)} activeOpacity={0.7} style={styles.inlineQtyBtn}>
-                            <Ionicons name="remove" size={14} color="#db7a2f" />
-                          </TouchableOpacity>
-                          <TextInput
-                            style={styles.inlineQtyInput}
-                            keyboardType="decimal-pad"
-                            value={item.qty}
-                            onChangeText={(val) => updateIngredientItem(item.id, 'qty', val.replace(/[^0-9.]/g, ''))}
-                            maxLength={5}
-                            selectTextOnFocus
-                          />
-                          <TouchableOpacity onPress={() => incrementIngredientQty(item.id)} activeOpacity={0.7} style={styles.inlineQtyBtn}>
-                            <Ionicons name="add" size={14} color="#db7a2f" />
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* RIGHT: unit pill */}
-                        <TouchableOpacity
-                          onPress={() => setOpenUnitPickerId(openUnitPickerId === item.id ? null : item.id)}
-                          activeOpacity={0.8}
-                          style={styles.ingUnitPill}
-                        >
-                          <Text style={styles.ingUnitPillText}>{item.unit}</Text>
-                          <Ionicons name="chevron-down" size={10} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* Unit picker pills (expand below when tapped) */}
-                      {openUnitPickerId === item.id && (
-                        <View style={styles.inlineUnitPickerRow}>
-                          {UNIT_OPTIONS.map((u) => (
-                            <TouchableOpacity
-                              key={u.value}
-                              onPress={() => {
-                                updateIngredientItem(item.id, 'unit', u.value);
-                                setOpenUnitPickerId(null);
-                              }}
-                              style={[
-                                styles.inlineUnitPill,
-                                item.unit === u.value ? styles.inlineUnitPillActive : styles.inlineUnitPillInactive
-                              ]}
-                              activeOpacity={0.8}
-                            >
-                              <Text style={[
-                                styles.inlineUnitPillText,
-                                item.unit === u.value ? styles.inlineUnitPillTextActive : styles.inlineUnitPillTextInactive
-                              ]}>{u.label}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  </Swipeable>
-                );
-              })}
-
-
-              <TouchableOpacity
-                style={styles.addAnotherBtn}
-                onPress={() => setIngredientSearch('')}
-              >
-                <Ionicons name="add-circle-outline" size={18} color="#156133" style={{ marginRight: 6 }} />
-                <Text style={styles.addAnotherText}>Add Another Ingredient</Text>
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* SAVE BUTTON */}
           <View style={styles.premiumSaveBar}>
@@ -571,7 +580,7 @@ export default function AddRecipe({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F7F6', // beautiful soft off-white background tint
   },
   // ── PAGE HEADER (clean green bar) ──
   pageHeader: {
@@ -597,39 +606,56 @@ const styles = StyleSheet.create({
   },
   // ── SCROLL CONTENT ──
   scrollContent: {
-    paddingHorizontal: 22,
-    paddingTop: 4,
+    paddingHorizontal: 18,
+    paddingTop: 8,
     paddingBottom: 20,
   },
-  // ── SECTION TITLES ──
-  sectionTitle: {
-
-    fontSize: 25,
-    fontWeight: '900',
-    color: '#8A4F1D',
+  // ── SECTION HEADER & TITLES ──
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
     marginBottom: 10,
-    marginTop: 30,
-    letterSpacing: -0.3,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#156133',
+    letterSpacing: -0.2,
   },
   sectionTitleLarge: {
-    fontSize: 25,
+    fontSize: 18,
+  },
+  // ── WHITE CONTAINER CARD ──
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2EAE5', // soft light green/grey border
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   // ── FIELDS ──
   fieldLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#156133',
+    color: '#444444', // clean label color inside white card
     marginBottom: 8,
     marginTop: 16,
-    marginLeft: 4,
   },
   inputBox: {
     borderWidth: 1,
-    borderColor: '#b8b4b1ff',
-    borderRadius: 18,
+    borderColor: '#E2EAE5',
+    borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#F7F7F7',
+    paddingVertical: 12,
+    backgroundColor: '#F8FAF9', // soft light input background inside card
   },
   inputBoxFocused: {
     borderColor: '#156133',
@@ -693,22 +719,21 @@ const styles = StyleSheet.create({
   },
   // ── INGREDIENTS SECTION ──
   selectIngLabel: {
-    fontSize: 15,
-    color: '#156133',
-    fontWeight: '700',
+    fontSize: 14,
+    color: '#444444',
+    fontWeight: '800',
     marginBottom: 12,
     marginTop: 2,
-    marginLeft: 4,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#c2bcbcff',
-    borderRadius: 30,
-    paddingHorizontal: 18,
-    height: 52,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2EAE5',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    height: 48,
+    backgroundColor: '#F8FAF9',
   },
   searchBarInput: {
     flex: 1,
@@ -719,15 +744,15 @@ const styles = StyleSheet.create({
   // ── SUGGESTIONS ──
   suggestionsContainer: {
     position: 'absolute',
-    top: 54,
+    top: 50,
     left: 0,
     right: 0,
     backgroundColor: '#FFF',
     borderWidth: 1.2,
-    borderColor: '#E0E0E0',
+    borderColor: '#E2EAE5',
     borderRadius: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 6,

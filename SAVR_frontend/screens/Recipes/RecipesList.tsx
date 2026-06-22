@@ -231,11 +231,10 @@ export default function RecipesList({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F7F6', // off-white tint matching Add Recipe screen
   },
   topHeader: {
     backgroundColor: '#FFFFFF',
@@ -355,18 +354,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
   },
-
+ 
   /* ── CARD ── */
   recipeCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#E2EAE5', // elegant soft green/grey border for visual definition
     marginBottom: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 3,
   },
   imageWrapper: {
     width: '100%',
