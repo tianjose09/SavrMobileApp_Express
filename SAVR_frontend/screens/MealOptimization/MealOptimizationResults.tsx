@@ -594,7 +594,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                   </View>
                 ) : (
                   fullMatchMeals.map((meal) => (
-                    <MealCard key={meal.id} meal={meal} selectedIngredients={selectedIngredients} navigation={navigation} />
+                    <MealCard key={meal.id} meal={meal} selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} />
                   ))
                 )}
 
@@ -617,7 +617,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                       </Text>
                     </View>
                     {suggestedMeals.map((meal) => (
-                      <MealCard key={meal.id} meal={meal} isSuggested selectedIngredients={selectedIngredients} navigation={navigation} />
+                      <MealCard key={meal.id} meal={meal} isSuggested selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} />
                     ))}
                   </>
                 )}
@@ -633,11 +633,12 @@ export default function MealOptimizationResults({ route, navigation }: any) {
 }
 
 // ── Reusable Meal Card Component ──────────────────────────────
-function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation }: {
+function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation, targetPax = 0 }: {
   meal: any;
   isSuggested?: boolean;
   selectedIngredients?: any[];
   navigation?: any;
+  targetPax?: number;
 }) {
   // Filter only the selected ingredients that appear in THIS meal's recipe
   const ingText = (meal.ingredients_used || '').toLowerCase();
@@ -725,10 +726,26 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
       </Text>
 
       <View style={[styles.commentBox, isSuggested && styles.commentBoxSuggested]}>
-        {meal.comment_title ? (
-          <Text style={styles.commentTitle}>{meal.comment_title}</Text>
-        ) : null}
-        <Text style={styles.commentText}>{meal.comment_desc}</Text>
+        {mealPax > 0 && targetPax > 0 && mealPax < targetPax ? (
+          <>
+            <Text style={[styles.commentTitle, { color: '#B85C00' }]}>Heads up!</Text>
+            <Text style={styles.commentText}>
+              Sorry, based on our available ingredients, we can only prepare{' '}
+              <Text style={{ fontWeight: '800', color: '#156133' }}>{mealPax} serving{mealPax === 1 ? '' : 's'}</Text>{' '}
+              of this meal — not the{' '}
+              <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
+              you requested. The ingredients on hand are only enough to cover{' '}
+              <Text style={{ fontWeight: '700' }}>{mealPax} out of {targetPax} servings</Text>.
+            </Text>
+          </>
+        ) : (
+          <>
+            {meal.comment_title ? (
+              <Text style={styles.commentTitle}>{meal.comment_title}</Text>
+            ) : null}
+            <Text style={styles.commentText}>{meal.comment_desc}</Text>
+          </>
+        )}
       </View>
 
       {/* Prepare This Meal Button */}
