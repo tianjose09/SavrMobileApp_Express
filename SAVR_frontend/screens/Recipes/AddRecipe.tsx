@@ -546,9 +546,9 @@ export default function AddRecipe({ navigation }: any) {
 
           {/* SAVE BUTTON */}
           <View style={styles.premiumSaveBar}>
-            <TouchableOpacity 
-              style={[styles.premiumSaveBtn, isSaving && { opacity: 0.7 }]} 
-              onPress={handleSaveRecipe} 
+            <TouchableOpacity
+              style={[styles.premiumSaveBtn, isSaving && { opacity: 0.7 }]}
+              onPress={handleSaveRecipe}
               activeOpacity={0.85}
               disabled={isSaving}
             >
@@ -557,7 +557,7 @@ export default function AddRecipe({ navigation }: any) {
               ) : (
                 <MaterialCommunityIcons name="chef-hat" size={20} color="#FFF" style={{ marginRight: 8 }} />
               )}
-              <Text style={styles.premiumSaveBtnText}>{isSaving ? 'Saving...' : 'Add Recipe'}</Text>
+              <Text style={styles.premiumSaveBtnText}>{isSaving ? 'Saving...' : 'Save Recipe'}</Text>
             </TouchableOpacity>
           </View>
 

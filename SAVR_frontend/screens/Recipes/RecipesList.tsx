@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Image, StatusBar, ActivityIndicator, Alert } from 'react-native';
+import {
+  View, Text, StyleSheet, SafeAreaView, TextInput,
+  TouchableOpacity, ScrollView, Image, StatusBar,
+  ActivityIndicator, Alert,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
 import NotificationBell from '../../components/NotificationBell';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
 
 export default function RecipesList({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,25 +63,22 @@ export default function RecipesList({ navigation }: any) {
 
   const filteredRecipes = recipes
     .filter(recipe => {
-      const matchesSearch =
-        (recipe.name && recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (recipe.comment_desc && recipe.comment_desc.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      const q = searchQuery.toLowerCase();
+      return (
+        (recipe.name && recipe.name.toLowerCase().includes(q)) ||
+        (recipe.comment_desc && recipe.comment_desc.toLowerCase().includes(q)) ||
         (recipe.ingredients && recipe.ingredients.some((ing: any) =>
-          ing.ingredient_name.toLowerCase().includes(searchQuery.toLowerCase())
-        ));
-      return matchesSearch;
+          ing.ingredient_name.toLowerCase().includes(q)
+        ))
+      );
     })
-    .sort((a, b) => {
-      const nameA = a.name || '';
-      const nameB = b.name || '';
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-    });
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-      {/* TOP BAR HEADER */}
+      {/* TOP BAR */}
       <View style={styles.topHeader}>
         <Image
           source={require('../../assets/images/logo/logobrown.png')}
@@ -94,119 +94,138 @@ export default function RecipesList({ navigation }: any) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
         {/* HERO */}
         <View style={styles.heroRow}>
-          <MaterialCommunityIcons name="chef-hat" size={42} color="#156133" style={styles.heroIcon} />
+          <MaterialCommunityIcons name="chef-hat" size={36} color="#156133" style={{ marginRight: 10 }} />
           <Text style={styles.heroTitle}>Recipes</Text>
         </View>
 
-        {/* SEARCH AND ADD BUTTON */}
+        {/* SEARCH + ADD */}
         <View style={styles.actionRow}>
           <View style={styles.searchWrap}>
+            <Ionicons name="search-outline" size={18} color="#999" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search recipes or ingredients..."
-              placeholderTextColor="#555555"
+              placeholderTextColor="#AAAAAA"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
-            <Ionicons name="search" size={20} color="#111" style={styles.searchIcon} />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={16} color="#BBBBBB" />
+              </TouchableOpacity>
+            )}
           </View>
-
           <TouchableOpacity
             style={styles.addBtn}
-            activeOpacity={0.8}
+            activeOpacity={0.82}
             onPress={() => navigation.navigate('AddRecipe')}
           >
-            <Text style={styles.addBtnText}>+ ADD RECIPE</Text>
+            <Ionicons name="add" size={18} color="#FFF" style={{ marginRight: 4 }} />
+            <Text style={styles.addBtnText}>Add Recipe</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Swipe hint label */}
-        {filteredRecipes.length > 0 && (
-          <View style={styles.swipeHintRow}>
-            <Ionicons name="arrow-back" size={12} color="#AAAAAA" />
-            <Text style={styles.swipeHintText}>Swipe left on a card to delete</Text>
-          </View>
+        {/* COUNT LABEL */}
+        {!isLoading && !fetchError && filteredRecipes.length > 0 && (
+          <Text style={styles.countLabel}>
+            {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''}
+            {searchQuery ? ' found' : ''}
+          </Text>
         )}
 
-        {/* RECIPES CONTAINER */}
+        {/* CONTENT */}
         {isLoading ? (
-          <ActivityIndicator size="large" color="#106037" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#156133" style={{ marginTop: 60 }} />
         ) : fetchError ? (
-          <Text style={styles.errorText}>{fetchError}</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="alert-circle-outline" size={52} color="#DDBBBB" />
+            <Text style={styles.emptyText}>{fetchError}</Text>
+          </View>
         ) : filteredRecipes.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="silverware-fork-knife" size={60} color="#CCCCCC" />
+            <MaterialCommunityIcons name="silverware-fork-knife" size={56} color="#D9D0C8" />
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No recipes match your search.' : 'No recipes added yet.'}
+              {searchQuery ? 'No recipes match your search.' : 'No recipes yet.'}
             </Text>
-            <Text style={styles.emptySubText}>Click "+ ADD RECIPE" to add your kitchen's custom recipes.</Text>
+            {!searchQuery && (
+              <Text style={styles.emptySubText}>
+                Tap "Add Recipe" to save your first kitchen recipe.
+              </Text>
+            )}
           </View>
         ) : (
-          filteredRecipes.map((recipe) => {
-            const renderRightActions = () => (
-              <TouchableOpacity
-                style={styles.swipeDeleteAction}
-                onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="trash" size={24} color="#FFF" />
-                <Text style={styles.swipeDeleteText}>Delete</Text>
-              </TouchableOpacity>
-            );
+          filteredRecipes.map((recipe) => (
+            <View key={recipe.id} style={styles.recipeCard}>
 
-            return (
-              <Swipeable
-                key={recipe.id}
-                renderRightActions={renderRightActions}
-                overshootRight={false}
-                friction={2}
-              >
-                <View style={styles.recipeCard}>
-                  {recipe.image_url ? (
-                    <Image source={{ uri: recipe.image_url }} style={styles.recipeCardImage} />
-                  ) : null}
-                  <View style={styles.recipeCardContent}>
-                    <View style={styles.recipeHeader}>
-                      <Text style={styles.recipeName}>{recipe.name}</Text>
-                      <View style={styles.tagContainer}>
-                        {recipe.tags && recipe.tags.map((tag: string, idx: number) => (
-                          <View key={idx} style={styles.tagBadge}>
-                            <Text style={styles.tagText}>{tag}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-
-                    {recipe.comment_desc ? (
-                      <Text style={styles.recipeDesc}>
-                        {recipe.comment_desc}
-                      </Text>
-                    ) : null}
-
-                    <View style={styles.divider} />
-
-                    <Text style={styles.ingredientsTitle}>Ingredients (Per Serving):</Text>
-                    <View style={styles.ingredientsGrid}>
-                      {recipe.ingredients && recipe.ingredients.map((ing: any, idx: number) => (
-                        <View key={idx} style={styles.ingredientRow}>
-                          <Ionicons name="ellipse" size={6} color="#156133" style={{ marginRight: 8, marginTop: 6 }} />
-                          <Text style={styles.ingredientText}>
-                            <Text style={{ fontWeight: '700' }}>{parseFloat(ing.qty_per_serving)}</Text> {ing.unit} {ing.ingredient_name}
-                            {ing.is_optional && <Text style={styles.optionalLabel}> (Optional)</Text>}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
+              {/* IMAGE + X OVERLAY */}
+              <View style={styles.imageWrapper}>
+                {recipe.image_url ? (
+                  <Image source={{ uri: recipe.image_url }} style={styles.recipeImage} />
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <MaterialCommunityIcons name="image-off-outline" size={38} color="#C8C0B8" />
                   </View>
+                )}
+                {/* Gradient-like dark tint at top for X visibility */}
+                <View style={styles.imageTopFade} pointerEvents="none" />
+                <TouchableOpacity
+                  onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
+                  activeOpacity={0.75}
+                  style={styles.deleteBtn}
+                >
+                  <Ionicons name="close" size={16} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* CARD BODY */}
+              <View style={styles.cardBody}>
+
+                {/* NAME + TAGS */}
+                <Text style={styles.recipeName} numberOfLines={1}>{recipe.name}</Text>
+                {recipe.tags && recipe.tags.length > 0 && (
+                  <View style={styles.tagRow}>
+                    {recipe.tags.map((tag: string, idx: number) => (
+                      <View key={idx} style={styles.tagBadge}>
+                        <Text style={styles.tagText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* DESCRIPTION */}
+                {recipe.comment_desc ? (
+                  <Text style={styles.recipeDesc} numberOfLines={2}>
+                    {recipe.comment_desc}
+                  </Text>
+                ) : null}
+
+                {/* DIVIDER */}
+                <View style={styles.divider} />
+
+                {/* INGREDIENTS */}
+                <View style={styles.ingHeader}>
+                  <Text style={styles.ingTitle}>Ingredients per serving</Text>
                 </View>
-              </Swipeable>
-            );
-          })
+                <View style={styles.ingGrid}>
+                  {recipe.ingredients && recipe.ingredients.map((ing: any, idx: number) => (
+                    <View key={idx} style={styles.ingRow}>
+                      <View style={styles.ingDot} />
+                      <Text style={styles.ingText}>
+                        <Text style={styles.ingQty}>{parseFloat(ing.qty_per_serving)}</Text>
+                        {' '}{ing.unit}{'  '}{ing.ingredient_name}
+                        {ing.is_optional && <Text style={styles.optional}> · optional</Text>}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          ))
         )}
 
-        {/* Empty space for tab bar */}
         <View style={{ height: 120 }} />
       </ScrollView>
     </SafeAreaView>
@@ -221,59 +240,64 @@ const styles = StyleSheet.create({
   topHeader: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#EEEBE7',
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    zIndex: 10,
-    elevation: 5,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
   },
   logoImage: {
-    width: 170,
-    height: 58,
-    marginBottom: 6,
+    width: 160,
+    height: 50,
   },
   iconBtn: {
     marginLeft: 12,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 18,
+    paddingTop: 8,
   },
   heroRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 25,
-  },
-  heroIcon: {
-    marginRight: 10,
+    marginTop: 22,
+    marginBottom: 18,
   },
   heroTitle: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '800',
-    color: '#156133',
+    color: '#1A1A1A',
     letterSpacing: -0.5,
   },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+    gap: 10,
   },
   searchWrap: {
     flex: 1,
-    height: 40,
-    borderWidth: 1.2,
-    borderColor: '#786F67',
-    borderRadius: 20,
+    height: 44,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    marginRight: 15,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#E5E0DA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   searchInput: {
     flex: 1,
@@ -281,179 +305,191 @@ const styles = StyleSheet.create({
     color: '#333',
     height: '100%',
     paddingVertical: 0,
-    marginVertical: 0,
-  },
-  searchIcon: {
-    marginLeft: 8,
   },
   addBtn: {
     backgroundColor: '#cfab17',
-    height: 40,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#cfab17',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
   addBtnText: {
     color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  countLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  swipeHintRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: 12,
-    gap: 4,
-  },
-  swipeHintText: {
-    fontSize: 11,
     color: '#AAAAAA',
-    fontStyle: 'italic',
+    fontWeight: '600',
+    marginBottom: 14,
+    marginLeft: 2,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
-  swipeDeleteAction: {
-    backgroundColor: '#D32F2F',
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 70,
+    paddingHorizontal: 24,
+  },
+  emptyText: {
+    marginTop: 14,
+    fontSize: 16,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emptySubText: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#BBBBBB',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+
+  /* ── CARD ── */
+  recipeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  imageWrapper: {
+    width: '100%',
+    height: 190,
+    position: 'relative',
+  },
+  recipeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F0EDE8',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
-    borderRadius: 16,
-    marginBottom: 20,
-    marginLeft: 8,
   },
-  swipeDeleteText: {
-    color: '#FFF',
-    fontSize: 11,
+  /* dark tint strip at top so X is always visible */
+  imageTopFade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  deleteBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardBody: {
+    padding: 16,
+  },
+  recipeName: {
+    fontSize: 19,
     fontWeight: '800',
-    marginTop: 4,
+    color: '#1A1A1A',
+    marginBottom: 6,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  tagBadge: {
+    backgroundColor: '#EEF6EF',
+    borderRadius: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  tagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#156133',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  recipeDesc: {
+    fontSize: 13.5,
+    color: '#777',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0EDE8',
+    marginVertical: 12,
+  },
+  ingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ingTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#156133',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  ingGrid: {
+    gap: 5,
+  },
+  ingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  ingDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#156133',
+    marginTop: 6,
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  ingText: {
+    fontSize: 13.5,
+    color: '#555',
+    lineHeight: 20,
+    flex: 1,
+  },
+  ingQty: {
+    fontWeight: '700',
+    color: '#222',
+  },
+  optional: {
+    fontStyle: 'italic',
+    color: '#AAAAAA',
+    fontSize: 12,
   },
   errorText: {
     textAlign: 'center',
     marginTop: 30,
     color: '#D83232',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 60,
-  },
-  emptyText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#888888',
-    fontWeight: '600',
-  },
-  emptySubText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: '#999999',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  recipeCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E9E4DF',
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  recipeCardContent: {
-    padding: 18,
-  },
-  recipeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  recipeName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#156133',
-    flex: 1,
-    marginRight: 10,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 4,
-  },
-  tagBadge: {
-    backgroundColor: '#eef6f0',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginLeft: 6,
-    marginBottom: 4,
-  },
-  tagText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#156133',
-  },
-  recipeDesc: {
-    fontSize: 14,
-    color: '#555555',
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E9E4DF',
-    marginVertical: 12,
-  },
-  ingredientsTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#544434',
-    marginBottom: 8,
-    letterSpacing: 0.3,
-  },
-  ingredientsGrid: {
-    paddingLeft: 4,
-  },
-  ingredientRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  ingredientText: {
-    fontSize: 13.5,
-    color: '#655A52',
-    lineHeight: 18,
-  },
-  optionalLabel: {
-    fontStyle: 'italic',
-    color: '#888888',
-    fontSize: 12,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 90,
-    right: 25,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#156133',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 99,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  recipeCardImage: {
-    width: '100%',
-    height: 180,
-    resizeMode: 'cover',
   },
 });
