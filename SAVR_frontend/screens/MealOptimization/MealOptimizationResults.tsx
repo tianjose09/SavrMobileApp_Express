@@ -732,7 +732,7 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
             <Text style={styles.commentText}>
               We're ready to help you prepare{' '}
               <Text style={{ fontWeight: '800', color: '#156133' }}>{mealPax} serving{mealPax === 1 ? '' : 's'}</Text>{' '}
-              of this meal — not the{' '}
+              of this meal — out of the{' '}
               <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
               you requested. Just a little less than you asked for, but we got you!
             </Text>

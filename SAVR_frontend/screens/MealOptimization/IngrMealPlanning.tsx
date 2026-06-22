@@ -35,7 +35,18 @@ const getCategoryLabel = (cat: string | null) => {
   return CATEGORY_DISPLAY_MAP[cat] || cat;
 };
 
-export default function IngrMealPlanning({ navigation }: any) {
+const isMatch = (itemName: string, ingName: string): boolean => {
+  const itemLower = itemName.toLowerCase().trim();
+  const ingLower = ingName.toLowerCase().trim();
+  if (itemLower.includes(ingLower) || ingLower.includes(itemLower)) return true;
+  
+  const itemWords = itemLower.split(/\s+/).filter(w => w.length > 2);
+  if (itemWords.length === 0) return false;
+  const mainNoun = itemWords[itemWords.length - 1];
+  return ingLower.includes(mainNoun);
+};
+
+export default function IngrMealPlanning({ route, navigation }: any) {
   const [targetPax, setTargetPax] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -47,16 +58,18 @@ export default function IngrMealPlanning({ navigation }: any) {
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const consumedParamsRef = React.useRef<string | null>(null);
 
   const onRefresh = async () => {
     setRefreshing(true);
     setTargetPax('0');
     setSearchQuery('');
+    consumedParamsRef.current = null;
     await fetchInventory(); // automatically re-fetches and un-checks all select boxes natively
     setRefreshing(false);
   };
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (recipeIngredients?: any[], targetPaxVal?: number) => {
     setIsLoading(true);
     try {
       const res = await ApiService.getInventory();
@@ -71,12 +84,33 @@ export default function IngrMealPlanning({ navigation }: any) {
         const parsedQty = parseQty(item.qty);
         const outOfStock = parsedQty.value === 0;
         const isUrgent = !outOfStock && item.expiry && item.expiry.includes('2026-01');
+
+        let isSelected = false;
+        let inputQty = '1';
+        let inputUnit = parsedQty.unit || 'kg';
+
+        if (recipeIngredients && !outOfStock) {
+          const matchIng = recipeIngredients.find((ring: any) => 
+            isMatch(item.name, ring.ingredient_name)
+          );
+          if (matchIng) {
+            isSelected = true;
+            const needed = (matchIng.qty_per_serving || 0) * (targetPaxVal || 0);
+            const actualQty = Math.min(needed, parsedQty.value);
+            inputQty = String(actualQty > 0 ? actualQty : 1);
+            inputUnit = matchIng.unit || parsedQty.unit || 'kg';
+          }
+        }
+
         return {
           ...item,
           status: outOfStock ? 'Out of Stock' : (isUrgent ? 'Urgent Expiry' : 'Available'),
           urgent: isUrgent,
           outOfStock,
-          selected: false,
+          selected: isSelected,
+          inputQty: isSelected ? inputQty : undefined,
+          inputUnit: isSelected ? inputUnit : undefined,
+          maxQty: parsedQty.value,
         };
       });
       setIngredients(formatted);
@@ -103,12 +137,33 @@ export default function IngrMealPlanning({ navigation }: any) {
         const parsedQty = parseQty(item.qty);
         const outOfStock = parsedQty.value === 0;
         const isUrgent = !outOfStock && item.expiry && item.expiry.includes('2026-01');
+
+        let isSelected = false;
+        let inputQty = '1';
+        let inputUnit = parsedQty.unit || 'kg';
+
+        if (recipeIngredients && !outOfStock) {
+          const matchIng = recipeIngredients.find((ring: any) => 
+            isMatch(item.name, ring.ingredient_name)
+          );
+          if (matchIng) {
+            isSelected = true;
+            const needed = (matchIng.qty_per_serving || 0) * (targetPaxVal || 0);
+            const actualQty = Math.min(needed, parsedQty.value);
+            inputQty = String(actualQty > 0 ? actualQty : 1);
+            inputUnit = matchIng.unit || parsedQty.unit || 'kg';
+          }
+        }
+
         return {
           ...item,
           status: outOfStock ? 'Out of Stock' : (isUrgent ? 'Urgent Expiry' : 'Available'),
           urgent: isUrgent,
           outOfStock,
-          selected: false,
+          selected: isSelected,
+          inputQty: isSelected ? inputQty : undefined,
+          inputUnit: isSelected ? inputUnit : undefined,
+          maxQty: parsedQty.value,
         };
       });
       formatted.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
@@ -118,13 +173,69 @@ export default function IngrMealPlanning({ navigation }: any) {
     }
   };
 
+
   useFocusEffect(
     React.useCallback(() => {
-      setTargetPax('0');
-      setSearchQuery('');
-      setSelectedCategory(null);
-      fetchInventory();
-    }, [])
+      const initPlanning = async () => {
+        const routePax = route.params?.targetPax;
+        const routeMeal = route.params?.mealName;
+
+        // Build a key to identify this specific param set
+        const paramKey = routePax !== undefined && routeMeal !== undefined
+          ? `${routeMeal}_${routePax}`
+          : null;
+
+        if (paramKey && paramKey !== consumedParamsRef.current) {
+          // Mark these params as consumed so we don't re-process on refocus
+          consumedParamsRef.current = paramKey;
+
+          const paxNum = parseFloat(routePax) || 0;
+          setTargetPax(String(paxNum));
+          setSearchQuery('');
+          setSelectedCategory(null);
+
+          let matchingIngredients: any[] = [];
+          try {
+            const recipeRes = await ApiService.getRecipes();
+            if (recipeRes.data && recipeRes.data.success) {
+              const recipes = recipeRes.data.data || [];
+              const matchingRecipe = recipes.find((r: any) => 
+                r.name.toLowerCase() === routeMeal.toLowerCase()
+              );
+              if (matchingRecipe) {
+                matchingIngredients = matchingRecipe.ingredients || [];
+              }
+            }
+          } catch (err) {
+            console.log('Failed to fetch recipes for auto-selection, using fallback matching', err);
+            const fallbacks: Record<string, string[]> = {
+              'lugaw': ['rice', 'chicken', 'garlic', 'onion', 'ginger'],
+              'arroz caldo': ['rice', 'chicken', 'garlic', 'onion', 'ginger', 'eggs'],
+              'champorado': ['rice', 'milk'],
+              'chicken adobo': ['chicken', 'garlic', 'onion'],
+              'sopas': ['milk', 'chicken', 'carrots', 'cabbage'],
+              'sandwich': ['bread', 'eggs'],
+            };
+            const lowerMeal = routeMeal.toLowerCase();
+            const matchingKey = Object.keys(fallbacks).find(k => lowerMeal.includes(k));
+            if (matchingKey) {
+              matchingIngredients = fallbacks[matchingKey].map(name => ({ ingredient_name: name, qty_per_serving: 0.15, unit: 'kg' }));
+            }
+          }
+          await fetchInventory(matchingIngredients, paxNum);
+        } else if (!paramKey) {
+          // Normal navigation (no params from dashboard) — only reset if we haven't just consumed params
+          if (!consumedParamsRef.current) {
+            setTargetPax('0');
+            setSearchQuery('');
+            setSelectedCategory(null);
+            await fetchInventory();
+          }
+        }
+      };
+
+      initPlanning();
+    }, [route.params])
   );
 
   const toggleSelectAll = () => {

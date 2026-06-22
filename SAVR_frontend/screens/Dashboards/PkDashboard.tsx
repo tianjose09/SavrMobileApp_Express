@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, StatusBar, Image, Alert, Animated } from 'react-native';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import NotificationBell from '../../components/NotificationBell';
 
@@ -18,6 +18,7 @@ export default function PkDashboard({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [staffRequests, setStaffRequests] = useState<any[]>([]);
   const bannerShownRef = React.useRef(false);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
@@ -50,6 +51,16 @@ export default function PkDashboard({ navigation }: any) {
     navigation.navigate('Notifications', { role: 'pk' });
   };
 
+  const handleCookMeal = (mealName: string, qty: number) => {
+    navigation.navigate('Ingredients', {
+      screen: 'IngrMealPlanning',
+      params: {
+        targetPax: qty,
+        mealName: mealName
+      }
+    });
+  };
+
   const fetchDashboardData = async () => {
     const localName = await StorageUtils.getItem(StorageKeys.DISPLAY_NAME) || 'Loaves and Fishes';
     const picKey = await getProfilePicKey();
@@ -79,6 +90,29 @@ export default function PkDashboard({ navigation }: any) {
       } catch { }
     } catch (e) {
       console.log('Backend dashboard API pending');
+    }
+
+    // Fetch Staff Requests
+    try {
+      const reqRes = await ApiService.getAllBeneficiaryRequests();
+      if (reqRes.data && reqRes.data.success) {
+        const allReqs = reqRes.data.requests || [];
+        const mealReqs = allReqs.filter((r: any) => {
+          const activeStatus = ['pending', 'approved', 'accepted', 'allocated', 'urgent'].includes(r.status?.toLowerCase());
+          if (!activeStatus) return false;
+          if (r.type !== 'food') return false;
+          
+          const items = Array.isArray(r.food_items) ? r.food_items : [];
+          return items.some((item: any) => 
+            (item.food_type || item.category) === 'Prepared Meals' ||
+            item.food_name?.toLowerCase() === 'lugaw' ||
+            r.food_type?.toLowerCase() === 'lugaw'
+          );
+        });
+        setStaffRequests(mealReqs);
+      }
+    } catch (err) {
+      console.log('Failed to fetch staff requests:', err);
     }
 
     // 2. Fetch Live Inventory specifically for metrics calculations identically to the FoodInventory logic!
@@ -275,6 +309,99 @@ export default function PkDashboard({ navigation }: any) {
 
               <View style={styles.divider} />
 
+              {/* STAFF MEAL REQUESTS */}
+              <View style={{ marginTop: 25, paddingBottom: 15, paddingHorizontal: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <FontAwesome5 name="sync-alt" size={12} color="#00592d" />
+                  <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '800', color: '#00592d', letterSpacing: 0.5 }}>STAFF MEAL REQUESTS</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.drivesScroll}>
+                  {staffRequests.map((reqItem, idx) => {
+                    const gradientColors: [string, string] = idx % 2 === 0
+                      ? ['#E29C20', '#E29C20']
+                      : ['#D87A38', '#D87A38'];
+                    
+                    const items = Array.isArray(reqItem.food_items) ? reqItem.food_items : [];
+                    const mealItems = items.filter((item: any) => 
+                      (item.food_type || item.category) === 'Prepared Meals' ||
+                      item.food_name?.toLowerCase() === 'lugaw' ||
+                      reqItem.food_type?.toLowerCase() === 'lugaw'
+                    );
+
+                    const mainMeal = mealItems[0] || { food_name: reqItem.food_type || 'Lugaw', qty: reqItem.quantity || 20, unit: reqItem.unit || 'meal' };
+
+                    return (
+                      <View style={styles.driveCard} key={reqItem.id || idx}>
+                        <LinearGradient
+                          colors={gradientColors}
+                          style={styles.driveCardGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                            style={StyleSheet.absoluteFillObject}
+                          />
+
+                          <View style={styles.driveCardContent}>
+                            <View>
+                              <Text style={styles.driveName} numberOfLines={2}>{reqItem.request_name}</Text>
+                              <View style={styles.driveTopRow}>
+                                <View style={styles.driveStatusWrap}>
+                                  <Text style={styles.driveStatus}>Meal Prep</Text>
+                                </View>
+                                <View style={[styles.driveUrgencyWrap, { backgroundColor: reqItem.urgency === 'High' ? '#D0112B' : (reqItem.urgency === 'Medium' ? '#B45309' : '#00592d') }]}>
+                                  <Text style={styles.driveUrgency}>{reqItem.urgency} Urgency</Text>
+                                </View>
+                              </View>
+                              {reqItem.start_date && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                  <FontAwesome5 name="calendar-alt" size={10} color="rgba(255,255,255,0.7)" />
+                                  <Text style={[styles.driveDate, { marginBottom: 0, marginLeft: 6 }]}>
+                                    {new Date(reqItem.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    {reqItem.end_date ? ` - ${new Date(reqItem.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+
+                            <View style={styles.driveItemsBox}>
+                              <Text style={styles.driveItemsLabel}>MEALS TO PREPARE</Text>
+                              {mealItems.slice(0, 2).map((item: any, i: number) => (
+                                <View key={i} style={styles.driveItemRow}>
+                                  <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name || item.name}</Text>
+                                  <Text style={styles.driveItemQty}>{item.qty || item.quantity} {item.unit}</Text>
+                                </View>
+                              ))}
+                              {mealItems.length > 2 && (
+                                <View style={styles.driveItemRow}>
+                                  <Text style={styles.driveItemName}>+ {mealItems.length - 2} more items</Text>
+                                </View>
+                              )}
+                            </View>
+
+                            <TouchableOpacity 
+                              style={styles.driveBtn} 
+                              onPress={() => handleCookMeal(mainMeal.food_name || mainMeal.name, parseFloat(mainMeal.qty || mainMeal.quantity) || 0)}
+                            >
+                              <Text style={styles.driveBtnText}>Cook This Meal</Text>
+                              <FontAwesome5 name="chevron-right" size={9} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                            </TouchableOpacity>
+                          </View>
+                        </LinearGradient>
+                      </View>
+                    );
+                  })}
+                  {staffRequests.length === 0 && (
+                    <View style={styles.driveEmpty}>
+                      <Text style={styles.driveEmptyText}>No active meal requests at the moment.</Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
+
+              <View style={styles.divider} />
+
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Activities</Text>
                 <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
@@ -291,7 +418,7 @@ export default function PkDashboard({ navigation }: any) {
                     <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
                   </View>
                 ) : (
-                  activities.slice(0, 3).map((act, i) => (
+                  activities.slice(0, 2).map((act, i) => (
                     <View key={i} style={styles.activityRow}>
                       <View style={styles.activityLeft}>
                         <Text style={styles.actTitle}>{act.title}</Text>
@@ -600,5 +727,131 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-  }
+  },
+  drivesScroll: {
+    paddingRight: 16,
+  },
+  driveCard: {
+    width: 270,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    marginRight: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  driveCardGradient: {
+    borderRadius: 16,
+  },
+  driveCardContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    height: 270,
+    justifyContent: 'space-between',
+  },
+  driveTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 8,
+    gap: 8,
+  },
+  driveStatusWrap: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  driveStatus: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  driveUrgencyWrap: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  driveUrgency: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  driveName: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  driveDate: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  driveItemsBox: {
+    marginBottom: 12,
+  },
+  driveItemsLabel: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 9,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  driveItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    marginBottom: 4,
+  },
+  driveItemName: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+  },
+  driveItemQty: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  driveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  driveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  driveEmpty: {
+    paddingVertical: 20,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    width: 260,
+  },
+  driveEmptyText: {
+    color: '#8A8A8A',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
 });

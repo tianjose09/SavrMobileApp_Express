@@ -133,6 +133,7 @@ export const ApiService = {
   // Staff-only: change status; optionally pass delivery_date_time (ISO string)
   updateRequestStatus: (id: number, status: 'Pending' | 'Allocated' | 'Urgent' | 'Approved' | 'Accepted' | 'Rejected' | 'Denied' | 'Cancelled', delivery_date_time?: string) =>
     api.put(`api/donation/requests/${id}/status`, { status, ...(delivery_date_time ? { delivery_date_time } : {}) }),
+  getAllBeneficiaryRequests: () => api.get('api/donation/requests'),
 
   // PayMongo
   createPaymongoCheckout: (data: any) => api.post('api/donation/paymongo', data),
