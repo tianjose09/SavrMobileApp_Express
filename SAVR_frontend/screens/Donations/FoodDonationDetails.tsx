@@ -33,6 +33,26 @@ interface FoodItem {
   photoUri: string | null;
 }
 
+// ── FILIPINO FOODS (supplements TheMealDB which has limited PH coverage) ────
+const FILIPINO_FOODS = [
+  "Adobo", "Afritada", "Arroz Caldo", "Atchara",
+  "Bachoy", "Bagoong", "Bangus", "Batchoy", "Bibingka", "Biko", "Binagoongan", "Bistek", "Bopis", "Bulalo",
+  "Caldereta", "Champorado", "Chicken Inasal", "Chopsuey", "Crispy Pata",
+  "Daing na Bangus", "Dinuguan",
+  "Embutido", "Escabeche",
+  "Ginataang Bilo-Bilo", "Ginataang Mais", "Giniling", "Goto",
+  "Halabos na Hipon",
+  "Inasal",
+  "Kare-Kare", "Kinilaw", "Kutsinta",
+  "Laing", "Lechon", "Lechon Kawali", "Leche Flan", "Liempo", "Lomi", "Longganisa", "Lugaw", "Lumpia", "Lumpiang Shanghai",
+  "Maja Blanca", "Mami", "Mechado", "Menudo", "Morcon",
+  "Nilaga",
+  "Pako Salad", "Paksiw", "Paksiw na Lechon", "Palitaw", "Pancit Bihon", "Pancit Canton", "Pancit Malabon", "Pancit Palabok", "Pinapaitan", "Pinakbet", "Pork Belly", "Puto",
+  "Rellenong Bangus",
+  "Sapin-sapin", "Sisig", "Sinuglaw", "Sinigang", "Sinigang na Baboy", "Sinigang na Hipon", "Sinigang na Isda", "Sinigang sa Miso", "Sopas",
+  "Tapa", "Tinola", "Tocino", "Tortang Talong", "Turon",
+];
+
 export default function FoodDonationDetails({ navigation, route }: any) {
   const [items, setItems] = useState<FoodItem[]>([
     { id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null },
@@ -42,6 +62,42 @@ export default function FoodDonationDetails({ navigation, route }: any) {
   const [iosTempDate, setIosTempDate] = useState(new Date());
   const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [dbIngredients, setDbIngredients] = useState<string[]>([]);
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadIngredients = async () => {
+      const uniqueNames = new Set<string>();
+      try {
+        const res = await ApiService.getIngredientsList();
+        const dataArr = res.data?.data || res.data?.ingredients || [];
+        if (Array.isArray(dataArr)) {
+          dataArr.forEach((name: string) => {
+            if (name) uniqueNames.add(name);
+          });
+        }
+      } catch (e) {
+        console.log('Backend ingredients API not available:', e);
+      }
+
+      try {
+        const res = await fetch('https://www.themealdb.com/api/json/v1/1/list.php?i=list');
+        const data = await res.json();
+        const items = data.meals || [];
+        items.forEach((m: any) => {
+          if (m.strIngredient) uniqueNames.add(m.strIngredient);
+        });
+      } catch (e) {
+        console.log('TheMealDB API not available:', e);
+      }
+
+      // 3. Load hardcoded Filipino foods
+      FILIPINO_FOODS.forEach(item => uniqueNames.add(item));
+
+      setDbIngredients(Array.from(uniqueNames).sort());
+    };
+    loadIngredients();
+  }, []);
 
   // Pre-fill form whenever the screen receives driveItems from Support This Drive
   useEffect(() => {
@@ -229,6 +285,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -246,7 +303,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
           </View>
 
           {items.map((item, index) => (
-            <View key={item.id} style={styles.greenCard}>
+            <View key={item.id} style={[styles.greenCard, { zIndex: 100 - index }]}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardNumber}>ITEM {index + 1}</Text>
                 <TouchableOpacity
@@ -259,15 +316,54 @@ export default function FoodDonationDetails({ navigation, route }: any) {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.inputGroup}>
+              <View style={[styles.inputGroup, { zIndex: 110 - index }]}>
                 <Text style={styles.label}>Food Item Name<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Canned vegetables, Fresh fruits"
-                  placeholderTextColor="rgba(255,255,255,0.65)"
-                  value={item.name}
-                  onChangeText={(val) => updateItem(item.id, 'name', val)}
-                />
+                <View style={{ position: 'relative', zIndex: 120 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Canned vegetables, Fresh fruits"
+                    placeholderTextColor="rgba(255,255,255,0.65)"
+                    value={item.name}
+                    onChangeText={(val) => {
+                      updateItem(item.id, 'name', val);
+                      setFocusedItemId(item.id);
+                    }}
+                    onFocus={() => setFocusedItemId(item.id)}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setFocusedItemId(curr => curr === item.id ? null : curr);
+                      }, 250);
+                    }}
+                  />
+                  {(() => {
+                    const filtered = dbIngredients.filter(
+                      ing =>
+                        ing.toLowerCase().includes(item.name.toLowerCase()) &&
+                        ing.toLowerCase() !== item.name.toLowerCase()
+                    );
+                    if (focusedItemId === item.id && filtered.length > 0) {
+                      return (
+                        <View style={styles.suggestionsContainer}>
+                          <ScrollView style={{ maxHeight: 150 }} keyboardShouldPersistTaps="handled">
+                            {filtered.map((sug, idx) => (
+                              <TouchableOpacity
+                                key={idx}
+                                style={styles.suggestionRow}
+                                onPress={() => {
+                                  updateItem(item.id, 'name', sug);
+                                  setFocusedItemId(null);
+                                }}
+                              >
+                                <Text style={styles.suggestionText}>{sug}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
+                </View>
               </View>
 
               <View style={styles.row}>
@@ -773,5 +869,30 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#00592d' },
-
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 999,
+  },
+  suggestionRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#333',
+  },
 });

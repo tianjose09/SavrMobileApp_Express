@@ -69,6 +69,26 @@ const parseQuantity = (val: string): number => {
   return parseFloat(val) || 0;
 };
 
+// ── FILIPINO FOODS (supplements TheMealDB which has limited PH coverage) ────
+const FILIPINO_FOODS = [
+  "Adobo", "Afritada", "Arroz Caldo", "Atchara",
+  "Bachoy", "Bagoong", "Bangus", "Batchoy", "Bibingka", "Biko", "Binagoongan", "Bistek", "Bopis", "Bulalo",
+  "Caldereta", "Champorado", "Chicken Inasal", "Chopsuey", "Crispy Pata",
+  "Daing na Bangus", "Dinuguan",
+  "Embutido", "Escabeche",
+  "Ginataang Bilo-Bilo", "Ginataang Mais", "Giniling", "Goto",
+  "Halabos na Hipon",
+  "Inasal",
+  "Kare-Kare", "Kinilaw", "Kutsinta",
+  "Laing", "Lechon", "Lechon Kawali", "Leche Flan", "Liempo", "Lomi", "Longganisa", "Lugaw", "Lumpia", "Lumpiang Shanghai",
+  "Maja Blanca", "Mami", "Mechado", "Menudo", "Morcon",
+  "Nilaga",
+  "Pako Salad", "Paksiw", "Paksiw na Lechon", "Palitaw", "Pancit Bihon", "Pancit Canton", "Pancit Malabon", "Pancit Palabok", "Pinapaitan", "Pinakbet", "Pork Belly", "Puto",
+  "Rellenong Bangus",
+  "Sapin-sapin", "Sisig", "Sinuglaw", "Sinigang", "Sinigang na Baboy", "Sinigang na Hipon", "Sinigang na Isda", "Sinigang sa Miso", "Sopas",
+  "Tapa", "Tinola", "Tocino", "Tortang Talong", "Turon",
+];
+
 export default function AddRecipe({ navigation }: any) {
   // Focus States for Inputs
   const [isNameFocused, setIsNameFocused] = useState(false);
@@ -155,6 +175,9 @@ export default function AddRecipe({ navigation }: any) {
       } catch (e) {
         console.log('TheMealDB API not available:', e);
       }
+
+      // 3. Load hardcoded Filipino foods
+      FILIPINO_FOODS.forEach(item => uniqueNames.add(item));
 
       setDbIngredients(Array.from(uniqueNames).sort());
     };
@@ -408,12 +431,7 @@ export default function AddRecipe({ navigation }: any) {
                         style={styles.suggestionRow}
                         onPress={() => addIngredientItem(item)}
                       >
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View style={[styles.suggestionIconDot, { backgroundColor: getIngredientIcon(item).color + '22' }]}>
-                            <MaterialCommunityIcons name={getIngredientIcon(item).name as any} size={14} color={getIngredientIcon(item).color} />
-                          </View>
-                          <Text style={styles.suggestionText}>{item}</Text>
-                        </View>
+                        <Text style={styles.suggestionText}>{item}</Text>
                       </TouchableOpacity>
                     ))}
                     {ingredientSearch.trim().length > 0 && (
@@ -421,14 +439,9 @@ export default function AddRecipe({ navigation }: any) {
                         style={styles.suggestionRow}
                         onPress={() => addIngredientItem(ingredientSearch.trim())}
                       >
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View style={[styles.suggestionIconDot, { backgroundColor: '#15613322' }]}>
-                            <Ionicons name="add" size={14} color="#156133" />
-                          </View>
-                          <Text style={[styles.suggestionText, { color: '#156133', fontWeight: '700' }]}>
-                            Add "{ingredientSearch.trim()}"
-                          </Text>
-                        </View>
+                        <Text style={[styles.suggestionText, { color: '#156133', fontWeight: '700' }]}>
+                          Add "{ingredientSearch.trim()}"
+                        </Text>
                       </TouchableOpacity>
                     )}
                   </ScrollView>
