@@ -4,9 +4,9 @@ const dayjs = require('dayjs');
 // Remove unwanted tags from specific system meals.
 // WHERE checks prevent re-running once tags are already cleared.
 // Use LOWER() for case-insensitive matching regardless of how tags were originally stored
-db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 1  AND (LOWER(tags) LIKE '%recommended%' OR LOWER(tags) LIKE '%high pax%'    OR LOWER(tags) LIKE '%budget-friendly%')`).catch(err => console.error('[migration] lugaw tags failed:', err.message));
-db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 4  AND (LOWER(tags) LIKE '%protein rich%' OR LOWER(tags) LIKE '%feasible%')`).catch(err => console.error('[migration] adobo tags failed:', err.message));
-db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 12 AND (LOWER(tags) LIKE '%budget-friendly%' OR LOWER(tags) LIKE '%quick prep%')`).catch(err => console.error('[migration] sardines tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 1  AND (LOWER(tags::text) LIKE '%recommended%' OR LOWER(tags::text) LIKE '%high pax%'    OR LOWER(tags::text) LIKE '%budget-friendly%')`).catch(err => console.error('[migration] lugaw tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 4  AND (LOWER(tags::text) LIKE '%protein rich%' OR LOWER(tags::text) LIKE '%feasible%')`).catch(err => console.error('[migration] adobo tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 12 AND (LOWER(tags::text) LIKE '%budget-friendly%' OR LOWER(tags::text) LIKE '%quick prep%')`).catch(err => console.error('[migration] sardines tags failed:', err.message));
 
 // Remove unused system meals (not in the 5 selected ones) and their ingredients.
 db.execute(`DELETE FROM meal_ingredients WHERE meal_id IN (SELECT id FROM meals WHERE user_id IS NULL AND id NOT IN (1, 4, 12, 35, 37))`).catch(err => console.error('[migration] unused meal_ingredients cleanup failed:', err.message));
@@ -488,6 +488,93 @@ exports.deleteRecipe = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error: ' + error.message });
   } finally {
     conn.release();
+  }
+};
+
+// GET /api/partner-kitchen/meal-requests
+exports.getMealRequests = async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    const [pkRows] = await db.execute(
+      'SELECT id FROM partner_kitchen WHERE user_id = ?',
+      [req.user.id]
+    );
+    if (!pkRows.length) {
+      return res.json([]);
+    }
+    const kitchenId = pkRows[0].id;
+
+    const params = [kitchenId];
+    let statusClause = '';
+    if (status) {
+      statusClause = ' AND r.status = ?';
+      params.push(status);
+    }
+
+    const [requests] = await db.execute(
+      `SELECT r.id, r.donation_drive_id AS drive_id, r.drive_title, r.urgency,
+              r.status, r.note, r.start_date, r.end_date, r.created_at
+       FROM partner_kitchen_meal_requests r
+       WHERE r.partner_kitchen_id = ?${statusClause}
+       ORDER BY r.created_at DESC`,
+      params
+    );
+
+    if (!requests.length) {
+      return res.json([]);
+    }
+
+    const ids = requests.map(r => r.id);
+    const [items] = await db.execute(
+      `SELECT id, meal_request_id, food_name, quantity, unit, status
+       FROM partner_kitchen_meal_request_items
+       WHERE meal_request_id IN (${ids.map(() => '?').join(',')})`,
+      ids
+    );
+
+    const itemsByRequest = {};
+    for (const item of items) {
+      if (!itemsByRequest[item.meal_request_id]) itemsByRequest[item.meal_request_id] = [];
+      itemsByRequest[item.meal_request_id].push({
+        id: item.id,
+        food_name: item.food_name,
+        quantity: item.quantity,
+        unit: item.unit,
+        status: item.status,
+      });
+    }
+
+    const data = requests.map(r => ({ ...r, items: itemsByRequest[r.id] || [] }));
+    return res.json(data);
+  } catch (e) {
+    console.error('[getMealRequests]', e);
+    return res.status(500).json({ success: false, message: 'Failed to fetch meal requests.' });
+  }
+};
+
+// PATCH /api/partner-kitchen/meal-requests/:id/status
+exports.updateMealRequestStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!status) return res.status(422).json({ success: false, message: 'Status is required.' });
+
+    const [pkRows] = await db.execute(
+      'SELECT id FROM partner_kitchen WHERE user_id = ?',
+      [req.user.id]
+    );
+    if (!pkRows.length) return res.status(403).json({ success: false, message: 'Partner kitchen not found.' });
+    const kitchenId = pkRows[0].id;
+
+    await db.execute(
+      'UPDATE partner_kitchen_meal_requests SET status = ?, updated_at = NOW() WHERE id = ? AND partner_kitchen_id = ?',
+      [status, id, kitchenId]
+    );
+    return res.json({ message: 'Status updated.', status });
+  } catch (e) {
+    console.error('[updateMealRequestStatus]', e);
+    return res.status(500).json({ success: false, message: 'Failed to update status.' });
   }
 };
 

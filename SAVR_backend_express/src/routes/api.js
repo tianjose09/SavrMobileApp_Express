@@ -114,4 +114,8 @@ router.post('/meals',               mealController.storeMeal);
 router.delete('/meals/:id',         mealController.deleteRecipe);
 router.get('/ingredients',          mealController.getIngredientsList);
 
+// Partner Kitchen Meal Requests
+router.get('/partner-kitchen/meal-requests',            mealController.getMealRequests);
+router.patch('/partner-kitchen/meal-requests/:id/status', mealController.updateMealRequestStatus);
+
 module.exports = router;

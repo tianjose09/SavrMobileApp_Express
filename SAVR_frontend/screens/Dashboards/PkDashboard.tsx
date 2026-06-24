@@ -94,12 +94,14 @@ export default function PkDashboard({ navigation }: any) {
 
     // Fetch Staff Meal Requests from dedicated endpoint
     try {
-      const reqRes = await ApiService.getMealRequests('pending');
-      if (reqRes.data && reqRes.data.success) {
-        setStaffRequests(reqRes.data.data || reqRes.data.requests || []);
-      }
-    } catch (err) {
-      console.log('Failed to fetch staff meal requests:', err);
+      const reqRes = await ApiService.getMealRequests();
+      const payload = reqRes.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : (payload?.data || payload?.requests || payload?.meal_requests || []);
+      setStaffRequests(list);
+    } catch (err: any) {
+      console.log('[MealRequests] fetch failed:', err?.response?.status, err?.response?.data || err?.message);
     }
 
     // 2. Fetch Live Inventory specifically for metrics calculations identically to the FoodInventory logic!
