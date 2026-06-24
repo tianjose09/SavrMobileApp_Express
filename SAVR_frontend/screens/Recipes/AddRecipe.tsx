@@ -23,9 +23,8 @@ import { ApiService } from '../../services/api';
 // KNOWN_INGREDIENTS list is loaded dynamically from database
 
 const UNIT_OPTIONS = [
-  { label: 'kg', value: 'kg' },
-  { label: 'L', value: 'L' },
-  { label: 'pcs', value: 'pcs' },
+  { label: 'g', value: 'g' },
+  { label: 'mililiters', value: 'ml' },
   { label: 'tsp', value: 'tsp' },
   { label: 'tbsp', value: 'tbsp' },
 ];
@@ -199,7 +198,7 @@ export default function AddRecipe({ navigation }: any) {
     isAdding.current = true;
     setIngredientsList(prev => [
       ...prev,
-      { id: String(Date.now()), baseName, qty: '1', unit: 'pcs' }
+      { id: String(Date.now()), baseName, qty: '1', unit: 'g' }
     ]);
     setIngredientSearch('');
     setShowSuggestions(false);
@@ -220,7 +219,7 @@ export default function AddRecipe({ navigation }: any) {
     setIngredientsList(ingredientsList.map(item => {
       if (item.id !== id) return item;
       const current = parseFloat(item.qty) || 0;
-      const step = (item.unit === 'kg' || item.unit === 'L') ? 0.5 : 1;
+      const step = 1;
       const next = parseFloat((current + step).toFixed(2));
       return { ...item, qty: String(next) };
     }));
@@ -230,9 +229,8 @@ export default function AddRecipe({ navigation }: any) {
     setIngredientsList(ingredientsList.map(item => {
       if (item.id !== id) return item;
       const current = parseFloat(item.qty) || 1;
-      const isDecimal = item.unit === 'kg' || item.unit === 'L';
-      const step = isDecimal ? 0.5 : 1;
-      const minVal = isDecimal ? 0.5 : 1;
+      const step = 1;
+      const minVal = 1;
       const next = Math.max(minVal, parseFloat((current - step).toFixed(2)));
       return { ...item, qty: String(next) };
     }));
