@@ -75,23 +75,25 @@ export default function RecipesList({ navigation }: any) {
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-      {/* TOP BAR */}
-      <View style={styles.topHeader}>
-        <Image
-          source={require('../../assets/images/logo/logobrown.png')}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
-            <Ionicons name="menu-outline" size={32} color="#544434" />
-          </TouchableOpacity>
+      <SafeAreaView style={{ backgroundColor: '#FFFFFF' }}>
+        {/* TOP BAR */}
+        <View style={styles.topHeader}>
+          <Image
+            source={require('../../assets/images/logo/logobrown.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
+              <Ionicons name="menu-outline" size={32} color="#544434" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -230,7 +232,7 @@ export default function RecipesList({ navigation }: any) {
 
         <View style={{ height: 120 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 const styles = StyleSheet.create({
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: '#156133',
     letterSpacing: -0.5,
   },
   actionRow: {
