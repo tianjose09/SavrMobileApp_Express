@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, StatusBar, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import { MealPrepService } from '../../services/mealPrepService';
@@ -649,6 +649,41 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
   const mealPax = (meal.servings && meal.servings !== '—')
     ? parseInt(meal.servings, 10)
     : calculatePaxCapacity(matchedIngredients, meal);
+
+  const defaultShortageMessage = `We can only prepare ${mealPax} servings of ${meal.name} out of the ${targetPax} servings requested due to ingredient shortages.`;
+  const [hasNotified, setHasNotified] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [customMsg, setCustomMsg] = useState(defaultShortageMessage);
+  const [showInput, setShowInput] = useState(false);
+
+  useEffect(() => {
+    setCustomMsg(`We can only prepare ${mealPax} servings of ${meal.name} out of the ${targetPax} servings requested due to ingredient shortages.`);
+  }, [mealPax, targetPax, meal.name]);
+
+  const handleNotifyStaff = async () => {
+    try {
+      setIsNotifying(true);
+      const res = await ApiService.notifyStaffShortage({
+        mealName: meal.name,
+        mealPax,
+        targetPax,
+        customMessage: customMsg.trim() || undefined,
+      });
+      if (res.data && res.data.success) {
+        setHasNotified(true);
+        setShowInput(false);
+        Alert.alert('Alert Sent', 'Staff has been successfully notified about the ingredient shortage.');
+      } else {
+        Alert.alert('Error', res.data.message || 'Failed to send notification.');
+      }
+    } catch (err: any) {
+      console.log('Error notifying staff:', err);
+      Alert.alert('Error', 'Failed to reach server. Please make sure the backend is running.');
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
   return (
     <View style={[
       styles.mealCard,
@@ -736,6 +771,56 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
               <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
               you requested. Just a little less than you asked for, but we got you!
             </Text>
+
+            {/* Notify Staff Widget */}
+            <View style={styles.notifyStaffWrapper}>
+              {hasNotified ? (
+                <View style={styles.notifiedContainer}>
+                  <Ionicons name="checkmark-circle" size={16} color="#156133" style={{ marginRight: 6 }} />
+                  <Text style={styles.notifiedText}>Staff Notified about the shortage</Text>
+                </View>
+              ) : showInput ? (
+                <View style={styles.notifyForm}>
+                  <TextInput
+                    style={styles.notifyInput}
+                    placeholder="Add optional note (e.g. Need 5kg more chicken)"
+                    placeholderTextColor="#8a7e74"
+                    value={customMsg}
+                    onChangeText={setCustomMsg}
+                    multiline
+                  />
+                  <View style={styles.notifyBtnRow}>
+                    <TouchableOpacity
+                      style={styles.notifyCancelBtn}
+                      onPress={() => setShowInput(false)}
+                      disabled={isNotifying}
+                    >
+                      <Text style={styles.notifyCancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.notifySendBtn}
+                      onPress={handleNotifyStaff}
+                      disabled={isNotifying}
+                    >
+                      {isNotifying ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={styles.notifySendBtnText}>Send Alert</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.notifyButton}
+                  onPress={() => setShowInput(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="notifications-outline" size={14} color="#B85C00" style={{ marginRight: 6 }} />
+                  <Text style={styles.notifyButtonText}>Notify Staff of Shortage</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </>
         ) : (
           <>
@@ -1228,5 +1313,89 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
     fontWeight: '600',
+  },
+  notifyStaffWrapper: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(184, 92, 0, 0.15)',
+    paddingTop: 10,
+  },
+  notifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#B85C00',
+    borderRadius: 8,
+    backgroundColor: '#FFF9F2',
+  },
+  notifyButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B85C00',
+  },
+  notifiedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#eaf6ef',
+    borderWidth: 1,
+    borderColor: '#7ecba5',
+  },
+  notifiedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#156133',
+  },
+  notifyForm: {
+    width: '100%',
+    gap: 8,
+  },
+  notifyInput: {
+    borderWidth: 1,
+    borderColor: '#e0d8ce',
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 12,
+    color: '#333',
+    backgroundColor: '#FAF8F5',
+    minHeight: 70,
+    textAlignVertical: 'top',
+  },
+  notifyBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  notifyCancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#8a7e74',
+  },
+  notifyCancelBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6c5c53',
+  },
+  notifySendBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#B85C00',
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifySendBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });

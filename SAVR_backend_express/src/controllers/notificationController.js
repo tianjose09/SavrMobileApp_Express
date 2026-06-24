@@ -686,3 +686,35 @@ exports.clearPushToken = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to clear push token.' });
   }
 };
+
+// POST /api/notifications/notify-staff
+exports.notifyStaffShortage = async (req, res) => {
+  try {
+    const { mealName, mealPax, targetPax, customMessage } = req.body;
+    if (!mealName || mealPax === undefined || targetPax === undefined) {
+      return res.status(422).json({ success: false, message: 'Meal name, feasible servings, and target servings are required.' });
+    }
+
+    const [userRows] = await db.execute('SELECT name, role FROM users WHERE id = ?', [req.user.id]);
+    const senderName = userRows[0]?.name || 'A user';
+
+    // Get all staff members
+    const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+
+    if (staffRows.length === 0) {
+      return res.json({ success: true, message: 'No staff available to notify, but the alert was recorded.' });
+    }
+
+    const title = 'Feasibility Shortage Alert';
+    const description = `${senderName} reported a shortage. Can only serve ${mealPax} servings of ${mealName} (Target: ${targetPax}). Note: ${customMessage || 'No comment provided.'}`;
+
+    for (const staff of staffRows) {
+      await createNotification(staff.id, 'service', title, description, true);
+    }
+
+    return res.json({ success: true, message: 'Staff notified successfully!' });
+  } catch (e) {
+    console.error('[notifyStaffShortage]', e);
+    return res.status(500).json({ success: false, message: 'Failed to notify staff.' });
+  }
+};

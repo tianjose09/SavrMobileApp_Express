@@ -164,6 +164,8 @@ export const ApiService = {
   markNotificationRead: (id: string) => api.post(`api/notifications/${id}/mark-read`),
   deleteNotification: (id: number) => api.delete(`api/notifications/${id}`),
   deleteAllNotifications: () => api.delete('api/notifications'),
+  notifyStaffShortage: (data: { mealName: string; mealPax: number; targetPax: number; customMessage?: string }) =>
+    api.post('api/notifications/notify-staff', data),
 
   // Push token
   registerPushToken: (token: string) => api.post('api/push-token', { token }),

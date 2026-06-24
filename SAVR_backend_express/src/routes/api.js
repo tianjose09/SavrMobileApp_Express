@@ -92,6 +92,7 @@ router.post('/notifications/mark-all-read',     notificationController.markAllRe
 router.post('/notifications/:id/mark-read',     notificationController.markOneRead);
 router.delete('/notifications/:id',             notificationController.deleteNotification);
 router.delete('/notifications',                 notificationController.deleteAllNotifications);
+router.post('/notifications/notify-staff',      notificationController.notifyStaffShortage);
 
 // Push token
 router.post('/push-token',           notificationController.savePushToken);
