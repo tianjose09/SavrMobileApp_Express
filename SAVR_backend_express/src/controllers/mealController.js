@@ -1,6 +1,12 @@
 const db = require('../db');
 const dayjs = require('dayjs');
 
+// Remove unwanted tags from specific system meals.
+// WHERE checks prevent re-running once tags are already cleared.
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 1  AND (tags LIKE '%Recommended%' OR tags LIKE '%High Pax%'      OR tags LIKE '%Budget-friendly%')`).catch(err => console.error('[migration] lugaw tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 4  AND (tags LIKE '%Protein Rich%'  OR tags LIKE '%Feasible%')`).catch(err => console.error('[migration] adobo tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 12 AND (tags LIKE '%Budget-friendly%' OR tags LIKE '%Quick Prep%')`).catch(err => console.error('[migration] sardines tags failed:', err.message));
+
 // Convert system meal ingredients from kg→g and L→ml for cleaner display.
 // WHERE clause matches only kg/L rows so this is safe to run on every startup.
 db.execute(
