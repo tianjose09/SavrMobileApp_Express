@@ -8,6 +8,10 @@ db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 1  AND (
 db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 4  AND (LOWER(tags) LIKE '%protein rich%' OR LOWER(tags) LIKE '%feasible%')`).catch(err => console.error('[migration] adobo tags failed:', err.message));
 db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 12 AND (LOWER(tags) LIKE '%budget-friendly%' OR LOWER(tags) LIKE '%quick prep%')`).catch(err => console.error('[migration] sardines tags failed:', err.message));
 
+// Remove unused system meals (not in the 5 selected ones) and their ingredients.
+db.execute(`DELETE FROM meal_ingredients WHERE meal_id IN (SELECT id FROM meals WHERE user_id IS NULL AND id NOT IN (1, 4, 12, 35, 37))`).catch(err => console.error('[migration] unused meal_ingredients cleanup failed:', err.message));
+db.execute(`DELETE FROM meals WHERE user_id IS NULL AND id NOT IN (1, 4, 12, 35, 37)`).catch(err => console.error('[migration] unused meals cleanup failed:', err.message));
+
 // Convert system meal ingredients from kg→g and L→ml for cleaner display.
 // WHERE clause matches only kg/L rows so this is safe to run on every startup.
 db.execute(
