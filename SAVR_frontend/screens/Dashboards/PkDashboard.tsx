@@ -92,27 +92,14 @@ export default function PkDashboard({ navigation }: any) {
       console.log('Backend dashboard API pending');
     }
 
-    // Fetch Staff Requests
+    // Fetch Staff Meal Requests from dedicated endpoint
     try {
-      const reqRes = await ApiService.getAllBeneficiaryRequests();
+      const reqRes = await ApiService.getMealRequests('pending');
       if (reqRes.data && reqRes.data.success) {
-        const allReqs = reqRes.data.requests || [];
-        const mealReqs = allReqs.filter((r: any) => {
-          const activeStatus = ['pending', 'approved', 'accepted', 'allocated', 'urgent'].includes(r.status?.toLowerCase());
-          if (!activeStatus) return false;
-          if (r.type !== 'food') return false;
-          
-          const items = Array.isArray(r.food_items) ? r.food_items : [];
-          return items.some((item: any) => 
-            (item.food_type || item.category) === 'Prepared Meals' ||
-            item.food_name?.toLowerCase() === 'lugaw' ||
-            r.food_type?.toLowerCase() === 'lugaw'
-          );
-        });
-        setStaffRequests(mealReqs);
+        setStaffRequests(reqRes.data.data || reqRes.data.requests || []);
       }
     } catch (err) {
-      console.log('Failed to fetch staff requests:', err);
+      console.log('Failed to fetch staff meal requests:', err);
     }
 
     // 2. Fetch Live Inventory specifically for metrics calculations identically to the FoodInventory logic!
@@ -320,15 +307,9 @@ export default function PkDashboard({ navigation }: any) {
                     const gradientColors: [string, string] = idx % 2 === 0
                       ? ['#E29C20', '#E29C20']
                       : ['#D87A38', '#D87A38'];
-                    
-                    const items = Array.isArray(reqItem.food_items) ? reqItem.food_items : [];
-                    const mealItems = items.filter((item: any) => 
-                      (item.food_type || item.category) === 'Prepared Meals' ||
-                      item.food_name?.toLowerCase() === 'lugaw' ||
-                      reqItem.food_type?.toLowerCase() === 'lugaw'
-                    );
 
-                    const mainMeal = mealItems[0] || { food_name: reqItem.food_type || 'Lugaw', qty: reqItem.quantity || 20, unit: reqItem.unit || 'meal' };
+                    const mealItems: any[] = Array.isArray(reqItem.items) ? reqItem.items : [];
+                    const mainMeal = mealItems[0] || { food_name: 'Meal', quantity: 0, unit: 'servings' };
 
                     return (
                       <View style={styles.driveCard} key={reqItem.id || idx}>
@@ -345,7 +326,7 @@ export default function PkDashboard({ navigation }: any) {
 
                           <View style={styles.driveCardContent}>
                             <View>
-                              <Text style={styles.driveName} numberOfLines={2}>{reqItem.request_name}</Text>
+                              <Text style={styles.driveName} numberOfLines={2}>{reqItem.drive_title}</Text>
                               <View style={styles.driveTopRow}>
                                 <View style={styles.driveStatusWrap}>
                                   <Text style={styles.driveStatus}>Meal Prep</Text>
@@ -369,8 +350,8 @@ export default function PkDashboard({ navigation }: any) {
                               <Text style={styles.driveItemsLabel}>MEALS TO PREPARE</Text>
                               {mealItems.slice(0, 2).map((item: any, i: number) => (
                                 <View key={i} style={styles.driveItemRow}>
-                                  <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name || item.name}</Text>
-                                  <Text style={styles.driveItemQty}>{item.qty || item.quantity} {item.unit}</Text>
+                                  <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name}</Text>
+                                  <Text style={styles.driveItemQty}>{item.quantity} {item.unit}</Text>
                                 </View>
                               ))}
                               {mealItems.length > 2 && (
@@ -380,9 +361,9 @@ export default function PkDashboard({ navigation }: any) {
                               )}
                             </View>
 
-                            <TouchableOpacity 
-                              style={styles.driveBtn} 
-                              onPress={() => handleCookMeal(mainMeal.food_name || mainMeal.name, parseFloat(mainMeal.qty || mainMeal.quantity) || 0)}
+                            <TouchableOpacity
+                              style={styles.driveBtn}
+                              onPress={() => handleCookMeal(mainMeal.food_name, parseFloat(mainMeal.quantity) || 0)}
                             >
                               <Text style={styles.driveBtnText}>Cook This Meal</Text>
                               <FontAwesome5 name="chevron-right" size={9} color="#FFFFFF" style={{ marginLeft: 6 }} />
