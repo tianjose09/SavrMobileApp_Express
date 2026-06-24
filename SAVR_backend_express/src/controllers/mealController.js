@@ -30,12 +30,69 @@ Promise.all(
   )
 ).catch(err => console.error('[meal descriptions seed]', err.message));
 
-// Convert g→kg, ml→L, pcs→kg (1 pc = 400g) so inputQty matches the recipe's base unit (kg / L)
+// Major ingredients limit serving count — bulk proteins, carbs, legumes, dairy, main veg
+const MAJOR_KEYWORDS = [
+  // Carbohydrates
+  'rice', 'malagkit', 'champorado',
+  'macaroni', 'noodle', 'bihon', 'canton', 'sotanghon', 'pasta', 'bread',
+  // Noodle dish names (don't contain 'noodle' in their name)
+  'lomi', 'mami', 'pancit',
+  // Proteins
+  'chicken', 'drumstick',
+  'pork', 'beef',
+  'fish', 'bangus', 'tilapia', 'galunggong',
+  'tuna', 'sardine',
+  'egg', 'tofu',
+  // Seafood
+  'hipon', 'shrimp',
+  // Cured/processed meats (pork-based Filipino meats)
+  'longganisa', 'tocino', 'tapa', 'sisig', 'embutido', 'giniling', 'lumpia',
+  // Legumes
+  'mung', 'monggo', 'lentil', 'chickpea',
+  // Dairy
+  'milk', 'cheese',
+  // Vegetables (main bulk)
+  'cabbage', 'kangkong', 'sitaw', 'sayote', 'potato', 'kamote', 'corn', 'carrot',
+  'gabi', 'laing', 'pinakbet', 'chopsuey',
+  // Egg-based dishes (explicit phrases to avoid talong override cancelling them)
+  'tortang talong',
+];
+
+// Specific names that would match a major keyword but are actually minor/condiments
+const MINOR_OVERRIDES = [
+  // Fish false positives
+  'fish sauce', 'fish paste', 'fish ball',
+  // Corn false positives
+  'cornstarch', 'corn starch', 'corn oil',
+  // Egg/eggplant false positives (talong alone = eggplant = minor; tortang talong handled in MAJOR_KEYWORDS)
+  'eggplant', 'talong',
+  // Pork false positives
+  'pork rind', 'chicharon',
+  // Powdered/broth seasonings (chicken/beef/pork powder or broth = condiment, not bulk protein)
+  'chicken powder', 'chicken broth', 'chicken stock', 'chicken bouillon', 'chicken cube',
+  'beef powder', 'beef broth', 'beef stock', 'beef bouillon', 'beef cube',
+  'pork broth', 'pork stock', 'pork bouillon', 'pork cube',
+];
+
+function isMajorIngredient(name) {
+  const n = name.toLowerCase().trim();
+  // Check major keywords first — longer/specific phrases (e.g. 'tortang talong') take
+  // priority over the override list so they aren't accidentally suppressed.
+  if (MAJOR_KEYWORDS.some(kw => kw.includes(' ') && n.includes(kw))) return true;
+  // Then check minor overrides (e.g. 'talong' alone = eggplant = minor)
+  if (MINOR_OVERRIDES.some(exc => n.includes(exc))) return false;
+  // Finally check single-word major keywords
+  return MAJOR_KEYWORDS.some(kw => n.includes(kw));
+}
+
+// Convert all units to base (kg or L) for consistent comparison
 function toBaseUnit(qty, unit) {
   const u = (unit || '').toLowerCase().trim();
-  if (u === 'g')   return qty / 1000;
-  if (u === 'ml')  return qty / 1000;
-  if (u === 'pcs' || u === 'pc') return (qty * 400) / 1000; // 1 pc = 400g = 0.4 kg
+  if (u === 'g')             return qty / 1000;
+  if (u === 'ml')            return qty / 1000;
+  if (u === 'tsp')           return qty * 0.005;  // 1 tsp = 5 ml = 0.005 L
+  if (u === 'tbsp')          return qty * 0.015;  // 1 tbsp = 15 ml = 0.015 L
+  if (u === 'pcs' || u === 'pc') return (qty * 400) / 1000; // 1 pc ≈ 400g
   return qty; // kg, L — already in base unit
 }
 
@@ -74,8 +131,13 @@ exports.optimizeMeals = async (req, res) => {
     };
   }
 
-  // Load all meals with their ingredients
-  const [meals] = await db.execute('SELECT * FROM meals');
+  // Load only the 5 selected system meals + all user-created recipes
+  const SYSTEM_MEAL_IDS = [1, 4, 12, 35, 37]; // Lugaw, Chicken Adobo, Sardines w/ Veg, Sandwich Filling, Fried Chicken
+  const placeholders = SYSTEM_MEAL_IDS.map(() => '?').join(',');
+  const [meals] = await db.execute(
+    `SELECT * FROM meals WHERE user_id IS NOT NULL OR id IN (${placeholders})`,
+    SYSTEM_MEAL_IDS
+  );
   const [allIngredients] = await db.execute('SELECT * FROM meal_ingredients');
 
   // Group ingredients by meal_id
@@ -148,15 +210,20 @@ exports.optimizeMeals = async (req, res) => {
     let minDays = 999;
 
     for (const m of matchedIngredients) {
-      // Water is kept in recipes for completeness but never limits servings
       const ingName = (m.ingredient.ingredient_name || '').toLowerCase().trim();
-      if (ingName === 'water') {
+
+      // Minor ingredients and water never limit serving count
+      if (ingName === 'water' || !isMajorIngredient(ingName)) {
         if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
         continue;
       }
+
       if (m.ingredient.qty_per_serving > 0) {
-        const availableQty = toBaseUnit(m.selData.inputQty, m.selData.unit);
-        servingCaps.push(Math.floor(availableQty / m.ingredient.qty_per_serving));
+        const availableQty  = toBaseUnit(m.selData.inputQty, m.selData.unit);
+        const reqPerServing = toBaseUnit(m.ingredient.qty_per_serving, m.ingredient.unit);
+        if (reqPerServing > 0) {
+          servingCaps.push(Math.floor(availableQty / reqPerServing));
+        }
       }
       if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
     }
@@ -235,7 +302,13 @@ exports.getMealIngredients = async (req, res) => {
 
 exports.getRecipes = async (req, res) => {
   try {
-    const [meals] = await db.execute('SELECT * FROM meals WHERE user_id IS NOT NULL ORDER BY name');
+    // Return user-created recipes + the 5 selected system meals
+    const SYSTEM_MEAL_IDS = [1, 4, 12, 35, 37];
+    const placeholders = SYSTEM_MEAL_IDS.map(() => '?').join(',');
+    const [meals] = await db.execute(
+      `SELECT * FROM meals WHERE user_id IS NOT NULL OR id IN (${placeholders}) ORDER BY name`,
+      SYSTEM_MEAL_IDS
+    );
     const [ingredients] = await db.execute(
       'SELECT meal_id, ingredient_name, qty_per_serving, unit, is_optional FROM meal_ingredients ORDER BY meal_id, ingredient_name'
     );
@@ -266,6 +339,7 @@ exports.getRecipes = async (req, res) => {
         tags,
         ingredients: byMeal[m.id] || [],
         image_url: m.image_url,
+        is_system: m.user_id === null,
       };
     });
 
@@ -372,12 +446,12 @@ exports.deleteRecipe = async (req, res) => {
   try {
     await conn.beginTransaction();
     const [rows] = await conn.execute(
-      'SELECT id FROM meals WHERE id = ? AND user_id = ?',
+      'SELECT id FROM meals WHERE id = ? AND (user_id = ? OR user_id IS NULL)',
       [id, req.user.id]
     );
     if (!rows.length) {
       await conn.rollback();
-      return res.status(404).json({ success: false, message: 'Recipe not found or not authorized.' });
+      return res.status(404).json({ success: false, message: 'Recipe not found.' });
     }
     await conn.execute('DELETE FROM meal_ingredients WHERE meal_id = ?', [id]);
     await conn.execute('DELETE FROM meals WHERE id = ?', [id]);
