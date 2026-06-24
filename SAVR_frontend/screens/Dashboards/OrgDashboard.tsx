@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Image,
   AppState,
-  ImageBackground,
   Animated,
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -29,7 +28,7 @@ export default function OrgDashboard({ navigation }: any) {
   const [totalServiceDonations, setTotalServiceDonations] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
-  const [nextBadge, setNextBadge] = useState<any>(null);
+  const [nextFoodBadge, setNextFoodBadge] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [ongoingDrives, setOngoingDrives] = useState<any[]>([]);
   const hasAnimated = useRef(false);
@@ -44,8 +43,6 @@ export default function OrgDashboard({ navigation }: any) {
   const drivesTranslateAnim = useRef(new Animated.Value(22)).current;
   const badgesFadeAnim = useRef(new Animated.Value(0)).current;
   const badgesTranslateAnim = useRef(new Animated.Value(22)).current;
-  const nextBadgeFadeAnim = useRef(new Animated.Value(0)).current;
-  const nextBadgeTranslateAnim = useRef(new Animated.Value(22)).current;
 
   const runEntryAnimations = () => {
     if (hasAnimated.current) return;
@@ -71,10 +68,6 @@ export default function OrgDashboard({ navigation }: any) {
         Animated.timing(badgesFadeAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
         Animated.spring(badgesTranslateAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
       ]),
-      Animated.parallel([
-        Animated.timing(nextBadgeFadeAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
-        Animated.spring(nextBadgeTranslateAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
-      ]),
     ]).start();
   };
 
@@ -98,6 +91,7 @@ export default function OrgDashboard({ navigation }: any) {
   }, [navigation]);
 
   const fetchDashboardData = async () => {
+    setIsLoading(true);
     const localName =
       (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'NGO Partner';
     const picKey = await getProfilePicKey();
@@ -128,63 +122,24 @@ export default function OrgDashboard({ navigation }: any) {
       if (badgesRes?.data?.success) {
         const earnedBadges = badgesRes.data.earned || [];
         setFeaturedBadges(earnedBadges.slice(0, 3));
-        const next = (badgesRes.data.in_progress || [])[0]
-          || (badgesRes.data.all || []).find((b: any) => b.status === 'not_started');
-        setNextBadge(next || null);
+        const allBadges = badgesRes.data.all || [];
+        const inProgress = badgesRes.data.in_progress || [];
+        const nextFood = inProgress.find((b: any) => b.goal_type === 'food_count')
+          || allBadges.find((b: any) => b.goal_type === 'food_count' && b.status !== 'earned');
+        setNextFoodBadge(nextFood || null);
       }
       try {
         const critRes = await ApiService.getCriticalNotifications();
         setUnreadCount(critRes?.data?.notifications?.length || 0);
       } catch { }
 
-      const dummyDrives = [
-        {
-          id: 'dummy1',
-          request_name: 'Tondo Relief Drive',
-          type: 'Food',
-          urgency: 'High',
-          start_date: '2026-06-10T00:00:00.000Z',
-          end_date: '2026-06-30T00:00:00.000Z',
-          food_items: [
-            { food_name: 'Rice', qty: 200, unit: 'kg' },
-            { food_name: 'Canned Sardines', qty: 500, unit: 'pcs' }
-          ]
-        },
-        {
-          id: 'dummy2',
-          request_name: 'Typhoon Victims Fund',
-          type: 'Financial',
-          urgency: 'High',
-          start_date: '2026-06-01T00:00:00.000Z',
-          end_date: '2026-07-01T00:00:00.000Z',
-          amount: 50000
-        },
-        {
-          id: 'dummy3',
-          request_name: 'Community Feeding Program',
-          type: 'Food',
-          urgency: 'Medium',
-          start_date: '2026-06-15T00:00:00.000Z',
-          end_date: '2026-07-15T00:00:00.000Z',
-          food_items: [
-            { food_name: 'Lugaw', qty: 300, unit: 'plate' },
-            { food_name: 'Bread', qty: 150, unit: 'pcs' },
-            { food_name: 'Water', qty: 100, unit: 'L' }
-          ]
-        }
-      ];
-
       try {
         const drivesRes = await ApiService.getActiveDrives();
         if (drivesRes?.data?.success) {
-          const drives = drivesRes.data.active_drives || [];
-          setOngoingDrives(drives.length > 0 ? drives : dummyDrives);
-        } else {
-          setOngoingDrives(dummyDrives);
+          setOngoingDrives(drivesRes.data.active_drives || []);
         }
       } catch (err) {
-        console.log('Failed to fetch active drives, using dummy data', err);
-        setOngoingDrives(dummyDrives);
+        console.log('Failed to fetch active drives', err);
       }
     } catch (e) {
       console.error('Failed NGO load', e);
@@ -219,21 +174,13 @@ export default function OrgDashboard({ navigation }: any) {
   // Total donations made = food + financial count + service (all categories)
   const totalDonationsMade = totalFoodDonations + totalFinancialCount + totalServiceDonations;
 
-  // Progress bar: 0 to 100 donations
-  const progressPct = Math.max(0, Math.min((totalDonationsMade / 100) * 100, 100));
-
-  const nextBadgeGoal = nextBadge ? parseFloat(nextBadge.goal_value) || 0 : 100000;
-  const nextBadgeAmount = nextBadge ? parseFloat(nextBadge.progress) || 0 : donationAmount;
-  const nextBadgePct = Math.max(
-    0,
-    Math.min((nextBadgeAmount / nextBadgeGoal) * 100, 100)
-  );
-
-  const isFinancial = nextBadge && nextBadge.goal_type === 'financial_total';
-
-  const formatBadgeValue = (val: number) => {
-    return val.toLocaleString('en-US', { maximumFractionDigits: 0 });
-  };
+  // Progress bar is always food-donation focused
+  const nextBadgeGoal = nextFoodBadge ? parseFloat(nextFoodBadge.goal_value) || 0 : 0;
+  const nextBadgeAmount = nextFoodBadge ? parseFloat(nextFoodBadge.progress) || 0 : 0;
+  const nextBadgeName = nextFoodBadge?.name || '';
+  const progressPct = nextBadgeGoal > 0
+    ? Math.max(0, Math.min((nextBadgeAmount / nextBadgeGoal) * 100, 100))
+    : 100;
 
   if (isLoading) {
     return (
@@ -321,8 +268,12 @@ export default function OrgDashboard({ navigation }: any) {
                   </View>
 
                   <View style={styles.progressLabels}>
-                    <Text style={styles.currentLabel}>{totalDonationsMade} / 100 donations</Text>
-                    <Text style={styles.goalLabel}>100</Text>
+                    <Text style={styles.currentLabel} numberOfLines={1}>
+                      {nextBadgeAmount} donations
+                    </Text>
+                    <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
+                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
+                    </Text>
                   </View>
                 </View>
               </Animated.View>
@@ -330,7 +281,7 @@ export default function OrgDashboard({ navigation }: any) {
               <Animated.View style={{ opacity: statsFadeAnim, transform: [{ translateY: statsTranslateAnim }] }}>
                 <View style={styles.statsRow}>
                   {/* Financial Card */}
-                  <TouchableOpacity style={styles.glassCard} activeOpacity={0.9} onPress={() => navigation.navigate?.('FinancialDonation')}>
+                  <View style={styles.glassCard}>
                     <View style={styles.glassCardBg}>
                       <LinearGradient
                         colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
@@ -349,10 +300,10 @@ export default function OrgDashboard({ navigation }: any) {
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
                     </View>
-                  </TouchableOpacity>
+                  </View>
 
                   {/* Food Card */}
-                  <TouchableOpacity style={styles.glassCard} activeOpacity={0.9} onPress={() => navigation.navigate?.('FoodDonationDetails')}>
+                  <View style={styles.glassCard}>
                     <View style={styles.glassCardBg}>
                       <LinearGradient
                         colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
@@ -371,7 +322,7 @@ export default function OrgDashboard({ navigation }: any) {
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 </View>
               </Animated.View>
 
@@ -500,46 +451,6 @@ export default function OrgDashboard({ navigation }: any) {
                   )}
                 </ScrollView>
               </Animated.View>
-
-              {/* NEXT BADGE — only show if there's a badge to work toward */}
-              {nextBadge && (
-                <Animated.View style={{ opacity: nextBadgeFadeAnim, transform: [{ translateY: nextBadgeTranslateAnim }] }}>
-                  <View style={styles.nextBadgeSection}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <Text style={styles.nextBadgeTitle}>Next Badge Goal</Text>
-                      <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#8A8A8A' }}>NOT YET EARNED</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.nextBadgeCard}>
-                      <View style={{ position: 'relative', marginRight: 14 }}>
-                        <Image
-                          source={BADGE_IMAGES[nextBadge.icon]}
-                          style={[styles.nextBadgeImage, { opacity: 0.25 }]}
-                          resizeMode="contain"
-                        />
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-                          <FontAwesome5 name="lock" size={22} color="#8A8A8A" />
-                        </View>
-                      </View>
-
-                      <View style={styles.nextBadgeTextWrap}>
-                        <Text style={styles.nextBadgeName}>{nextBadge.name}</Text>
-                        <Text style={styles.nextBadgeDesc}>{nextBadge.description}</Text>
-
-                        <View style={styles.nextProgressBar}>
-                          <View style={[styles.nextProgressFill, { width: `${nextBadgePct}%` }]} />
-                        </View>
-
-                        <Text style={styles.nextProgressText}>
-                          {isFinancial ? '₱ ' : ''}{formatBadgeValue(nextBadgeAmount)} / {isFinancial ? '₱ ' : ''}{formatBadgeValue(nextBadgeGoal)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </Animated.View>
-              )}
 
 
             </View>
@@ -871,76 +782,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 12,
     textAlign: 'center',
-  },
-
-  nextBadgeSection: {
-    marginTop: 18,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 35,
-  },
-
-  nextBadgeTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#5B4A35',
-    marginBottom: 14,
-  },
-
-  nextBadgeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  nextBadgeImage: {
-    width: 90,
-    height: 90,
-  },
-
-  nextBadgeTextWrap: {
-    flex: 1,
-  },
-
-  nextBadgeName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#3F3328',
-    marginBottom: 4,
-  },
-
-  nextBadgeDesc: {
-    fontSize: 12,
-    color: '#7A7A7A',
-    lineHeight: 17,
-    marginBottom: 12,
-  },
-
-  nextProgressBar: {
-    width: '100%',
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: '#E5E5E5',
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-
-  nextProgressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: '#D1AC22',
-  },
-
-  nextProgressText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#00592d',
   },
 
   drivesScroll: {
