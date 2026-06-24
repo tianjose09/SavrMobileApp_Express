@@ -329,7 +329,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
       return;
     }
     if (pax <= 0) {
-      Alert.alert('Notice', 'Please enter a valid target population.');
+      Alert.alert('Notice', 'Please enter a valid number of servings.');
       return;
     }
 
@@ -429,7 +429,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
           {/* BENEFICIARY INFO */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Beneficiary Info</Text>
-            <Text style={styles.sectionSubtitle}>Enter the estimated number of population</Text>
+            <Text style={styles.sectionSubtitle}>Enter the estimated number of servings</Text>
           </View>
 
           <View style={styles.heroPanel}>
@@ -440,7 +440,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
               onChangeText={setTargetPax}
               maxLength={5}
             />
-            <Text style={styles.paxLabel}>Number of Populations</Text>
+            <Text style={styles.paxLabel}>Number of Servings</Text>
           </View>
 
           {/* INGREDIENTS SELECTION */}
