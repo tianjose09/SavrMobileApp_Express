@@ -1,6 +1,26 @@
 const db = require('../db');
 const dayjs = require('dayjs');
 
+// Remove unwanted tags from specific system meals.
+// WHERE checks prevent re-running once tags are already cleared.
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 1  AND (tags LIKE '%Recommended%' OR tags LIKE '%High Pax%'      OR tags LIKE '%Budget-friendly%')`).catch(err => console.error('[migration] lugaw tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 4  AND (tags LIKE '%Protein Rich%'  OR tags LIKE '%Feasible%')`).catch(err => console.error('[migration] adobo tags failed:', err.message));
+db.execute(`UPDATE meals SET tags = '[]', updated_at = NOW() WHERE id = 12 AND (tags LIKE '%Budget-friendly%' OR tags LIKE '%Quick Prep%')`).catch(err => console.error('[migration] sardines tags failed:', err.message));
+
+// Convert system meal ingredients from kg→g and L→ml for cleaner display.
+// WHERE clause matches only kg/L rows so this is safe to run on every startup.
+db.execute(
+  `UPDATE meal_ingredients
+   SET qty_per_serving = qty_per_serving * 1000, unit = 'g'
+   WHERE meal_id IN (1, 4, 12, 35, 37) AND unit = 'kg'`
+).catch(err => console.error('[migration] system meal kg→g failed:', err.message));
+
+db.execute(
+  `UPDATE meal_ingredients
+   SET qty_per_serving = qty_per_serving * 1000, unit = 'ml'
+   WHERE meal_id IN (1, 4, 12, 35, 37) AND LOWER(unit) = 'l'`
+).catch(err => console.error('[migration] system meal L→ml failed:', err.message));
+
 // Seed missing meal descriptions — only updates rows where comment_desc is NULL.
 // Meals that already have a description are never overwritten.
 const MEAL_DESCRIPTIONS = [
