@@ -333,8 +333,8 @@ export default function PkDashboard({ navigation }: any) {
                                 <View style={styles.driveStatusWrap}>
                                   <Text style={styles.driveStatus}>Meal Prep</Text>
                                 </View>
-                                <View style={[styles.driveUrgencyWrap, { backgroundColor: reqItem.urgency === 'High' ? '#D0112B' : (reqItem.urgency === 'Medium' ? '#B45309' : '#00592d') }]}>
-                                  <Text style={styles.driveUrgency}>{reqItem.urgency} Urgency</Text>
+                                <View style={[styles.driveUrgencyWrap, { backgroundColor: reqItem.urgency?.toLowerCase() === 'high' ? '#D0112B' : (reqItem.urgency?.toLowerCase() === 'medium' ? '#B45309' : '#00592d') }]}>
+                                  <Text style={styles.driveUrgency}>{reqItem.urgency ? reqItem.urgency.charAt(0).toUpperCase() + reqItem.urgency.slice(1).toLowerCase() : ''} Urgency</Text>
                                 </View>
                               </View>
                               {reqItem.start_date && (
@@ -353,7 +353,7 @@ export default function PkDashboard({ navigation }: any) {
                               {mealItems.slice(0, 2).map((item: any, i: number) => (
                                 <View key={i} style={styles.driveItemRow}>
                                   <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name}</Text>
-                                  <Text style={styles.driveItemQty}>{item.quantity} {item.unit}</Text>
+                                  <Text style={styles.driveItemQty}>{Math.round(item.quantity)} {item.unit}</Text>
                                 </View>
                               ))}
                               {mealItems.length > 2 && (
@@ -365,7 +365,7 @@ export default function PkDashboard({ navigation }: any) {
 
                             <TouchableOpacity
                               style={styles.driveBtn}
-                              onPress={() => handleCookMeal(mainMeal.food_name, parseFloat(mainMeal.quantity) || 0)}
+                              onPress={() => handleCookMeal(mainMeal.food_name, Math.round(parseFloat(mainMeal.quantity)) || 0)}
                             >
                               <Text style={styles.driveBtnText}>Cook This Meal</Text>
                               <FontAwesome5 name="chevron-right" size={9} color="#FFFFFF" style={{ marginLeft: 6 }} />
