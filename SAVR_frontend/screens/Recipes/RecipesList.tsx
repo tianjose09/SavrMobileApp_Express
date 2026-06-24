@@ -171,13 +171,15 @@ export default function RecipesList({ navigation }: any) {
                 )}
                 {/* Gradient-like dark tint at top for X visibility */}
                 <View style={styles.imageTopFade} pointerEvents="none" />
-                <TouchableOpacity
-                  onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
-                  activeOpacity={0.75}
-                  style={styles.deleteBtn}
-                >
-                  <Ionicons name="close" size={16} color="#FFF" />
-                </TouchableOpacity>
+                {!recipe.is_system && (
+                  <TouchableOpacity
+                    onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
+                    activeOpacity={0.75}
+                    style={styles.deleteBtn}
+                  >
+                    <Ionicons name="close" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* CARD BODY */}
