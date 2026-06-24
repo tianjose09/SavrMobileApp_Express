@@ -157,6 +157,8 @@ export const ApiService = {
   deleteRecipe: (id: string | number) => api.delete(`api/meals/${id}`),
   getIngredientsList: () => api.get('api/ingredients'),
 
+  getBeneficiaryMeals: () => api.get('api/beneficiary/meals'),
+
   // Partner Kitchen Meal Requests
   getMealRequests: (status?: string) =>
     api.get('api/partner-kitchen/meal-requests' + (status ? `?status=${status}` : '')),

@@ -105,6 +105,9 @@ router.get('/inventory/categories', inventoryController.categories);
 router.post('/inventory/store',     inventoryController.store);
 router.post('/inventory/deduct',    inventoryController.deduct);
 
+// Beneficiary meal names dropdown
+router.get('/beneficiary/meals',    mealController.getBeneficiaryMeals);
+
 // Meal Optimization
 router.post('/meals/optimize',      mealController.optimizeMeals);
 router.get('/meals/ingredients',    mealController.getMealIngredients);

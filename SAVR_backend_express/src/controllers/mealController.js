@@ -325,6 +325,20 @@ exports.getMealIngredients = async (req, res) => {
   return res.json({ success: true, data: result });
 };
 
+// GET /api/beneficiary/meals — distinct meal names for the Create Request dropdown
+exports.getBeneficiaryMeals = async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      `SELECT DISTINCT name FROM meals ORDER BY name ASC`
+    );
+    const names = rows.map(r => r.name).filter(Boolean);
+    return res.json(names);
+  } catch (e) {
+    console.error('[getBeneficiaryMeals]', e);
+    return res.json([]);
+  }
+};
+
 exports.getRecipes = async (req, res) => {
   try {
     // Return user-created recipes + the 5 selected system meals
