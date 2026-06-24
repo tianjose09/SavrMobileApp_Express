@@ -92,6 +92,7 @@ export default function AddRecipe({ navigation }: any) {
   // Focus States for Inputs
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isDescFocused, setIsDescFocused] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
 
   // Info Details State
   const [recipeName, setRecipeName] = useState('');
@@ -401,6 +402,7 @@ export default function AddRecipe({ navigation }: any) {
             <View style={{ zIndex: 20, marginBottom: 4 }}>
               <View style={styles.searchBar}>
                 <TextInput
+                  ref={searchInputRef}
                   style={styles.searchBarInput}
                   placeholder="Search for an ingredient..."
                   placeholderTextColor="#B0B0B0"
@@ -553,13 +555,6 @@ export default function AddRecipe({ navigation }: any) {
                   );
                 })}
 
-                <TouchableOpacity
-                  style={styles.addAnotherBtn}
-                  onPress={() => setIngredientSearch('')}
-                >
-                  <Ionicons name="add-circle-outline" size={18} color="#156133" style={{ marginRight: 6 }} />
-                  <Text style={styles.addAnotherText}>Add Another Ingredient</Text>
-                </TouchableOpacity>
               </View>
             )}
           </View>

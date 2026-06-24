@@ -161,24 +161,26 @@ export default function RecipesList({ navigation }: any) {
             <View key={recipe.id} style={styles.recipeCard}>
 
               {/* IMAGE + X OVERLAY */}
-              <View style={styles.imageWrapper}>
-                {recipe.image_url ? (
+              {recipe.image_url ? (
+                <View style={styles.imageWrapper}>
                   <Image source={{ uri: recipe.image_url }} style={styles.recipeImage} />
-                ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <MaterialCommunityIcons name="image-off-outline" size={38} color="#C8C0B8" />
-                  </View>
-                )}
-                {/* Gradient-like dark tint at top for X visibility */}
-                <View style={styles.imageTopFade} pointerEvents="none" />
+                  <TouchableOpacity
+                    onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
+                    activeOpacity={0.75}
+                    style={styles.deleteBtn}
+                  >
+                    <Ionicons name="close" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
                 <TouchableOpacity
                   onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
                   activeOpacity={0.75}
-                  style={styles.deleteBtn}
+                  style={styles.deleteBtnNoImage}
                 >
-                  <Ionicons name="close" size={16} color="#FFF" />
+                  <Ionicons name="close" size={16} color="#8E8E93" />
                 </TouchableOpacity>
-              </View>
+              )}
 
               {/* CARD BODY */}
               <View style={styles.cardBody}>
@@ -386,15 +388,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  /* dark tint strip at top so X is always visible */
-  imageTopFade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: 'rgba(0,0,0,0.22)',
-  },
+
   deleteBtn: {
     position: 'absolute',
     top: 10,
@@ -405,6 +399,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  deleteBtnNoImage: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#F0F2F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   cardBody: {
     padding: 16,
