@@ -35,18 +35,27 @@ const MAJOR_KEYWORDS = [
   // Carbohydrates
   'rice', 'malagkit', 'champorado',
   'macaroni', 'noodle', 'bihon', 'canton', 'sotanghon', 'pasta', 'bread',
+  // Noodle dish names (don't contain 'noodle' in their name)
+  'lomi', 'mami', 'pancit',
   // Proteins
   'chicken', 'drumstick',
   'pork', 'beef',
   'fish', 'bangus', 'tilapia', 'galunggong',
   'tuna', 'sardine',
   'egg', 'tofu',
+  // Seafood
+  'hipon', 'shrimp',
+  // Cured/processed meats (pork-based Filipino meats)
+  'longganisa', 'tocino', 'tapa', 'sisig', 'embutido', 'giniling', 'lumpia',
   // Legumes
   'mung', 'monggo', 'lentil', 'chickpea',
   // Dairy
   'milk', 'cheese',
   // Vegetables (main bulk)
   'cabbage', 'kangkong', 'sitaw', 'sayote', 'potato', 'kamote', 'corn', 'carrot',
+  'gabi', 'laing', 'pinakbet', 'chopsuey',
+  // Egg-based dishes (explicit phrases to avoid talong override cancelling them)
+  'tortang talong',
 ];
 
 // Specific names that would match a major keyword but are actually minor/condiments
@@ -55,7 +64,7 @@ const MINOR_OVERRIDES = [
   'fish sauce', 'fish paste', 'fish ball',
   // Corn false positives
   'cornstarch', 'corn starch', 'corn oil',
-  // Egg/eggplant false positive
+  // Egg/eggplant false positives (talong alone = eggplant = minor; tortang talong handled in MAJOR_KEYWORDS)
   'eggplant', 'talong',
   // Pork false positives
   'pork rind', 'chicharon',
@@ -67,7 +76,12 @@ const MINOR_OVERRIDES = [
 
 function isMajorIngredient(name) {
   const n = name.toLowerCase().trim();
+  // Check major keywords first — longer/specific phrases (e.g. 'tortang talong') take
+  // priority over the override list so they aren't accidentally suppressed.
+  if (MAJOR_KEYWORDS.some(kw => kw.includes(' ') && n.includes(kw))) return true;
+  // Then check minor overrides (e.g. 'talong' alone = eggplant = minor)
   if (MINOR_OVERRIDES.some(exc => n.includes(exc))) return false;
+  // Finally check single-word major keywords
   return MAJOR_KEYWORDS.some(kw => n.includes(kw));
 }
 
