@@ -30,6 +30,39 @@ Promise.all(
   )
 ).catch(err => console.error('[meal descriptions seed]', err.message));
 
+// Major ingredients limit serving count — bulk proteins, carbs, legumes, dairy, main veg
+const MAJOR_KEYWORDS = [
+  // Carbohydrates
+  'rice', 'malagkit', 'champorado',
+  'macaroni', 'noodle', 'bihon', 'canton', 'sotanghon', 'pasta', 'bread',
+  // Proteins
+  'chicken', 'drumstick',
+  'pork', 'beef',
+  'fish', 'bangus', 'tilapia', 'galunggong',
+  'tuna', 'sardine',
+  'egg', 'tofu',
+  // Legumes
+  'mung', 'monggo', 'lentil', 'chickpea',
+  // Dairy
+  'milk', 'cheese',
+  // Vegetables (main bulk)
+  'cabbage', 'kangkong', 'sitaw', 'sayote', 'potato', 'kamote', 'corn', 'carrot',
+];
+
+// Specific names that would match a major keyword but are actually minor/condiments
+const MINOR_OVERRIDES = [
+  'fish sauce', 'fish paste', 'fish ball',
+  'cornstarch', 'corn starch', 'corn oil',
+  'eggplant', 'talong',
+  'pork rind', 'chicharon',
+];
+
+function isMajorIngredient(name) {
+  const n = name.toLowerCase().trim();
+  if (MINOR_OVERRIDES.some(exc => n.includes(exc))) return false;
+  return MAJOR_KEYWORDS.some(kw => n.includes(kw));
+}
+
 // Convert all units to base (kg or L) for consistent comparison
 function toBaseUnit(qty, unit) {
   const u = (unit || '').toLowerCase().trim();
@@ -155,12 +188,14 @@ exports.optimizeMeals = async (req, res) => {
     let minDays = 999;
 
     for (const m of matchedIngredients) {
-      // Water is kept in recipes for completeness but never limits servings
       const ingName = (m.ingredient.ingredient_name || '').toLowerCase().trim();
-      if (ingName === 'water') {
+
+      // Minor ingredients and water never limit serving count
+      if (ingName === 'water' || !isMajorIngredient(ingName)) {
         if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
         continue;
       }
+
       if (m.ingredient.qty_per_serving > 0) {
         const availableQty  = toBaseUnit(m.selData.inputQty, m.selData.unit);
         const reqPerServing = toBaseUnit(m.ingredient.qty_per_serving, m.ingredient.unit);
