@@ -20,6 +20,7 @@ const CATEGORY_DISPLAY_MAP: Record<string, string> = {
   'Canned Goods': 'Canned Goods: Non-Perishable',
   'Prepared Meals': 'Prepared Meals: Perishable',
   'Beverages': 'Beverages: Non-Perishable',
+  'Dry Goods': 'Dry Goods: Non-Perishable',
 };
 
 const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
@@ -41,7 +42,8 @@ const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
     "Sotanghon Soup",
     "Tuna Veggie Mix",
     "Veggie Stir-Fry"
-  ]
+  ],
+  'Dry Goods': ["Rice", "Sugar", "Salt", "Flour", "Pasta", "Noodles"]
 };
 
 const getCategoryLabel = (cat: string | null) => {
@@ -84,6 +86,7 @@ const CATEGORY_UNIT_MAP: Record<string, string> = {
   'Canned Goods': 'pcs',
   'Prepared Meals': 'meal',
   'Beverages': 'L',
+  'Dry Goods': 'kg',
 };
 
 function getAllowedUnits(category: string | null): string[] {
@@ -124,7 +127,8 @@ export default function CreateRequest({ navigation }: any) {
   const [dynamicFoods, setDynamicFoods] = useState<Record<string, string[]>>({
     'Beverages': PRESET_FOODS_BY_CATEGORY['Beverages'],
     'Canned Goods': PRESET_FOODS_BY_CATEGORY['Canned Goods'],
-    'Prepared Meals': PRESET_FOODS_BY_CATEGORY['Prepared Meals']
+    'Prepared Meals': PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
+    'Dry Goods': PRESET_FOODS_BY_CATEGORY['Dry Goods']
   });
 
   const [form, setForm] = useState({
@@ -243,6 +247,7 @@ export default function CreateRequest({ navigation }: any) {
       let bevList: string[] = [];
       let cannedList: string[] = [];
       let prepList: string[] = [];
+      let dryList: string[] = [];
 
       try {
         const rawRes = await ApiService.getInventory();
@@ -259,6 +264,8 @@ export default function CreateRequest({ navigation }: any) {
               cannedList.push(name);
             } else if (cat === 'prepared meals' || cat === 'prep meal') {
               prepList.push(name);
+            } else if (cat.startsWith('dry') || cat.includes('dry goods')) {
+              dryList.push(name);
             }
           });
         }
@@ -285,11 +292,13 @@ export default function CreateRequest({ navigation }: any) {
       bevList = [...new Set(bevList)].sort();
       cannedList = [...new Set(cannedList)].sort();
       prepList = [...new Set(prepList)].sort();
+      dryList = [...new Set(dryList)].sort();
 
       setDynamicFoods({
         'Beverages': bevList.length > 0 ? bevList : PRESET_FOODS_BY_CATEGORY['Beverages'],
         'Canned Goods': cannedList.length > 0 ? cannedList : PRESET_FOODS_BY_CATEGORY['Canned Goods'],
         'Prepared Meals': prepList.length > 0 ? prepList : PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
+        'Dry Goods': dryList.length > 0 ? dryList : PRESET_FOODS_BY_CATEGORY['Dry Goods'],
       });
     };
 
@@ -803,7 +812,8 @@ export default function CreateRequest({ navigation }: any) {
                 items={[
                   { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
                   { label: 'Prepared Meals: Perishable', value: 'Prepared Meals' },
-                  { label: 'Beverages: Non-Perishable', value: 'Beverages' }
+                  { label: 'Beverages: Non-Perishable', value: 'Beverages' },
+                  { label: 'Dry Goods: Non-Perishable', value: 'Dry Goods' }
                 ]}
                 style={styles.fdCatDropdown}
                 disableSort={true}
