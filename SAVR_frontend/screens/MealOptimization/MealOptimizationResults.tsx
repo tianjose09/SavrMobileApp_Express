@@ -1323,7 +1323,7 @@ const styles = StyleSheet.create({
   notifyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
@@ -1339,7 +1339,7 @@ const styles = StyleSheet.create({
   notifiedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
