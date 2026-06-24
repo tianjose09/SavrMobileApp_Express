@@ -51,10 +51,18 @@ const MAJOR_KEYWORDS = [
 
 // Specific names that would match a major keyword but are actually minor/condiments
 const MINOR_OVERRIDES = [
+  // Fish false positives
   'fish sauce', 'fish paste', 'fish ball',
+  // Corn false positives
   'cornstarch', 'corn starch', 'corn oil',
+  // Egg/eggplant false positive
   'eggplant', 'talong',
+  // Pork false positives
   'pork rind', 'chicharon',
+  // Powdered/broth seasonings (chicken/beef/pork powder or broth = condiment, not bulk protein)
+  'chicken powder', 'chicken broth', 'chicken stock', 'chicken bouillon', 'chicken cube',
+  'beef powder', 'beef broth', 'beef stock', 'beef bouillon', 'beef cube',
+  'pork broth', 'pork stock', 'pork bouillon', 'pork cube',
 ];
 
 function isMajorIngredient(name) {
