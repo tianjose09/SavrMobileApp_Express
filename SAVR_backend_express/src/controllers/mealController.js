@@ -389,12 +389,12 @@ exports.deleteRecipe = async (req, res) => {
   try {
     await conn.beginTransaction();
     const [rows] = await conn.execute(
-      'SELECT id FROM meals WHERE id = ? AND user_id = ?',
+      'SELECT id FROM meals WHERE id = ? AND (user_id = ? OR user_id IS NULL)',
       [id, req.user.id]
     );
     if (!rows.length) {
       await conn.rollback();
-      return res.status(404).json({ success: false, message: 'Recipe not found or not authorized.' });
+      return res.status(404).json({ success: false, message: 'Recipe not found.' });
     }
     await conn.execute('DELETE FROM meal_ingredients WHERE meal_id = ?', [id]);
     await conn.execute('DELETE FROM meals WHERE id = ?', [id]);
