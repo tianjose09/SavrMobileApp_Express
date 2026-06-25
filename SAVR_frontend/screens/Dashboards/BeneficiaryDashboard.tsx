@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   },
   supportLeftStack: {
     flex: 1,
-  }, ma
+  },
   supportLine1: {
     color: '#FFF',
     fontSize: 16,
