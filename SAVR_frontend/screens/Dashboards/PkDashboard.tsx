@@ -213,7 +213,7 @@ export default function PkDashboard({ navigation }: any) {
             <View style={styles.whiteBody}>
               <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
               <Text style={styles.subTitle}>
-                Welcome back, <Text style={{ fontWeight: '800', color: '#111' }}>{userName}</Text>! Here's your activity{"\n"}overview
+                Here's your kitchen dashboard — keep nourishing the community!
               </Text>
 
               {/* 4 CARDS GRID */}
