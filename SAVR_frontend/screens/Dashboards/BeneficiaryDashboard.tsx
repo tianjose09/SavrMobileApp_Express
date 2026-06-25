@@ -136,7 +136,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                   )}
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
                   <Text style={[styles.profileName, { marginLeft: 0 }]} numberOfLines={1}>
                     {userName}
                   </Text>
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   },
   supportLeftStack: {
     flex: 1,
-  },
+  }, ma
   supportLine1: {
     color: '#FFF',
     fontSize: 16,
