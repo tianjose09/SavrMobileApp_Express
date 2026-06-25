@@ -105,6 +105,9 @@ router.get('/inventory/categories', inventoryController.categories);
 router.post('/inventory/store',     inventoryController.store);
 router.post('/inventory/deduct',    inventoryController.deduct);
 
+// Beneficiary meal names dropdown
+router.get('/beneficiary/meals',    mealController.getBeneficiaryMeals);
+
 // Meal Optimization
 router.post('/meals/optimize',      mealController.optimizeMeals);
 router.get('/meals/ingredients',    mealController.getMealIngredients);
@@ -113,5 +116,9 @@ router.post('/meals/upload-image',  uploadRecipe.single('recipe_photo'), mealCon
 router.post('/meals',               mealController.storeMeal);
 router.delete('/meals/:id',         mealController.deleteRecipe);
 router.get('/ingredients',          mealController.getIngredientsList);
+
+// Partner Kitchen Meal Requests
+router.get('/partner-kitchen/meal-requests',            mealController.getMealRequests);
+router.patch('/partner-kitchen/meal-requests/:id/status', mealController.updateMealRequestStatus);
 
 module.exports = router;

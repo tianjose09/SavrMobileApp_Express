@@ -706,7 +706,9 @@ exports.notifyStaffShortage = async (req, res) => {
     }
 
     const title = 'Feasibility Shortage Alert';
-    const description = `${senderName} reported a shortage. Can only serve ${mealPax} servings of ${mealName} (Target: ${targetPax}). Note: ${customMessage || 'No comment provided.'}`;
+    const description = customMessage
+      ? `${senderName}: ${customMessage}`
+      : `${senderName} reported a shortage for ${mealName}. Can only serve ${mealPax} out of ${targetPax} requested servings.`;
 
     for (const staff of staffRows) {
       await createNotification(staff.id, 'service', title, description, true);

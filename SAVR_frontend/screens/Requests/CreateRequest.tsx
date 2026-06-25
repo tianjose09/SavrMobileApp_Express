@@ -279,13 +279,24 @@ export default function CreateRequest({ navigation }: any) {
           const items = prepRes.data.items || [];
           items.forEach((item: any) => {
             const name = item.name || item.food_name;
-            if (name) {
-              prepList.push(name);
-            }
+            if (name) prepList.push(name);
           });
         }
       } catch (err) {
         console.error('Failed to fetch prepared meals:', err);
+      }
+
+      try {
+        const mealsRes = await ApiService.getBeneficiaryMeals();
+        const mealNames: string[] = Array.isArray(mealsRes.data) ? mealsRes.data : [];
+        const existingLower = new Set(prepList.map((n: string) => n.toLowerCase()));
+        mealNames.forEach((name: string) => {
+          if (name && !existingLower.has(name.toLowerCase())) {
+            prepList.push(name);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to fetch meal names:', err);
       }
 
       // De-duplicate lists
