@@ -258,7 +258,7 @@ export default function DonorDashboard({ navigation }: any) {
                 </TouchableOpacity>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                  <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
                   <Text style={styles.profileName} numberOfLines={1}>
                     {userName}
                   </Text>

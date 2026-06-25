@@ -202,7 +202,10 @@ export default function PkDashboard({ navigation }: any) {
                     <Text style={styles.avatarText}>{initial || 'P'}</Text>
                   )}
                 </TouchableOpacity>
-                <Text style={styles.userName}>{userName}</Text>
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                  <Text style={[styles.userName, { marginLeft: 0 }]} numberOfLines={1}>{userName}</Text>
+                </View>
               </View>
             </View>
 
