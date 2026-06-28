@@ -235,6 +235,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
       const initPlanning = async () => {
         const routePax = route.params?.targetPax;
         const routeMeal = route.params?.mealName;
+        const routeRequestId = route.params?.mealRequestId;
 
         // Build a key to identify this specific param set
         const paramKey = routePax !== undefined && routeMeal !== undefined
@@ -397,6 +398,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
       selectedCount: selectedItems.length,
       targetPax: pax,
       selectedIds: selectedIds,
+      mealRequestId: route.params?.mealRequestId,
       selectedIngredients: selectedItems.map(i => ({
         id: i.id,
         name: i.name,

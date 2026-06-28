@@ -88,6 +88,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
   const parsedPax = parseInt(route.params?.targetPax) || 0;
   const selectedIds = route.params?.selectedIds || [];
   const selectedIngredients = route.params?.selectedIngredients || [];
+  const mealRequestId: number | undefined = route.params?.mealRequestId;
 
   const [isLoading, setIsLoading] = useState(true);
   const [fullMatchMeals, setFullMatchMeals] = useState<any[]>([]);
@@ -594,7 +595,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                   </View>
                 ) : (
                   fullMatchMeals.map((meal) => (
-                    <MealCard key={meal.id} meal={meal} selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} />
+                    <MealCard key={meal.id} meal={meal} selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} mealRequestId={mealRequestId} />
                   ))
                 )}
 
@@ -617,7 +618,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                       </Text>
                     </View>
                     {suggestedMeals.map((meal) => (
-                      <MealCard key={meal.id} meal={meal} isSuggested selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} />
+                      <MealCard key={meal.id} meal={meal} isSuggested selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} mealRequestId={mealRequestId} />
                     ))}
                   </>
                 )}
@@ -633,12 +634,13 @@ export default function MealOptimizationResults({ route, navigation }: any) {
 }
 
 // ── Reusable Meal Card Component ──────────────────────────────
-function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation, targetPax = 0 }: {
+function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation, targetPax = 0, mealRequestId }: {
   meal: any;
   isSuggested?: boolean;
   selectedIngredients?: any[];
   navigation?: any;
   targetPax?: number;
+  mealRequestId?: number;
 }) {
   // Filter only the selected ingredients that appear in THIS meal's recipe
   const ingText = (meal.ingredients_used || '').toLowerCase();
@@ -854,7 +856,8 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
               meal,
               selectedIngredients: matchedIngredients,
               mealPax,
-              prepMealId: mealItem.id
+              prepMealId: mealItem.id,
+              mealRequestId,
             });
           }}
         >

@@ -38,6 +38,7 @@ export default function PrepareMeal({ route, navigation }: any) {
   const selectedIngredients: any[] = route.params?.selectedIngredients || [];
   const mealPax: number = route.params?.mealPax || 0;
   const prepMealId: string = route.params?.prepMealId || '';
+  const mealRequestId: number | undefined = route.params?.mealRequestId;
 
   // ── Video player (looping chef video) ────────────────────────
   const player = useVideoPlayer(
@@ -71,6 +72,12 @@ export default function PrepareMeal({ route, navigation }: any) {
 
       if (deductions.length > 0) {
         await ApiService.deductInventory({ deductions, meal_name: meal.name, servings: mealPax });
+      }
+
+      // Mark the staff meal request as done so it disappears from the dashboard
+      if (mealRequestId) {
+        ApiService.updateMealRequestStatus(mealRequestId, 'Done')
+          .catch(err => console.error('[handleDone] status update failed:', err));
       }
 
       navigation.reset({

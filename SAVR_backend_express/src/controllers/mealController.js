@@ -525,6 +525,9 @@ exports.getMealRequests = async (req, res) => {
     if (status) {
       statusClause = ' AND r.status = ?';
       params.push(status);
+    } else {
+      // By default exclude completed requests so they disappear from the dashboard
+      statusClause = " AND r.status != 'Done'";
     }
 
     const [requests] = await db.execute(

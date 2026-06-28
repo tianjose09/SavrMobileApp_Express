@@ -51,12 +51,13 @@ export default function PkDashboard({ navigation }: any) {
     navigation.navigate('Notifications', { role: 'pk' });
   };
 
-  const handleCookMeal = (mealName: string, qty: number) => {
+  const handleCookMeal = (mealName: string, qty: number, mealRequestId: number) => {
     navigation.navigate('Ingredients', {
       screen: 'IngrMealPlanning',
       params: {
         targetPax: qty,
-        mealName: mealName
+        mealName: mealName,
+        mealRequestId,
       }
     });
   };
@@ -368,7 +369,7 @@ export default function PkDashboard({ navigation }: any) {
 
                             <TouchableOpacity
                               style={styles.driveBtn}
-                              onPress={() => handleCookMeal(mainMeal.food_name, Math.round(parseFloat(mainMeal.quantity)) || 0)}
+                              onPress={() => handleCookMeal(mainMeal.food_name, Math.round(parseFloat(mainMeal.quantity)) || 0, reqItem.id)}
                             >
                               <Text style={styles.driveBtnText}>Cook This Meal</Text>
                               <FontAwesome5 name="chevron-right" size={9} color="#FFFFFF" style={{ marginLeft: 6 }} />
