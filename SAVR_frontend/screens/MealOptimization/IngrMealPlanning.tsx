@@ -46,6 +46,68 @@ const isMatch = (itemName: string, ingName: string): boolean => {
   return ingLower.includes(mainNoun);
 };
 
+// FEFO (First Expired, First Out) ingredient selection.
+// For each recipe ingredient, cascades through non-expired inventory batches
+// sorted by earliest expiry, allocating from each until the needed qty is met.
+function computeFefoSelection(
+  items: any[],
+  recipeIngredients: any[],
+  targetPaxVal: number
+): Map<number, { inputQty: string; inputUnit: string }> {
+  const fefoSelection = new Map<number, { inputQty: string; inputUnit: string }>();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (const ring of recipeIngredients) {
+    const recipeUnit = (ring.unit || '').toLowerCase().trim();
+    let qtyPerServing = ring.qty_per_serving || 0;
+    let resolvedUnit = 'kg';
+
+    if (recipeUnit === 'g') {
+      qtyPerServing = qtyPerServing / 1000;
+      resolvedUnit = 'kg';
+    } else if (recipeUnit === 'ml') {
+      qtyPerServing = qtyPerServing / 1000;
+      resolvedUnit = 'L';
+    } else if (recipeUnit === 'pcs' || recipeUnit === 'pc') {
+      resolvedUnit = 'pcs';
+    }
+
+    let remaining = parseFloat((qtyPerServing * targetPaxVal).toFixed(3));
+
+    const candidates = items
+      .filter((item: any) => {
+        const parsedQty = parseQty(item.qty);
+        if (parsedQty.value <= 0) return false;
+        if (!isMatch(item.name, ring.ingredient_name)) return false;
+        if (item.expiry) {
+          const expiryDate = new Date(item.expiry);
+          expiryDate.setHours(0, 0, 0, 0);
+          if (expiryDate < today) return false; // skip expired batches
+        }
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        const aDate = a.expiry ? new Date(a.expiry).getTime() : Infinity;
+        const bDate = b.expiry ? new Date(b.expiry).getTime() : Infinity;
+        return aDate - bDate; // soonest expiry first
+      });
+
+    for (const candidate of candidates) {
+      if (remaining <= 0) break;
+      const parsedQty = parseQty(candidate.qty);
+      const allocated = Math.min(parsedQty.value, remaining);
+      remaining = parseFloat((remaining - allocated).toFixed(3));
+      fefoSelection.set(candidate.id, {
+        inputQty: String(parseFloat(allocated.toFixed(3))),
+        inputUnit: resolvedUnit,
+      });
+    }
+  }
+
+  return fefoSelection;
+}
+
 export default function IngrMealPlanning({ route, navigation }: any) {
   const [targetPax, setTargetPax] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,6 +141,9 @@ export default function IngrMealPlanning({ route, navigation }: any) {
       } else {
         throw new Error('API not available yet');
       }
+      const fefoSelection = recipeIngredients
+        ? computeFefoSelection(items, recipeIngredients, targetPaxVal || 0)
+        : new Map<number, { inputQty: string; inputUnit: string }>();
       // Map data to inject UI selection states
       const formatted = items.map((item: any) => {
         const parsedQty = parseQty(item.qty);
@@ -89,32 +154,11 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         let inputQty = '1';
         let inputUnit = parsedQty.unit || 'kg';
 
-        if (recipeIngredients && !outOfStock) {
-          const matchIng = recipeIngredients.find((ring: any) =>
-            isMatch(item.name, ring.ingredient_name)
-          );
-          if (matchIng) {
-            isSelected = true;
-            const recipeUnit = (matchIng.unit || '').toLowerCase().trim();
-            let qtyPerServing = matchIng.qty_per_serving || 0;
-            let resolvedUnit = parsedQty.unit || 'kg';
-
-            // Convert g→kg and ml→L so units stay within the picker options (kg, pcs, L)
-            if (recipeUnit === 'g') {
-              qtyPerServing = qtyPerServing / 1000;
-              resolvedUnit = 'kg';
-            } else if (recipeUnit === 'ml') {
-              qtyPerServing = qtyPerServing / 1000;
-              resolvedUnit = 'L';
-            } else if (recipeUnit === 'pcs' || recipeUnit === 'pc') {
-              resolvedUnit = 'pcs';
-            }
-
-            const needed = parseFloat((qtyPerServing * (targetPaxVal || 0)).toFixed(3));
-            const actualQty = Math.min(needed, parsedQty.value);
-            inputQty = String(actualQty > 0 ? actualQty : 1);
-            inputUnit = resolvedUnit;
-          }
+        const fefoData = fefoSelection.get(item.id);
+        if (fefoData && !outOfStock) {
+          isSelected = true;
+          inputQty = fefoData.inputQty;
+          inputUnit = fefoData.inputUnit;
         }
 
         return {
@@ -148,6 +192,9 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         ];
         await StorageUtils.setItem('MOCK_INVENTORY_LIST', JSON.stringify(items));
       }
+      const fefoSelection = recipeIngredients
+        ? computeFefoSelection(items, recipeIngredients, targetPaxVal || 0)
+        : new Map<number, { inputQty: string; inputUnit: string }>();
       const formatted = items.map((item: any) => {
         const parsedQty = parseQty(item.qty);
         const outOfStock = parsedQty.value === 0;
@@ -157,32 +204,11 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         let inputQty = '1';
         let inputUnit = parsedQty.unit || 'kg';
 
-        if (recipeIngredients && !outOfStock) {
-          const matchIng = recipeIngredients.find((ring: any) =>
-            isMatch(item.name, ring.ingredient_name)
-          );
-          if (matchIng) {
-            isSelected = true;
-            const recipeUnit = (matchIng.unit || '').toLowerCase().trim();
-            let qtyPerServing = matchIng.qty_per_serving || 0;
-            let resolvedUnit = parsedQty.unit || 'kg';
-
-            // Convert g→kg and ml→L so units stay within the picker options (kg, pcs, L)
-            if (recipeUnit === 'g') {
-              qtyPerServing = qtyPerServing / 1000;
-              resolvedUnit = 'kg';
-            } else if (recipeUnit === 'ml') {
-              qtyPerServing = qtyPerServing / 1000;
-              resolvedUnit = 'L';
-            } else if (recipeUnit === 'pcs' || recipeUnit === 'pc') {
-              resolvedUnit = 'pcs';
-            }
-
-            const needed = parseFloat((qtyPerServing * (targetPaxVal || 0)).toFixed(3));
-            const actualQty = Math.min(needed, parsedQty.value);
-            inputQty = String(actualQty > 0 ? actualQty : 1);
-            inputUnit = resolvedUnit;
-          }
+        const fefoData = fefoSelection.get(item.id);
+        if (fefoData && !outOfStock) {
+          isSelected = true;
+          inputQty = fefoData.inputQty;
+          inputUnit = fefoData.inputUnit;
         }
 
         return {
