@@ -62,6 +62,12 @@ db.execute(`
   WHERE LOWER(unit) = 'meal' AND meal_type != 'Prep Meal'
 `).catch(err => console.error('[migration] meal unit fix failed:', err.message));
 
+// Widen quantity column to NUMERIC so decimal values (e.g. 4.83 kg) can be stored.
+// The USING clause explicitly casts existing integer values — required by PostgreSQL.
+db.execute(`
+  ALTER TABLE food_inventory ALTER COLUMN quantity TYPE NUMERIC(10,3) USING quantity::NUMERIC
+`).catch(err => console.error('[migration] quantity column type fix failed:', err.message));
+
 exports.index = async (req, res) => {
   const [items] = await db.execute(
     "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) AND LOWER(unit) IN ('kg', 'pcs', 'l') ORDER BY food_name"
