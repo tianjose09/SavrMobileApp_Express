@@ -166,7 +166,7 @@ exports.deduct = async (req, res) => {
       const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
       const item = rows[0];
       if (item) {
-        const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
+        const newQty = Math.max(0, Math.round(parseFloat(item.quantity) - parseFloat(deduction.qty_used)));
         await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
       }
     }
@@ -195,7 +195,7 @@ exports.deduct = async (req, res) => {
       // Upsert the prepared meal into food_inventory.
       // Fetch ALL rows with this food_name, merge quantities into the first,
       // and delete any duplicates — so only one row ever exists per meal.
-      const prepQty = parseFloat(servings) || 1;
+      const prepQty = Math.round(parseFloat(servings) || 1);
       const [allRows] = await db.execute(
         "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) ORDER BY id ASC",
         [meal_name]
@@ -203,7 +203,7 @@ exports.deduct = async (req, res) => {
 
       if (allRows.length > 0) {
         const keepRow = allRows[0];
-        const totalExisting = allRows.reduce((sum, r) => sum + parseFloat(r.quantity || 0), 0);
+        const totalExisting = allRows.reduce((sum, r) => sum + Math.round(parseFloat(r.quantity || 0)), 0);
         const newQty = totalExisting + prepQty;
 
         await db.execute(
@@ -248,3 +248,4 @@ exports.deduct = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to complete meal preparation. Please try again.' });
   }
 };
+
