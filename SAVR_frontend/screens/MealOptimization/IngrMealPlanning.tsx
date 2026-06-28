@@ -121,6 +121,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const consumedParamsRef = React.useRef<string | null>(null);
+  const consumedRefreshRef = React.useRef<number | null>(null);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -236,6 +237,18 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         const routePax = route.params?.targetPax;
         const routeMeal = route.params?.mealName;
         const routeRequestId = route.params?.mealRequestId;
+        const forceRefresh: number | undefined = route.params?.forceRefresh;
+
+        // Full reset after a completed meal preparation
+        if (forceRefresh && forceRefresh !== consumedRefreshRef.current) {
+          consumedRefreshRef.current = forceRefresh;
+          consumedParamsRef.current = null;
+          setTargetPax('0');
+          setSearchQuery('');
+          setSelectedCategory(null);
+          await fetchInventory();
+          return;
+        }
 
         // Build a key to identify this specific param set
         const paramKey = routePax !== undefined && routeMeal !== undefined

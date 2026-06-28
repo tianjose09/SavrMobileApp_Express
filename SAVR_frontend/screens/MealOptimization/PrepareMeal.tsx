@@ -82,7 +82,7 @@ export default function PrepareMeal({ route, navigation }: any) {
 
       navigation.reset({
         index: 0,
-        routes: [{ name: 'IngrMealPlanning' }],
+        routes: [{ name: 'IngrMealPlanning', params: { forceRefresh: Date.now() } }],
       });
       navigation.navigate('Summary');
     } catch (e: any) {
