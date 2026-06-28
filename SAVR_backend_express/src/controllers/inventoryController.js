@@ -227,18 +227,19 @@ exports.deduct = async (req, res) => {
 
       const description = `Prepared meal: ${meal_name}${ingredientSummary}`;
 
-      await db.execute(
+      // Activity log and notification are non-critical — log failures but don't block success response
+      db.execute(
         "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'inventory', 'Meal Prepared', ?, 'foodicon', NOW(), NOW())",
         [req.user.id, description]
-      );
+      ).catch(err => console.error('[deduct] activity_log failed:', err.message));
 
-      await createNotification(
+      createNotification(
         req.user.id,
         'food',
         `Meal Done: ${meal_name}`,
         `You have successfully prepared ${meal_name}.${ingredientSummary}`,
         true
-      );
+      ).catch(err => console.error('[deduct] notification failed:', err.message));
     }
 
     return res.json({ success: true, message: 'Inventory deducted successfully.' });
