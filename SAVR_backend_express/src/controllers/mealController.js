@@ -253,7 +253,8 @@ exports.optimizeMeals = async (req, res) => {
       if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
     }
 
-    const maxServings = servingCaps.length ? Math.min(...servingCaps) : 0;
+    const rawMax = servingCaps.length ? Math.min(...servingCaps) : 0;
+    const maxServings = Math.min(rawMax, targetPax);
     const paxScore = targetPax > 0 ? maxServings / targetPax : 0;
     const expiryScore = Math.max(0, 1 - minDays / 90);
     const finalScore = WEIGHT_PAX * paxScore + WEIGHT_EXPIRY * expiryScore;

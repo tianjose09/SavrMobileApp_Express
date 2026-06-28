@@ -90,15 +90,30 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         let inputUnit = parsedQty.unit || 'kg';
 
         if (recipeIngredients && !outOfStock) {
-          const matchIng = recipeIngredients.find((ring: any) => 
+          const matchIng = recipeIngredients.find((ring: any) =>
             isMatch(item.name, ring.ingredient_name)
           );
           if (matchIng) {
             isSelected = true;
-            const needed = (matchIng.qty_per_serving || 0) * (targetPaxVal || 0);
+            const recipeUnit = (matchIng.unit || '').toLowerCase().trim();
+            let qtyPerServing = matchIng.qty_per_serving || 0;
+            let resolvedUnit = parsedQty.unit || 'kg';
+
+            // Convert g→kg and ml→L so units stay within the picker options (kg, pcs, L)
+            if (recipeUnit === 'g') {
+              qtyPerServing = qtyPerServing / 1000;
+              resolvedUnit = 'kg';
+            } else if (recipeUnit === 'ml') {
+              qtyPerServing = qtyPerServing / 1000;
+              resolvedUnit = 'L';
+            } else if (recipeUnit === 'pcs' || recipeUnit === 'pc') {
+              resolvedUnit = 'pcs';
+            }
+
+            const needed = parseFloat((qtyPerServing * (targetPaxVal || 0)).toFixed(3));
             const actualQty = Math.min(needed, parsedQty.value);
             inputQty = String(actualQty > 0 ? actualQty : 1);
-            inputUnit = matchIng.unit || parsedQty.unit || 'kg';
+            inputUnit = resolvedUnit;
           }
         }
 
@@ -143,15 +158,30 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         let inputUnit = parsedQty.unit || 'kg';
 
         if (recipeIngredients && !outOfStock) {
-          const matchIng = recipeIngredients.find((ring: any) => 
+          const matchIng = recipeIngredients.find((ring: any) =>
             isMatch(item.name, ring.ingredient_name)
           );
           if (matchIng) {
             isSelected = true;
-            const needed = (matchIng.qty_per_serving || 0) * (targetPaxVal || 0);
+            const recipeUnit = (matchIng.unit || '').toLowerCase().trim();
+            let qtyPerServing = matchIng.qty_per_serving || 0;
+            let resolvedUnit = parsedQty.unit || 'kg';
+
+            // Convert g→kg and ml→L so units stay within the picker options (kg, pcs, L)
+            if (recipeUnit === 'g') {
+              qtyPerServing = qtyPerServing / 1000;
+              resolvedUnit = 'kg';
+            } else if (recipeUnit === 'ml') {
+              qtyPerServing = qtyPerServing / 1000;
+              resolvedUnit = 'L';
+            } else if (recipeUnit === 'pcs' || recipeUnit === 'pc') {
+              resolvedUnit = 'pcs';
+            }
+
+            const needed = parseFloat((qtyPerServing * (targetPaxVal || 0)).toFixed(3));
             const actualQty = Math.min(needed, parsedQty.value);
             inputQty = String(actualQty > 0 ? actualQty : 1);
-            inputUnit = matchIng.unit || parsedQty.unit || 'kg';
+            inputUnit = resolvedUnit;
           }
         }
 
