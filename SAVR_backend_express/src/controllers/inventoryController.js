@@ -160,88 +160,90 @@ exports.deduct = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Deductions array is required.' });
   }
 
-  // Deduct raw ingredients
-  for (const deduction of deductions) {
-    const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
-    const item = rows[0];
-    if (item) {
-      const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
-      await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
-    }
-  }
-
-  if (meal_name && req.user) {
-    // Build ingredient summary
-    const ingredientLines = [];
+  try {
+    // Deduct raw ingredients
     for (const deduction of deductions) {
-      const [rows] = await db.execute('SELECT food_name, unit FROM food_inventory WHERE id = ?', [deduction.id]);
-      if (rows[0]) {
-        ingredientLines.push(`• ${rows[0].food_name}: ${deduction.qty_used} ${rows[0].unit}`);
+      const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
+      const item = rows[0];
+      if (item) {
+        const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
+        await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
       }
     }
-    const ingredientSummary = ingredientLines.length > 0
-      ? `\n\nIngredients used:\n${ingredientLines.join('\n')}`
-      : '';
 
-    // Determine category based on meal name
-    const mealLower = (meal_name || '').toLowerCase();
-    const GRAINS_MEALS = ['lugaw', 'arroz caldo', 'champorado', 'sopas'];
-    const VEGGIE_MEALS = ['munggo guisado', 'veggie stir-fry', 'sotanghon soup'];
-    let prepCategory = 'Meat';
-    if (GRAINS_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Grains & Cereals';
-    else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
+    if (meal_name && req.user) {
+      // Build ingredient summary
+      const ingredientLines = [];
+      for (const deduction of deductions) {
+        const [rows] = await db.execute('SELECT food_name, unit FROM food_inventory WHERE id = ?', [deduction.id]);
+        if (rows[0]) {
+          ingredientLines.push(`• ${rows[0].food_name}: ${deduction.qty_used} ${rows[0].unit}`);
+        }
+      }
+      const ingredientSummary = ingredientLines.length > 0
+        ? `\n\nIngredients used:\n${ingredientLines.join('\n')}`
+        : '';
 
-    // Upsert the prepared meal into food_inventory.
-    // Fetch ALL rows with this food_name, merge quantities into the first,
-    // and delete any duplicates — so only one row ever exists per meal.
-    const prepQty = parseFloat(servings) || 1;
-    const [allRows] = await db.execute(
-      "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) ORDER BY id ASC",
-      [meal_name]
-    );
+      // Determine category based on meal name
+      const mealLower = (meal_name || '').toLowerCase();
+      const GRAINS_MEALS = ['lugaw', 'arroz caldo', 'champorado', 'sopas'];
+      const VEGGIE_MEALS = ['munggo guisado', 'veggie stir-fry', 'sotanghon soup'];
+      let prepCategory = 'Meat';
+      if (GRAINS_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Grains & Cereals';
+      else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
 
-    if (allRows.length > 0) {
-      const keepRow = allRows[0];
-      // Sum quantities from all duplicate rows and add the new servings
-      const totalExisting = allRows.reduce((sum, r) => sum + parseFloat(r.quantity || 0), 0);
-      const newQty = totalExisting + prepQty;
-
-      // Update the kept row with merged quantity, correct category and meal_type
-      await db.execute(
-        "UPDATE food_inventory SET category = ?, meal_type = 'Prep Meal', quantity = ?, updated_at = NOW() WHERE id = ?",
-        [prepCategory, newQty, keepRow.id]
+      // Upsert the prepared meal into food_inventory.
+      // Fetch ALL rows with this food_name, merge quantities into the first,
+      // and delete any duplicates — so only one row ever exists per meal.
+      const prepQty = parseFloat(servings) || 1;
+      const [allRows] = await db.execute(
+        "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) ORDER BY id ASC",
+        [meal_name]
       );
 
-      // Delete all duplicate rows (everything except the kept row)
-      if (allRows.length > 1) {
-        const duplicateIds = allRows.slice(1).map(r => r.id);
+      if (allRows.length > 0) {
+        const keepRow = allRows[0];
+        const totalExisting = allRows.reduce((sum, r) => sum + parseFloat(r.quantity || 0), 0);
+        const newQty = totalExisting + prepQty;
+
         await db.execute(
-          `DELETE FROM food_inventory WHERE id IN (${duplicateIds.map(() => '?').join(',')})`,
-          duplicateIds
+          "UPDATE food_inventory SET category = ?, meal_type = 'Prep Meal', quantity = ?, updated_at = NOW() WHERE id = ?",
+          [prepCategory, newQty, keepRow.id]
+        );
+
+        if (allRows.length > 1) {
+          const duplicateIds = allRows.slice(1).map(r => r.id);
+          await db.execute(
+            `DELETE FROM food_inventory WHERE id IN (${duplicateIds.map(() => '?').join(',')})`,
+            duplicateIds
+          );
+        }
+      } else {
+        await db.execute(
+          "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'meal', NULL, 'Prep Meal', NOW(), NOW())",
+          [meal_name, prepCategory, prepQty]
         );
       }
-    } else {
+
+      const description = `Prepared meal: ${meal_name}${ingredientSummary}`;
+
       await db.execute(
-        "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'meal', NULL, 'Prep Meal', NOW(), NOW())",
-        [meal_name, prepCategory, prepQty]
+        "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'inventory', 'Meal Prepared', ?, 'foodicon', NOW(), NOW())",
+        [req.user.id, description]
+      );
+
+      await createNotification(
+        req.user.id,
+        'food',
+        `Meal Done: ${meal_name}`,
+        `You have successfully prepared ${meal_name}.${ingredientSummary}`,
+        true
       );
     }
 
-    const description = `Prepared meal: ${meal_name}${ingredientSummary}`;
-
-    await db.execute(
-      "INSERT INTO activity_logs (user_id, type, title, description, icon, created_at, updated_at) VALUES (?, 'inventory', 'Meal Prepared', ?, 'foodicon', NOW(), NOW())",
-      [req.user.id, description]
-    );
-
-    await createNotification(
-      req.user.id,
-      'food',
-      `Meal Done: ${meal_name}`,
-      `You have successfully prepared ${meal_name}.${ingredientSummary}`,
-      true
-    );
+    return res.json({ success: true, message: 'Inventory deducted successfully.' });
+  } catch (err) {
+    console.error('[deduct]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to complete meal preparation. Please try again.' });
   }
-
-  return res.json({ success: true, message: 'Inventory deducted successfully.' });
 };
