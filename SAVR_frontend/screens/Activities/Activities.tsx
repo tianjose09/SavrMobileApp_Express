@@ -223,7 +223,6 @@ export default function Activities({ navigation }: any) {
             </View>
           </View>
 
-          <View style={styles.headerDivider} />
           <Text style={styles.pageTitle}>Recent Activity</Text>
           <Text style={styles.pageSubtitle}>
             Track your latest donations and impact updates
@@ -309,7 +308,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 22,
+    paddingBottom: 16,
+    marginHorizontal: -22,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
   },
 
   backButton: {
@@ -329,11 +333,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
-  headerDivider: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.25)',
-    marginBottom: 16,
-  },
+
 
   pageTitle: {
     color: '#FFFFFF',
