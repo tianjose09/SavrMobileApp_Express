@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, Modal, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, Image, TextInput, ScrollView, Modal, RefreshControl, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -22,6 +22,11 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     setPickupDate(null);
     setPickupTimeFrom(null);
     setPickupTimeTo(null);
+    setDateInput('');
+    setTimeFromInput('');
+    setTimeToInput('');
+    setAmpmFrom('AM');
+    setAmpmTo('PM');
     setTimeout(() => setRefreshing(false), 500);
   };
 
@@ -45,7 +50,80 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
   const [showIOSDateTo, setShowIOSDateTo] = useState(false);
 
+  // Text input states for manual typing
+  const [dateInput, setDateInput] = useState('');
+  const [timeFromInput, setTimeFromInput] = useState('');
+  const [ampmFrom, setAmpmFrom] = useState<'AM' | 'PM'>('AM');
+  const [timeToInput, setTimeToInput] = useState('');
+  const [ampmTo, setAmpmTo] = useState<'AM' | 'PM'>('PM');
+
   const GREEN = '#00592d';
+
+  const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+
+  // Parse "MM/DD/YYYY" → Date
+  const parseDateInput = (text: string): Date | null => {
+    const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const m = parseInt(match[1]) - 1;
+    const d = parseInt(match[2]);
+    const y = parseInt(match[3]);
+    const date = new Date(y, m, d);
+    if (date.getFullYear() !== y || date.getMonth() !== m || date.getDate() !== d) return null;
+    return date;
+  };
+
+  // Parse "H:MM" + AM/PM → Date
+  const parseTimeText = (text: string, ampm: 'AM' | 'PM'): Date | null => {
+    const match = text.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    let h = parseInt(match[1]);
+    const min = parseInt(match[2]);
+    if (h < 1 || h > 12 || min < 0 || min > 59) return null;
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    const date = new Date();
+    date.setHours(h, min, 0, 0);
+    return date;
+  };
+
+  // Auto-format date as user types (inserts slashes)
+  const handleDateInputChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    if (digits.length <= 2) formatted = digits;
+    else if (digits.length <= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+    else formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8);
+    setDateInput(formatted);
+    setPickupDate(parseDateInput(formatted));
+  };
+
+  // Auto-format time as user types (inserts colon)
+  const handleTimeFromChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    const formatted = digits.length <= 2 ? digits : digits.slice(0, 2) + ':' + digits.slice(2, 4);
+    setTimeFromInput(formatted);
+    setPickupTimeFrom(parseTimeText(formatted, ampmFrom));
+  };
+
+  const handleTimeToChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    const formatted = digits.length <= 2 ? digits : digits.slice(0, 2) + ':' + digits.slice(2, 4);
+    setTimeToInput(formatted);
+    setPickupTimeTo(parseTimeText(formatted, ampmTo));
+  };
+
+  const toggleAmpmFrom = () => {
+    const next = ampmFrom === 'AM' ? 'PM' : 'AM';
+    setAmpmFrom(next);
+    if (timeFromInput.match(/^\d{1,2}:\d{2}$/)) setPickupTimeFrom(parseTimeText(timeFromInput, next));
+  };
+
+  const toggleAmpmTo = () => {
+    const next = ampmTo === 'AM' ? 'PM' : 'AM';
+    setAmpmTo(next);
+    if (timeToInput.match(/^\d{1,2}:\d{2}$/)) setPickupTimeTo(parseTimeText(timeToInput, next));
+  };
 
   const openAndroidDate = () => {
     DateTimePickerAndroid.open({
@@ -54,13 +132,19 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       minimumDate: getToday(),
       accentColor: GREEN,
       onChange: (event, date) => {
-        if (event.type === 'set' && date) setPickupDate(date);
+        if (event.type === 'set' && date) {
+          setPickupDate(date);
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const y = date.getFullYear();
+          setDateInput(`${m}/${d}/${y}`);
+        }
       },
     });
   };
 
   const openAndroidTimeFrom = () => {
-    const d = pickupTimeFrom || new Date();
+    const d = pickupTimeFrom ? new Date(pickupTimeFrom) : new Date();
     if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
     DateTimePickerAndroid.open({
       value: d,
@@ -68,13 +152,21 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       is24Hour: false,
       accentColor: GREEN,
       onChange: (event, date) => {
-        if (event.type === 'set' && date) setPickupTimeFrom(date);
+        if (event.type === 'set' && date) {
+          setPickupTimeFrom(date);
+          let h = date.getHours();
+          const min = date.getMinutes();
+          const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setTimeFromInput(`${h}:${String(min).padStart(2, '0')}`);
+          setAmpmFrom(ap);
+        }
       },
     });
   };
 
   const openAndroidTimeTo = () => {
-    const d = pickupTimeTo || new Date();
+    const d = pickupTimeTo ? new Date(pickupTimeTo) : new Date();
     if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
     DateTimePickerAndroid.open({
       value: d,
@@ -82,21 +174,25 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       is24Hour: false,
       accentColor: GREEN,
       onChange: (event, date) => {
-        if (event.type === 'set' && date) setPickupTimeTo(date);
+        if (event.type === 'set' && date) {
+          setPickupTimeTo(date);
+          let h = date.getHours();
+          const min = date.getMinutes();
+          const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setTimeToInput(`${h}:${String(min).padStart(2, '0')}`);
+          setAmpmTo(ap);
+        }
       },
     });
   };
-  const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+
   const [tempPickupDate, setTempPickupDate] = useState(() => getToday());
   const [tempPickupTimeFrom, setTempPickupTimeFrom] = useState(() => {
-    const d = new Date();
-    d.setHours(7, 0, 0, 0);
-    return d;
+    const d = new Date(); d.setHours(7, 0, 0, 0); return d;
   });
   const [tempPickupTimeTo, setTempPickupTimeTo] = useState(() => {
-    const d = new Date();
-    d.setHours(9, 0, 0, 0);
-    return d;
+    const d = new Date(); d.setHours(9, 0, 0, 0); return d;
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -307,9 +403,14 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       />
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -432,21 +533,26 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         <View style={styles.dateTimeSectionWrap}>
           <View style={styles.fieldContainer}>
             <Text style={styles.inputLabel}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-            <TouchableOpacity
-              style={styles.pickerInputWrapper}
-              onPress={() => {
-                if (Platform.OS === 'ios') { setTempPickupDate(pickupDate || new Date()); setShowIOSDate(true); }
-                else openAndroidDate();
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.pickerTextInput, !pickupDate && { color: 'rgba(0,89,45,0.45)' }]}>
-                {pickupDate ? pickupDate.toLocaleDateString() : 'mm/dd/yyyy'}
-              </Text>
-              <View style={styles.pickerIconBtn}>
+            <View style={styles.pickerInputWrapper}>
+              <TextInput
+                style={styles.pickerTextInput}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="rgba(0,89,45,0.45)"
+                value={dateInput}
+                onChangeText={handleDateInputChange}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+              <TouchableOpacity
+                style={styles.pickerIconBtn}
+                onPress={() => {
+                  if (Platform.OS === 'ios') { setTempPickupDate(pickupDate || getToday()); setShowIOSDate(true); }
+                  else openAndroidDate();
+                }}
+              >
                 <Ionicons name="calendar-outline" size={20} color="#8CA697" />
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.fieldContainer}>
@@ -454,48 +560,64 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             <View style={styles.timeSlotRow}>
               <View style={styles.halfInput}>
                 <Text style={styles.timeLabel}>From</Text>
-                <TouchableOpacity
-                  style={styles.pickerInputWrapper}
-                  onPress={() => {
-                    if (Platform.OS === 'ios') {
-                      const d = pickupTimeFrom || new Date();
-                      if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
-                      setTempPickupTimeFrom(d);
-                      setShowIOSDateFrom(true);
-                    } else openAndroidTimeFrom();
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.pickerTextInput, !pickupTimeFrom && { color: 'rgba(0,89,45,0.45)' }]}>
-                    {pickupTimeFrom ? formatTimeWithAMPM(pickupTimeFrom) : '--:-- --'}
-                  </Text>
-                  <View style={styles.pickerIconBtn}>
+                <View style={styles.pickerInputWrapper}>
+                  <TextInput
+                    style={[styles.pickerTextInput, { flex: 1 }]}
+                    placeholder="H:MM"
+                    placeholderTextColor="rgba(0,89,45,0.45)"
+                    value={timeFromInput}
+                    onChangeText={handleTimeFromChange}
+                    keyboardType="numeric"
+                    maxLength={5}
+                  />
+                  <TouchableOpacity style={styles.ampmBtn} onPress={toggleAmpmFrom}>
+                    <Text style={styles.ampmText}>{ampmFrom}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.pickerIconBtn}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') {
+                        const d = pickupTimeFrom ? new Date(pickupTimeFrom) : new Date();
+                        if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
+                        setTempPickupTimeFrom(d);
+                        setShowIOSDateFrom(true);
+                      } else openAndroidTimeFrom();
+                    }}
+                  >
                     <Ionicons name="time-outline" size={20} color="#8CA697" />
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.halfInput}>
                 <Text style={styles.timeLabel}>To</Text>
-                <TouchableOpacity
-                  style={styles.pickerInputWrapper}
-                  onPress={() => {
-                    if (Platform.OS === 'ios') {
-                      const d = pickupTimeTo || new Date();
-                      if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
-                      setTempPickupTimeTo(d);
-                      setShowIOSDateTo(true);
-                    } else openAndroidTimeTo();
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.pickerTextInput, !pickupTimeTo && { color: 'rgba(0,89,45,0.45)' }]}>
-                    {pickupTimeTo ? formatTimeWithAMPM(pickupTimeTo) : '--:-- --'}
-                  </Text>
-                  <View style={styles.pickerIconBtn}>
+                <View style={styles.pickerInputWrapper}>
+                  <TextInput
+                    style={[styles.pickerTextInput, { flex: 1 }]}
+                    placeholder="H:MM"
+                    placeholderTextColor="rgba(0,89,45,0.45)"
+                    value={timeToInput}
+                    onChangeText={handleTimeToChange}
+                    keyboardType="numeric"
+                    maxLength={5}
+                  />
+                  <TouchableOpacity style={styles.ampmBtn} onPress={toggleAmpmTo}>
+                    <Text style={styles.ampmText}>{ampmTo}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.pickerIconBtn}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') {
+                        const d = pickupTimeTo ? new Date(pickupTimeTo) : new Date();
+                        if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
+                        setTempPickupTimeTo(d);
+                        setShowIOSDateTo(true);
+                      } else openAndroidTimeTo();
+                    }}
+                  >
                     <Ionicons name="time-outline" size={20} color="#8CA697" />
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -508,7 +630,14 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
                 <Text style={styles.modalTitle}>Select Date</Text>
-                <TouchableOpacity onPress={() => { setPickupDate(tempPickupDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setPickupDate(tempPickupDate);
+                  const m = String(tempPickupDate.getMonth() + 1).padStart(2, '0');
+                  const d = String(tempPickupDate.getDate()).padStart(2, '0');
+                  const y = tempPickupDate.getFullYear();
+                  setDateInput(`${m}/${d}/${y}`);
+                  setShowIOSDate(false);
+                }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
               <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={getToday()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: 320, alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
@@ -522,7 +651,16 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => setShowIOSDateFrom(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
                 <Text style={styles.modalTitle}>Select Start Time</Text>
-                <TouchableOpacity onPress={() => { setPickupTimeFrom(tempPickupTimeFrom); setShowIOSDateFrom(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setPickupTimeFrom(tempPickupTimeFrom);
+                  let h = tempPickupTimeFrom.getHours();
+                  const min = tempPickupTimeFrom.getMinutes();
+                  const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+                  h = h % 12 || 12;
+                  setTimeFromInput(`${h}:${String(min).padStart(2, '0')}`);
+                  setAmpmFrom(ap);
+                  setShowIOSDateFrom(false);
+                }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
               <DateTimePicker value={tempPickupTimeFrom} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempPickupTimeFrom(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
@@ -536,7 +674,16 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => setShowIOSDateTo(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
                 <Text style={styles.modalTitle}>Select End Time</Text>
-                <TouchableOpacity onPress={() => { setPickupTimeTo(tempPickupTimeTo); setShowIOSDateTo(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setPickupTimeTo(tempPickupTimeTo);
+                  let h = tempPickupTimeTo.getHours();
+                  const min = tempPickupTimeTo.getMinutes();
+                  const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+                  h = h % 12 || 12;
+                  setTimeToInput(`${h}:${String(min).padStart(2, '0')}`);
+                  setAmpmTo(ap);
+                  setShowIOSDateTo(false);
+                }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
               <DateTimePicker value={tempPickupTimeTo} mode="time" display="spinner" onChange={(_, d) => { if (d) setTempPickupTimeTo(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
@@ -565,6 +712,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         {/* Extra bottom spacing for Android navigation bar overlap prevention */}
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
     </SafeAreaView>
   );
@@ -771,11 +919,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#00592d',
     fontWeight: '600',
-    lineHeight: 48,
+    paddingVertical: 0,
   },
   pickerIconBtn: {
     padding: 5,
-    overflow: 'hidden',
+  },
+  ampmBtn: {
+    backgroundColor: '#00592d',
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    marginRight: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ampmText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   invisiblePicker: { display: 'none' },
 

@@ -131,16 +131,38 @@ export default function CreateRequest({ navigation }: any) {
     'Dry Goods': PRESET_FOODS_BY_CATEGORY['Dry Goods']
   });
 
-  const [form, setForm] = useState({
-    title: '', financial_amount: '', population: '',
-    age_start: '', age_end: '', street: '', barangay: '',
-    city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '',
+  // Separate state for each tab — changes in one never bleed into the other
+  const [foodForm, setFoodForm] = useState({
+    title: '', population: '', age_start: '', age_end: '',
+    street: '', barangay: '', city_municipality: '', postal_zip_code: '',
+    needed_date: '', end_date: '', urgency_level: '',
+  });
+  const [financialForm, setFinancialForm] = useState({
+    title: '', financial_amount: '', population: '', age_start: '', age_end: '',
+    street: '', barangay: '', city_municipality: '', postal_zip_code: '',
+    needed_date: '', end_date: '', urgency_level: '',
     receiving_method: '', account_name: '', account_number: '',
   });
 
+  // Computed read-only view of the active form — never set this directly
+  const form = requestType === 'food' ? foodForm : financialForm;
+
   const [refreshing, setRefreshing] = useState(false);
 
-  const updateForm = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
+  // Write to whichever form tab is currently active
+  const updateForm = (key: string, val: string) => {
+    if (requestType === 'food') {
+      setFoodForm(prev => ({ ...prev, [key]: val }));
+    } else {
+      setFinancialForm(prev => ({ ...prev, [key]: val }));
+    }
+  };
+
+  // Used by startup geocoder — populate address in both forms at once
+  const updateBothForms = (key: string, val: string) => {
+    setFoodForm(prev => ({ ...prev, [key]: val }));
+    setFinancialForm(prev => ({ ...prev, [key]: val }));
+  };
 
   const geocodeAddress = async (address: string) => {
     if (!address.trim()) return;
@@ -198,22 +220,18 @@ export default function CreateRequest({ navigation }: any) {
           const parts = [place.streetNumber, place.street, place.city, place.region, place.country]
             .filter(Boolean);
           const fullAddr = parts.join(', ');
-          updateForm('street', fullAddr);
-          updateForm('barangay', place.district || place.street || 'Manual');
-          updateForm('city_municipality', place.city || place.subregion || 'Manual');
-          updateForm('postal_zip_code', place.postalCode || '');
+          updateBothForms('street', fullAddr);
+          updateBothForms('barangay', place.district || place.street || 'Manual');
+          updateBothForms('city_municipality', place.city || place.subregion || 'Manual');
+          updateBothForms('postal_zip_code', place.postalCode || '');
         }
       } catch (e) { }
     })();
   }, []);
 
   const resetForm = () => {
-    setForm({
-      title: '', financial_amount: '', population: '',
-      age_start: '', age_end: '', street: '', barangay: '',
-      city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '',
-      receiving_method: '', account_name: '', account_number: '',
-    });
+    setFoodForm({ title: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '' });
+    setFinancialForm({ title: '', financial_amount: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '', receiving_method: '', account_name: '', account_number: '' });
     setRequestedFoods([]);
     setSelectedCategory(null);
     setSelectedFoodName('');
@@ -225,12 +243,8 @@ export default function CreateRequest({ navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setForm({
-      title: '', financial_amount: '', population: '',
-      age_start: '', age_end: '', street: '', barangay: '',
-      city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '',
-      receiving_method: '', account_name: '', account_number: '',
-    });
+    setFoodForm({ title: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '' });
+    setFinancialForm({ title: '', financial_amount: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '', receiving_method: '', account_name: '', account_number: '' });
     setDateObj(new Date());
     setEndDateObj(new Date());
     setRequestedFoods([]);
@@ -471,9 +485,15 @@ export default function CreateRequest({ navigation }: any) {
           </View>
         </View>
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -916,6 +936,7 @@ export default function CreateRequest({ navigation }: any) {
           </View>
           <View style={{ height: 140 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </>
   );
