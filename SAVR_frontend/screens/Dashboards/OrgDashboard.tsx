@@ -244,6 +244,9 @@ export default function OrgDashboard({ navigation }: any) {
             <View style={styles.whiteSheet}>
               <Animated.View style={{ opacity: titleFadeAnim, transform: [{ translateY: titleTranslateAnim }] }}>
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
+                <Text style={styles.subtitle}>
+                  Here's your organization dashboard — keep making an impact!
+                </Text>
               </Animated.View>
 
               <Animated.View style={{ opacity: totalCardFadeAnim, transform: [{ translateY: totalCardTranslateAnim }] }}>

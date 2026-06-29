@@ -274,6 +274,9 @@ export default function DonorDashboard({ navigation }: any) {
                 }}
               >
                 <Text style={styles.dashboardTitle}>Donor Dashboard</Text>
+                <Text style={styles.subtitle}>
+                  Here's your donor dashboard — keep making an impact!
+                </Text>
               </Animated.View>
 
               <Animated.View
