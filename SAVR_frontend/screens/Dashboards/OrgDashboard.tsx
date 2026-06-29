@@ -92,42 +92,51 @@ export default function OrgDashboard({ navigation }: any) {
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
-    const localName =
-      (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'NGO Partner';
-    const picKey = await getProfilePicKey();
-    const localPic = await StorageUtils.getItem(picKey);
-    if (localPic) setProfilePic(localPic);
-
-    setUserName(localName);
-    setInitial(localName.charAt(0).toUpperCase());
-
     try {
-      const dashRes = await ApiService.getDashboard();
-      if (dashRes?.data?.success) {
-        const data = dashRes.data;
+      const localName =
+        (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'NGO Partner';
+      const picKey = await getProfilePicKey();
+      const localPic = await StorageUtils.getItem(picKey);
+      if (localPic) setProfilePic(localPic);
 
-        if (data.display_name) {
-          setUserName(data.display_name);
-          setInitial(data.display_name.charAt(0).toUpperCase());
-          StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
+      setUserName(localName);
+      setInitial(localName.charAt(0).toUpperCase());
+
+      try {
+        const dashRes = await ApiService.getDashboard();
+        if (dashRes?.data?.success) {
+          const data = dashRes.data;
+
+          if (data.display_name) {
+            setUserName(data.display_name);
+            setInitial(data.display_name.charAt(0).toUpperCase());
+            StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
+          }
+
+          setDonationAmount(data.total_donations || 0);
+          setTotalFoodDonations(data.total_food || 0);
+          setTotalFinancialCount(data.total_financial_count || 0);
+          setTotalServiceDonations(data.total_service || 0);
         }
-
-        setDonationAmount(data.total_donations || 0);
-        setTotalFoodDonations(data.total_food || 0);
-        setTotalFinancialCount(data.total_financial_count || 0);
-        setTotalServiceDonations(data.total_service || 0);
+      } catch (e) {
+        console.error('[OrgDashboard] dashboard fetch failed', e);
       }
 
-      const badgesRes = await ApiService.getBadges();
-      if (badgesRes?.data?.success) {
-        const earnedBadges = badgesRes.data.earned || [];
-        setFeaturedBadges(earnedBadges.slice(0, 3));
-        const allBadges = badgesRes.data.all || [];
-        const inProgress = badgesRes.data.in_progress || [];
-        const nextFood = inProgress.find((b: any) => b.goal_type === 'food_count')
-          || allBadges.find((b: any) => b.goal_type === 'food_count' && b.status !== 'earned');
-        setNextFoodBadge(nextFood || null);
+      try {
+        const badgesRes = await ApiService.getBadges();
+        if (badgesRes?.data?.success) {
+          const earnedBadges = badgesRes.data.earned || [];
+          setFeaturedBadges(earnedBadges.slice(0, 3));
+          const allBadges = badgesRes.data.all || [];
+          const inProgress = badgesRes.data.in_progress || [];
+          const nextFood = inProgress.find((b: any) => b.goal_type === 'food_count')
+            || allBadges.find((b: any) => b.goal_type === 'food_count' && b.status !== 'earned');
+          setNextFoodBadge(nextFood || null);
+        }
+      } catch (e) {
+        console.error('[OrgDashboard] badges fetch failed', e);
       }
+
       try {
         const critRes = await ApiService.getCriticalNotifications();
         setUnreadCount(critRes?.data?.notifications?.length || 0);
@@ -139,12 +148,10 @@ export default function OrgDashboard({ navigation }: any) {
           setOngoingDrives(drivesRes.data.active_drives || []);
         }
       } catch (err) {
-        console.log('Failed to fetch active drives', err);
+        console.log('[OrgDashboard] drives fetch failed', err);
       }
     } catch (e) {
-      console.error('Failed NGO load', e);
-      setDonationAmount(0);
-      setTotalFoodDonations(0);
+      console.error('[OrgDashboard] load failed', e);
     } finally {
       setIsLoading(false);
       runEntryAnimations();
@@ -246,7 +253,7 @@ export default function OrgDashboard({ navigation }: any) {
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
 
                 <Text style={styles.subtitle}>
-                  Here's your activity overview â€” keep making an impact!
+                  {“Here's your activity overview – keep making an impact!”}
                 </Text>
               </Animated.View>
 
@@ -272,7 +279,7 @@ export default function OrgDashboard({ navigation }: any) {
                       {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
-                      {nextFoodBadge ? `${nextBadgeGoal} donations Â· ${nextBadgeName}` : 'All food badges earned!'}
+                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
                     </Text>
                   </View>
                 </View>
@@ -295,7 +302,7 @@ export default function OrgDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>â‚± {donationAmount.toLocaleString('en-US')}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>{'₱ '}{donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
@@ -524,18 +531,17 @@ const styles = StyleSheet.create({
   },
 
   whiteSheet: {
-    flex: 1,
     backgroundColor: '#F3F3F3',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    overflow: 'hidden',
     paddingHorizontal: 18,
     paddingTop: 24,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
 
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 40,
   },
 
   dashboardTitle: {
