@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Sta
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import ToastBanner from '../../components/ToastBanner';
@@ -41,10 +41,51 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [pickupDate, setPickupDate] = useState<Date | null>(null);
   const [pickupTimeFrom, setPickupTimeFrom] = useState<Date | null>(null);
   const [pickupTimeTo, setPickupTimeTo] = useState<Date | null>(null);
-  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time_from' | 'time_to' | null>(null);
   const [showIOSDate, setShowIOSDate] = useState(false);
   const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
   const [showIOSDateTo, setShowIOSDateTo] = useState(false);
+
+  const GREEN = '#00592d';
+
+  const openAndroidDate = () => {
+    DateTimePickerAndroid.open({
+      value: pickupDate || getToday(),
+      mode: 'date',
+      minimumDate: getToday(),
+      accentColor: GREEN,
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) setPickupDate(date);
+      },
+    });
+  };
+
+  const openAndroidTimeFrom = () => {
+    const d = pickupTimeFrom || new Date();
+    if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
+    DateTimePickerAndroid.open({
+      value: d,
+      mode: 'time',
+      is24Hour: false,
+      accentColor: GREEN,
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) setPickupTimeFrom(date);
+      },
+    });
+  };
+
+  const openAndroidTimeTo = () => {
+    const d = pickupTimeTo || new Date();
+    if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
+    DateTimePickerAndroid.open({
+      value: d,
+      mode: 'time',
+      is24Hour: false,
+      accentColor: GREEN,
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) setPickupTimeTo(date);
+      },
+    });
+  };
   const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
   const [tempPickupDate, setTempPickupDate] = useState(() => getToday());
   const [tempPickupTimeFrom, setTempPickupTimeFrom] = useState(() => {
@@ -395,7 +436,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               style={styles.pickerInputWrapper}
               onPress={() => {
                 if (Platform.OS === 'ios') { setTempPickupDate(pickupDate || new Date()); setShowIOSDate(true); }
-                else setDatePickerMode('date');
+                else openAndroidDate();
               }}
               activeOpacity={0.8}
             >
@@ -416,11 +457,12 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <TouchableOpacity
                   style={styles.pickerInputWrapper}
                   onPress={() => {
-                    const d = pickupTimeFrom || new Date();
-                    d.setHours(7, 0, 0, 0);
-                    setTempPickupTimeFrom(d);
-                    if (Platform.OS === 'ios') { setShowIOSDateFrom(true); }
-                    else setDatePickerMode('time_from');
+                    if (Platform.OS === 'ios') {
+                      const d = pickupTimeFrom || new Date();
+                      if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
+                      setTempPickupTimeFrom(d);
+                      setShowIOSDateFrom(true);
+                    } else openAndroidTimeFrom();
                   }}
                   activeOpacity={0.8}
                 >
@@ -438,11 +480,12 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <TouchableOpacity
                   style={styles.pickerInputWrapper}
                   onPress={() => {
-                    const d = pickupTimeTo || new Date();
-                    d.setHours(9, 0, 0, 0);
-                    setTempPickupTimeTo(d);
-                    if (Platform.OS === 'ios') { setShowIOSDateTo(true); }
-                    else setDatePickerMode('time_to');
+                    if (Platform.OS === 'ios') {
+                      const d = pickupTimeTo || new Date();
+                      if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
+                      setTempPickupTimeTo(d);
+                      setShowIOSDateTo(true);
+                    } else openAndroidTimeTo();
                   }}
                   activeOpacity={0.8}
                 >
@@ -523,30 +566,6 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Shared Android date/time picker */}
-      {Platform.OS === 'android' && datePickerMode && (
-        <DateTimePicker
-          value={
-            datePickerMode === 'date'
-              ? (pickupDate || new Date())
-              : datePickerMode === 'time_from'
-              ? (pickupTimeFrom || (() => { const d = new Date(); d.setHours(7, 0, 0, 0); return d; })())
-              : (pickupTimeTo || (() => { const d = new Date(); d.setHours(9, 0, 0, 0); return d; })())
-          }
-          mode={datePickerMode === 'date' ? 'date' : 'time'}
-          minimumDate={datePickerMode === 'date' ? getToday() : undefined}
-          display="default"
-          onChange={(event, selectedDate) => {
-            const currentMode = datePickerMode;
-            setDatePickerMode(null);
-            if (event.type === 'set' && selectedDate) {
-              if (currentMode === 'date') setPickupDate(selectedDate);
-              else if (currentMode === 'time_from') setPickupTimeFrom(selectedDate);
-              else if (currentMode === 'time_to') setPickupTimeTo(selectedDate);
-            }
-          }}
-        />
-      )}
     </SafeAreaView>
   );
 }
