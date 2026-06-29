@@ -729,48 +729,37 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                                   maxLength={8}
                                   selectTextOnFocus
                                 />
-                                {/* Tappable unit label */}
+                                  {/* Tappable unit label */}
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      Alert.alert(
+                                        'Select Unit',
+                                        'Choose a unit:',
+                                        [
+                                          { text: 'kg', onPress: () => updateInputUnit(item.id, 'kg') },
+                                          { text: 'pcs', onPress: () => updateInputUnit(item.id, 'pcs') },
+                                          { text: 'L', onPress: () => updateInputUnit(item.id, 'L') },
+                                          { text: 'Cancel', style: 'cancel' }
+                                        ]
+                                      );
+                                    }}
+                                    activeOpacity={0.7}
+                                    style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 4 }}
+                                  >
+                                    <Text style={styles.inlineQtyUnit}>{unit}</Text>
+                                    <Ionicons name="chevron-down" size={10} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
+                                  </TouchableOpacity>
+                                </View>
+
                                 <TouchableOpacity
-                                  onPress={() => setOpenUnitPickerId(openUnitPickerId === item.id ? null : item.id)}
+                                  style={styles.inlineQtyBtn}
+                                  onPress={() => stepQty(item.id, 1)}
                                   activeOpacity={0.7}
-                                  style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 4 }}
                                 >
-                                  <Text style={styles.inlineQtyUnit}>{unit}</Text>
-                                  <Ionicons name="chevron-down" size={10} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
+                                  <Ionicons name="add" size={18} color="#E87A1E" />
                                 </TouchableOpacity>
                               </View>
-
-                              <TouchableOpacity
-                                style={styles.inlineQtyBtn}
-                                onPress={() => stepQty(item.id, 1)}
-                                activeOpacity={0.7}
-                              >
-                                <Ionicons name="add" size={18} color="#E87A1E" />
-                              </TouchableOpacity>
                             </View>
-                          </View>
-
-                          {/* Unit picker – shows when tapped */}
-                          {openUnitPickerId === item.id && (
-                            <View style={styles.inlineUnitPickerRow}>
-                              {UNIT_OPTIONS.map((u) => (
-                                <TouchableOpacity
-                                  key={u}
-                                  onPress={() => updateInputUnit(item.id, u)}
-                                  style={[
-                                    styles.inlineUnitPill,
-                                    unit === u ? styles.inlineUnitPillActive : styles.inlineUnitPillInactive
-                                  ]}
-                                  activeOpacity={0.8}
-                                >
-                                  <Text style={[
-                                    styles.inlineUnitPillText,
-                                    unit === u ? styles.inlineUnitPillTextActive : styles.inlineUnitPillTextInactive
-                                  ]}>{u}</Text>
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          )}
 
                           {/* Mini progress bar */}
                           <View style={styles.progressSection}>

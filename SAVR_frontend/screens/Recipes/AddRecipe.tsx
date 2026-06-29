@@ -134,6 +134,7 @@ export default function AddRecipe({ navigation }: any) {
   };
 
   const [dbIngredients, setDbIngredients] = useState<string[]>([]);
+  const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
 
   React.useEffect(() => {
     const loadIngredients = async () => {
@@ -298,7 +299,7 @@ export default function AddRecipe({ navigation }: any) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* ── PAGE HEADER: simple green bar (outside scroll) ── */}
         <View style={styles.pageHeader}>
@@ -313,6 +314,7 @@ export default function AddRecipe({ navigation }: any) {
           style={{ flex: 1 }}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={parentScrollEnabled}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -387,7 +389,7 @@ export default function AddRecipe({ navigation }: any) {
             <Text style={styles.selectIngLabel}>Select the ingredients<Text style={{ color: '#E4B63F' }}> *</Text></Text>
 
             {/* Search bar */}
-            <View style={{ zIndex: 20, marginBottom: 4 }}>
+            <View style={{ zIndex: 9999, elevation: 999, position: 'relative', marginBottom: 4 }}>
               <View style={styles.searchBar}>
                 <TextInput
                   ref={searchInputRef}
@@ -411,8 +413,15 @@ export default function AddRecipe({ navigation }: any) {
 
               {/* Suggestions dropdown */}
               {showSuggestions && (
-                <View style={styles.suggestionsContainer}>
-                  <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
+                <View style={[styles.suggestionsContainer, { zIndex: 9999, elevation: 999 }]}>
+                  <ScrollView
+                    style={{ maxHeight: 200 }}
+                    keyboardShouldPersistTaps="handled"
+                    nestedScrollEnabled={true}
+                    onTouchStart={() => setParentScrollEnabled(false)}
+                    onTouchEnd={() => setParentScrollEnabled(true)}
+                    onTouchCancel={() => setParentScrollEnabled(true)}
+                  >
                     {filteredSuggestions.map((item, idx) => (
                       <TouchableOpacity
                         key={idx}
@@ -564,7 +573,7 @@ export default function AddRecipe({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 80 }} />
+          <View style={{ height: 280 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -649,7 +658,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2EAE5',
     borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    height: 50,
+    justifyContent: 'center',
     backgroundColor: '#F8FAF9', // soft light input background inside card
   },
   inputBoxFocused: {
@@ -657,10 +667,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   inputText: {
-    flex: 1,
     fontSize: 15,
     color: '#333',
-    width: '100%',
+    paddingVertical: 0,
   },
   textareaBox: {
     height: 120,

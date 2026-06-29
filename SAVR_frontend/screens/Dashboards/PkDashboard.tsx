@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, Animated, Image, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
 import { ApiService } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import NotificationBell from '../../components/NotificationBell';
 
 export default function PkDashboard({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('Loaves and Fishes');
   const [initial, setInitial] = useState('L');
   const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -162,9 +163,9 @@ export default function PkDashboard({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
         {/* Slide-in notification banner */}
         <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.notificationContent}>
@@ -215,6 +216,9 @@ export default function PkDashboard({ navigation }: any) {
             {/* WHITE BODY SECTION */}
             <View style={styles.whiteBody}>
               <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
+              <Text style={styles.subTitle}>
+                Here's your kitchen dashboard — keep making an impact!
+              </Text>
 
               {/* 4 CARDS GRID */}
               <View style={styles.gridContainer}>
