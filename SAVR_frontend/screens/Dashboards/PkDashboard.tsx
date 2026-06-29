@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 36,
     paddingTop: 35,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 130,
   },
   mainTitle: {
     fontSize: 34,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   driveCardContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 14,
+    paddingBottom: 130,
     height: 270,
     justifyContent: 'space-between',
   },
