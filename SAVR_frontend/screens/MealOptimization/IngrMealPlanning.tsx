@@ -822,16 +822,12 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    zIndex: 10,
-    elevation: 5,
   },
   logoImage: {
     width: 170,

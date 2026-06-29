@@ -175,8 +175,6 @@ export default function PkDashboard({ navigation }: any) {
         </Animated.View>
 
         <View style={styles.container}>
-          <StatusBar barStyle="light-content" backgroundColor="#236B40" translucent={false} />
-
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
             <Image

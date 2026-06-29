@@ -170,16 +170,12 @@ const styles = StyleSheet.create({
 
   topHeader: {
     backgroundColor: '#00592d',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    zIndex: 10,
-    elevation: 5,
   },
   logoImage: { width: 170, height: 58, marginBottom: 6 },
 
