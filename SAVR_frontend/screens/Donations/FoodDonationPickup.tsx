@@ -729,6 +729,8 @@ const styles = StyleSheet.create({
 
   topHeaderWrap: {
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   topNav: {
     flexDirection: 'row',

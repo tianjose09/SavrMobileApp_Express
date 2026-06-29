@@ -476,8 +476,8 @@ export default function CreateRequest({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
         {/* TOP BAR HEADER */}
         <View style={styles.topHeader}>
@@ -951,6 +951,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   topHeader: {
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,

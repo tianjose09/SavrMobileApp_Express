@@ -42,14 +42,14 @@ export default function FinancialDonation({ navigation }: any) {
     Alert.alert(
       'Donation Confirmed!',
       `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
-      [{ 
-        text: 'OK', 
+      [{
+        text: 'OK',
         onPress: () => {
           navigation.reset({
             index: 0,
             routes: [{ name: 'ChooseDonation' }],
           });
-        } 
+        }
       }]
     );
   };
@@ -342,6 +342,8 @@ const styles = StyleSheet.create({
 
   topHeader: {
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 12,

@@ -78,37 +78,30 @@ export default function ChooseDonation({ navigation }: any) {
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d' }} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
         <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
-          {/* UNIFIED GREEN HEADER CONTAINER */}
-          <View style={styles.unifiedHeaderContainer}>
-            {/* TOP BAR HEADER */}
-            <View style={styles.topHeader}>
-              <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <NotificationBell navigation={navigation} color="#FFF" size={26} style={{ marginRight: 5 }} />
-                <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Ionicons name="menu-outline" size={32} color="#FFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* HERO */}
-            <View style={styles.heroBackground}>
-              <View style={styles.heroContent}>
-                <Text style={styles.heroTitleMain}>
-                  CHOOSE WHAT TO <Text style={styles.heroTitleHighlight}>DONATE</Text>
-                </Text>
-              </View>
+          {/* TOP BAR HEADER */}
+          <View style={styles.topHeader}>
+            <Image source={require('../../assets/images/logo/logowhite.png')} style={styles.logoImage} resizeMode="contain" />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationBell navigation={navigation} color="#FFF" size={26} style={{ marginRight: 5 }} />
+              <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="menu-outline" size={32} color="#FFF" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <ScrollView
-            style={{ backgroundColor: '#FFFFFF' }}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          {/* HERO */}
+          <View style={styles.heroBackground}>
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitleMain}>
+                CHOOSE WHAT TO <Text style={styles.heroTitleHighlight}>DONATE</Text>
+              </Text>
+            </View>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
             {/* Section Header */}
             <View style={styles.sectionHeader}>
@@ -173,19 +166,7 @@ export default function ChooseDonation({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#00592d' },
-
-  unifiedHeaderContainer: {
-    backgroundColor: '#00592d',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
-    zIndex: 10,
-  },
+  container: { flex: 1, backgroundColor: '#FFF' },
 
   topHeader: {
     backgroundColor: '#00592d',
@@ -197,6 +178,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 10,
   },
   logoImage: { width: 170, height: 58, marginBottom: 6 },
 
@@ -204,8 +186,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#00592d',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    paddingTop: 28,
+    paddingTop: 20,
     paddingBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
   },
   heroContent: { paddingHorizontal: 25, marginTop: 15, marginBottom: 15, alignItems: 'center' },
   heroTitleMain: { fontSize: 25, fontWeight: '800', color: '#FFF', letterSpacing: -0.5, textAlign: 'center' },

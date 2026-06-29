@@ -280,12 +280,15 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     backgroundColor: '#00592d',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: 12,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 10,
   },
   logoImage: {
     width: 170,
