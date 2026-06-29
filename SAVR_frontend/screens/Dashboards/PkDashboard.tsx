@@ -164,7 +164,7 @@ export default function PkDashboard({ navigation }: any) {
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }} edges={['bottom']}>
         {/* Slide-in notification banner */}
         <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.notificationContent}>
@@ -473,13 +473,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: 12,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 10,
-    elevation: 5,
   },
   logoImage: {
     width: 170,

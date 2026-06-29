@@ -77,7 +77,7 @@ export default function RecipesList({ navigation }: any) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-      <SafeAreaView style={{ backgroundColor: '#FFFFFF' }}>
+      <SafeAreaView style={{ backgroundColor: '#FFFFFF' }} edges={['top']}>
         {/* TOP BAR */}
         <View style={styles.topHeader}>
           <Image
@@ -241,16 +241,14 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
   },
   logoImage: {
     width: 160,

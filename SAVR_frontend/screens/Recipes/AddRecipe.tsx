@@ -657,8 +657,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   inputText: {
+    flex: 1,
     fontSize: 15,
     color: '#333',
+    width: '100%',
   },
   textareaBox: {
     height: 120,

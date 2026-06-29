@@ -98,8 +98,10 @@ export default function FoodInventory({ route, navigation }: any) {
     });
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+        <>
+            <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} edges={['top']} />
+            <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+            <SafeAreaView style={[styles.container, { flex: 1 }]} edges={['bottom']}>
 
             {/* TOP BAR HEADER */}
             <View style={styles.topHeader}>
@@ -249,6 +251,7 @@ export default function FoodInventory({ route, navigation }: any) {
                 <View style={{ height: 120 }} />
             </ScrollView>
         </SafeAreaView>
+      </>
     );
 }
 
@@ -259,6 +262,8 @@ const styles = StyleSheet.create({
     },
     topHeader: {
         backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
         paddingHorizontal: 18,
         paddingTop: 22,
         paddingBottom: 12,
