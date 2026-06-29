@@ -236,7 +236,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F3" translucent={false} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -253,8 +253,8 @@ export default function FoodDonationDetails({ navigation, route }: any) {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
             <TouchableOpacity
-              style={styles.iconBtn}
               onPress={() => navigation.openDrawer?.()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="menu-outline" size={32} color="#544434" />
             </TouchableOpacity>
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   topHeader: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: 10,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
