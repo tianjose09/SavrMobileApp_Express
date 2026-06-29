@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
 
   headerWrap: {
     alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 70 : 55,
+    marginTop: Platform.OS === 'ios' ? 80 : 65,
     marginBottom: 16,
   },
 
