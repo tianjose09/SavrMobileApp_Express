@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Platform, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -257,6 +258,7 @@ function RecipesStackNavigator() {
 }
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
   const [role, setRole] = React.useState<string>('donor');
 
   React.useEffect(() => {
@@ -291,11 +293,11 @@ function MainTabs() {
           backgroundColor: '#00592d',
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
-          height: Platform.OS === 'android' ? 80 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 14,
+          height: 70 + insets.bottom,
+          paddingBottom: Platform.OS === 'ios' ? 20 : insets.bottom + 8,
           paddingTop: 10,
           position: 'absolute',
-          bottom: Platform.OS === 'android' ? 28 : 0,
+          bottom: 0,
           left: 0,
           right: 0,
           borderTopWidth: 0,

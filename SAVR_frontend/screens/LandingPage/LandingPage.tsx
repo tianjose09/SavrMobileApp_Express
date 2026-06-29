@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function LandingPage({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('Home');
 
   // Animation values for page entrance
@@ -434,7 +436,7 @@ export default function LandingPage({ navigation }: any) {
         </View>
       </SafeAreaView>
 
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
         {[
           { key: 'Home', icon: 'home', label: 'Home', type: Ionicons },
           { key: 'Mission', icon: 'flag-outline', label: 'Mission', type: Ionicons },
