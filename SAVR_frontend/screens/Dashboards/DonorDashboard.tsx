@@ -421,7 +421,7 @@ export default function DonorDashboard({ navigation }: any) {
                   opacity: drivesFadeAnim,
                   transform: [{ translateY: drivesTranslateAnim }],
                   marginTop: 32,
-                  paddingBottom: 10,
+                  paddingBottom: 20,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
@@ -616,18 +616,17 @@ const styles = StyleSheet.create({
   },
 
   whiteSheet: {
-    flex: 1,
     backgroundColor: '#F3F3F3',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    overflow: 'hidden',
     paddingHorizontal: 18,
     paddingTop: 18,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
 
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 40,
   },
 
   dashboardTitle: {
