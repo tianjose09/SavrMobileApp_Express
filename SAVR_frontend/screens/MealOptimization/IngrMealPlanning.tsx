@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TextInput, TouchableOpacity, StatusBar, Alert, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import {
+  ActivityIndicator, Alert, Image, Platform, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ApiService } from '../../services/api';
@@ -822,7 +824,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

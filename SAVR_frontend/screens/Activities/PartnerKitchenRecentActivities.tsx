@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
-  ActivityIndicator,
-  RefreshControl,
+  ActivityIndicator, FlatList, Platform, RefreshControl, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
@@ -287,7 +280,7 @@ const styles = StyleSheet.create({
   greenHeader: {
     backgroundColor: '#00592d',
     paddingHorizontal: 22,
-    paddingTop: 18,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 18,
     paddingBottom: 26,
   },
 

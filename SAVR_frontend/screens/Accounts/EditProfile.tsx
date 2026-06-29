@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator , StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import { StorageUtils, StorageKeys } from '../../utils/storage';
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   topNav: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 15, paddingHorizontal: 20, position: 'relative',
-    marginTop: Platform.OS === 'android' ? 20 : 0
+    marginTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 0
   },
   backButton: { width: 50, alignItems: 'flex-start' },
   pageTitle: { fontSize: 18, fontWeight: '800', color: '#00592d' },

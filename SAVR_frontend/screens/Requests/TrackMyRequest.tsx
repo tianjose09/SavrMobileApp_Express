@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, ActivityIndicator, Alert, LayoutAnimation, UIManager, Platform,
-  Modal, TextInput,
+  ActivityIndicator, Alert, Image, LayoutAnimation, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, UIManager, View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -809,7 +807,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

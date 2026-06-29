@@ -1,16 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  Image,
-  ImageBackground,
-  Animated,
-  AppState,
-  ActivityIndicator,
+  ActivityIndicator, Animated, AppState, Image, ImageBackground, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -571,7 +561,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

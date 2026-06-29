@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 22,
     paddingBottom: 12,
-    marginTop: 20,
+    marginTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 20,
   },
   logoImage: {
     width: 170,

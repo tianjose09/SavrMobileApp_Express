@@ -41,7 +41,7 @@ export default function FinancialDonation({ navigation }: any) {
     const donatedAmt = parseFloat(confirmedAmount).toLocaleString('en-US');
     Alert.alert(
       'Donation Confirmed!',
-      `You successfully donated â‚±${donatedAmt}. Thank you for your generosity!`,
+      `You successfully donated ₱${donatedAmt}. Thank you for your generosity!`,
       [{ 
         text: 'OK', 
         onPress: () => {
@@ -248,16 +248,16 @@ export default function FinancialDonation({ navigation }: any) {
                     styles.presetBtnText,
                     amount === preset.toLocaleString('en-US') && styles.presetBtnTextActive
                   ]}>
-                    â‚± {preset.toLocaleString('en-US')}
+                    ₱ {preset.toLocaleString('en-US')}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Custom Amount */}
-            <Text style={styles.sectionLabel}>Or enter custom amount (â‚±)</Text>
+            <Text style={styles.sectionLabel}>Or enter custom amount (₱)</Text>
             <View style={styles.customAmountBox}>
-              <Text style={styles.pesoPrefix}>â‚±</Text>
+              <Text style={styles.pesoPrefix}>₱</Text>
               <TextInput
                 style={styles.customAmountInput}
                 value={amount}
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

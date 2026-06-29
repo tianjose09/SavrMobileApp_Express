@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Platform, Image, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Platform, Image, Modal, TextInput, KeyboardAvoidingView , StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ApiService } from '../../services/api';
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   topNav: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     paddingVertical: 15, paddingHorizontal: 20, position: 'relative',
-    marginTop: Platform.OS === 'android' ? 20 : 0
+    marginTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 0
   },
   backButton: { position: 'absolute', left: 20 },
   pageTitle: { fontSize: 18, fontWeight: '800', color: '#00592d' },

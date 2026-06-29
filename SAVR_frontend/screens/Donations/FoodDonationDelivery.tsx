@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
 
   },
   topNav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, marginBottom: 15,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 20, marginBottom: 15,
   },
   backButton: { padding: 5 },
   logoRow: { alignItems: 'center' },
