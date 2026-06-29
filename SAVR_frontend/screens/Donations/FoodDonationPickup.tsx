@@ -130,6 +130,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       value: pickupDate || getToday(),
       mode: 'date',
       minimumDate: getToday(),
+      // @ts-ignore accentColor exists at runtime but missing from older type definitions
       accentColor: GREEN,
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
@@ -150,6 +151,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       value: d,
       mode: 'time',
       is24Hour: false,
+      // @ts-ignore accentColor exists at runtime but missing from older type definitions
       accentColor: GREEN,
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
@@ -172,6 +174,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       value: d,
       mode: 'time',
       is24Hour: false,
+      // @ts-ignore accentColor exists at runtime but missing from older type definitions
       accentColor: GREEN,
       onChange: (event, date) => {
         if (event.type === 'set' && date) {

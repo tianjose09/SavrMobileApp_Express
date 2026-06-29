@@ -253,7 +253,7 @@ export default function OrgDashboard({ navigation }: any) {
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
 
                 <Text style={styles.subtitle}>
-                  {“Here's your activity overview – keep making an impact!”}
+                  {"Here's your activity overview - keep making an impact!"}
                 </Text>
               </Animated.View>
 
@@ -279,7 +279,7 @@ export default function OrgDashboard({ navigation }: any) {
                       {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
-                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
+                      {nextFoodBadge ? `${nextBadgeGoal} donations . ${nextBadgeName}` : 'All food badges earned!'}
                     </Text>
                   </View>
                 </View>
@@ -333,7 +333,7 @@ export default function OrgDashboard({ navigation }: any) {
                 </View>
               </Animated.View>
 
-              {/* ACHIEVEMENT BADGES â€” only show if earned */}
+              {/* ACHIEVEMENT BADGES â€" only show if earned */}
               {featuredBadges && featuredBadges.length > 0 && (
                 <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesTranslateAnim }] }}>
                   <View style={styles.badgesSection}>

@@ -145,7 +145,13 @@ export default function CreateRequest({ navigation }: any) {
   });
 
   // Computed read-only view of the active form — never set this directly
-  const form = requestType === 'food' ? foodForm : financialForm;
+  const form = (requestType === 'food' ? foodForm : financialForm) as {
+    title: string; financial_amount: string; population: string;
+    age_start: string; age_end: string; street: string; barangay: string;
+    city_municipality: string; postal_zip_code: string; needed_date: string;
+    end_date: string; urgency_level: string; receiving_method: string;
+    account_name: string; account_number: string;
+  };
 
   const [refreshing, setRefreshing] = useState(false);
 
