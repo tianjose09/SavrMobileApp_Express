@@ -7,6 +7,7 @@ import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function FoodDonationDelivery({ route, navigation }: any) {
   // Exact coordinates for Room 300, DHI Building, No. 2 Lapu Lapu Ave, Magallanes, Makati City
@@ -154,7 +155,24 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+
+      {/* TOP BAR HEADER */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={30} color="#00592d" />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
+          <TouchableOpacity onPress={() => navigation.openDrawer?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="menu-outline" size={32} color="#544434" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -168,20 +186,6 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
           />
         }
       >
-        <View style={styles.heroBackground}>
-          <View style={styles.topNav}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={28} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitleMain}>
-              SCHEDULE <Text style={styles.heroTitleHighlight}>DROP-OFF</Text>
-            </Text>
-          </View>
-        </View>
-
         <View style={styles.mapContainer}>
           <MapView
             style={styles.map}
@@ -365,25 +369,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   scrollContent: { paddingBottom: 130 },
 
-  heroBackground: {
-    backgroundColor: '#1E583A',
-    borderBottomLeftRadius: 30, borderBottomRightRadius: 30,
-    paddingBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 8,
-    zIndex: 2
-
+  topHeader: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
   },
-  topNav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, marginBottom: 15,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  backButton: { padding: 5 },
-  logoRow: { alignItems: 'center' },
-  logoText: { color: '#FFF', fontSize: 14, fontFamily: 'sans-serif' },
-  logoSub: { color: '#FFF', fontSize: 9, opacity: 0.8, marginTop: -2 },
-  heroContent: { paddingHorizontal: 25 },
-  heroTitleMain: { fontSize: 24, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
-  heroTitleHighlight: { color: '#FACC15' },
 
-  mapContainer: { height: 250, position: 'relative', marginTop: -25, zIndex: 1, overflow: 'visible' },
+  mapContainer: { height: 250, position: 'relative', zIndex: 1, overflow: 'visible' },
   map: { flex: 1 },
   markerFixed: {
     position: 'absolute',

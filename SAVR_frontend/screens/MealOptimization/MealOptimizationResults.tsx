@@ -132,7 +132,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#1 Best',
           isTop: true,
           tags: ['Recommended', 'High Pax'],
-          servings: 'â€”',
+          servings: '–',
           status: 'Optimal Output',
           ingredients_used: 'Rice, Water or broth, Garlic, Onion, Ginger, Chicken (optional), Fish sauce or salt, Pepper, Oil',
           comment_title: 'Why this meal ranks first:',
@@ -144,7 +144,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#2',
           isTop: false,
           tags: ['Simple', 'High Volume'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Rice, Water',
           comment_title: '',
@@ -156,7 +156,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#3',
           isTop: false,
           tags: ['Nutritious', 'Comforting'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Rice, Chicken, Ginger, Garlic, Onion, Fish sauce, Water or broth, Boiled eggs (optional), Spring onions (optional)',
           comment_title: '',
@@ -168,7 +168,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#4',
           isTop: false,
           tags: ['Protein Rich', 'Feasible'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Chicken, Soy sauce, Vinegar, Water, Garlic, Bay leaves, Peppercorn, Oil',
           comment_title: '',
@@ -180,7 +180,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#5',
           isTop: false,
           tags: ['Nutritious', 'Protein Rich'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Chicken, Green papaya or sayote, Malunggay or chili leaves, Ginger, Garlic, Onion, Fish sauce, Water',
           comment_title: '',
@@ -192,7 +192,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#6',
           isTop: false,
           tags: ['Nutritious', 'Filling'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Chicken, Potatoes, Cabbage, Corn (optional), Onion, Peppercorn, Fish sauce or salt, Water',
           comment_title: '',
@@ -204,7 +204,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#7',
           isTop: false,
           tags: ['Vegetable Rich', 'Budget-Friendly'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Mixed vegetables (cabbage, carrots, beans, etc.), Garlic, Onion, Oil, Soy sauce or fish sauce',
           comment_title: '',
@@ -216,7 +216,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#8',
           isTop: false,
           tags: ['Vegetable Rich', 'Flexible'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Mixed vegetables (cabbage, carrots, cauliflower, beans), Chicken or pork (optional), Garlic, Onion, Soy sauce, Oyster sauce (optional), Cornstarch (optional), Oil',
           comment_title: '',
@@ -228,7 +228,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#9',
           isTop: false,
           tags: ['High Protein', 'Nutritious'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Mung beans, Garlic, Onion, Tomatoes, Malunggay leaves or spinach, Pork (optional), Fish sauce or salt, Water, Oil',
           comment_title: '',
@@ -240,7 +240,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#10',
           isTop: false,
           tags: ['Protein Rich', 'Festive'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Pork, Potatoes, Carrots, Tomato sauce, Garlic, Onion, Soy sauce, Oil, Raisins (optional)',
           comment_title: '',
@@ -252,7 +252,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#11',
           isTop: false,
           tags: ['Protein Rich', 'Filling'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Chicken, Potatoes, Carrots, Bell peppers, Tomato sauce, Garlic, Onion, Oil, Salt, Pepper',
           comment_title: '',
@@ -264,7 +264,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#12',
           isTop: false,
           tags: ['Budget-Friendly', 'Quick Prep'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Canned sardines (in tomato sauce), Cabbage, Carrots, Garlic, Onion, Oil',
           comment_title: '',
@@ -276,7 +276,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#13',
           isTop: false,
           tags: ['Comforting', 'Filling'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Macaroni, Chicken, Milk, Carrots, Cabbage, Onion, Garlic, Water or broth, Salt, Pepper',
           comment_title: '',
@@ -288,7 +288,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#14',
           isTop: false,
           tags: ['Crowd Favorite', 'Filling'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Spaghetti pasta, Ground meat, Spaghetti sauce (sweet-style), Hotdogs, Garlic, Onion, Oil, Grated cheese',
           comment_title: '',
@@ -300,7 +300,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#15',
           isTop: false,
           tags: ['Protein Rich', 'Crowd Favorite'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Chicken, Flour or breading mix, Salt, Pepper, Garlic powder (optional), Oil (for frying)',
           comment_title: '',
@@ -312,7 +312,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#16',
           isTop: false,
           tags: ['Protein Rich', 'Simple'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Fish (tilapia, galunggong, etc.), Salt, Pepper, Oil',
           comment_title: '',
@@ -324,7 +324,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#17',
           isTop: false,
           tags: ['Budget-Friendly', 'Simple'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Potatoes, Eggs, Garlic, Onion, Salt, Pepper, Oil',
           comment_title: '',
@@ -336,11 +336,11 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#18',
           isTop: false,
           tags: ['Budget-Friendly', 'Simple'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Eggplant, Eggs, Garlic, Salt, Pepper, Oil',
           comment_title: '',
-          comment_desc: 'A grilled eggplant omelette â€” a low-cost dish ideal when eggplant is available in donations.'
+          comment_desc: 'A grilled eggplant omelette – a low-cost dish ideal when eggplant is available in donations.'
         },
         {
           id: 'rank_19',
@@ -348,7 +348,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#19',
           isTop: false,
           tags: ['Quick Prep', 'Simple'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Eggs, Oil or butter, Salt, Pepper',
           comment_title: '',
@@ -360,7 +360,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#20',
           isTop: false,
           tags: ['Quick Prep', 'Budget-Friendly'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Bread (pandesal or loaf), Eggs, Butter or oil, Salt, Peanut butter (optional)',
           comment_title: '',
@@ -372,7 +372,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#21',
           isTop: false,
           tags: ['Quick Prep', 'No-Cook Option'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Bread, Canned tuna or spread, Mayonnaise, Cheese (optional)',
           comment_title: '',
@@ -384,7 +384,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#22',
           isTop: false,
           tags: ['Snack', 'Simple'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Saba bananas, Brown sugar, Oil',
           comment_title: '',
@@ -396,11 +396,11 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#23',
           isTop: false,
           tags: ['Snack', 'Budget-Friendly'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Sweet potatoes, Brown sugar, Oil',
           comment_title: '',
-          comment_desc: 'A caramelized sweet potato snack â€” a practical use of sweet potato donations.'
+          comment_desc: 'A caramelized sweet potato snack – a practical use of sweet potato donations.'
         },
         {
           id: 'rank_24',
@@ -408,7 +408,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#24',
           isTop: false,
           tags: ['Protein Rich', 'Savory'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Beef, Tomato puree, Soy sauce, Onion, Garlic, Water',
           comment_title: '',
@@ -420,7 +420,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#25',
           isTop: false,
           tags: ['Protein Rich', 'Filling'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Beef, Potatoes, Carrots, Tomato puree, Onion, Garlic, Water',
           comment_title: '',
@@ -432,7 +432,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#26',
           isTop: false,
           tags: ['Protein Rich', 'Filling'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Beef, Potatoes, Tomato puree, Soy sauce, Onion, Garlic, Water',
           comment_title: '',
@@ -444,7 +444,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#27',
           isTop: false,
           tags: ['Protein Rich', 'Simple'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Beef, Soy sauce, Lemon, Garlic, Onion',
           comment_title: '',
@@ -456,7 +456,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#28',
           isTop: false,
           tags: ['Vegetable Rich', 'Budget-Friendly'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Eggplant, Breadcrumbs, Eggs, Oil',
           comment_title: '',
@@ -468,7 +468,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#29',
           isTop: false,
           tags: ['Budget-Friendly', 'Filipino Classic'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Eggplant, Garlic, Soy sauce, Vinegar, Ground pork (optional)',
           comment_title: '',
@@ -480,7 +480,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
           rankDisplay: '#30',
           isTop: false,
           tags: ['Vegetable Rich', 'Nutritious'],
-          servings: 'â€”',
+          servings: '–',
           status: '',
           ingredients_used: 'Eggplant, Coconut milk, Onion',
           comment_title: '',
@@ -566,7 +566,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
               <Text style={styles.statLabel}>Ingredients{`\n`}Selected</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{isLoading ? 'â€”' : fullMatchMeals.length}</Text>
+              <Text style={styles.statValue}>{isLoading ? '–' : fullMatchMeals.length}</Text>
               <Text style={styles.statLabel}>Feasible{`\n`}Meals</Text>
             </View>
             <View style={styles.statBox}>
@@ -593,7 +593,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                       There is currently no available meal that uses{' '}
                       <Text style={{ fontWeight: '800', color: '#8A3E08' }}>all</Text>{' '}
                       of your selected ingredients together.{`\n\n`}
-                      Check the <Text style={{ fontWeight: '800', color: '#b07a1e' }}>Suggested Meals</Text> below â€” these are possible options using some of your ingredients along with additional ones.
+                      Check the <Text style={{ fontWeight: '800', color: '#b07a1e' }}>Suggested Meals</Text> below – these are possible options using some of your ingredients along with additional ones.
                     </Text>
                   </View>
                 ) : (
@@ -613,7 +613,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                       <MaterialCommunityIcons name="information-outline" size={18} color="#9a6b10" style={{ marginBottom: 6 }} />
                       <Text style={styles.suggestedNoteText}>
                         These meals contain only{' '}
-                        <Text style={{ fontWeight: '800' }}>some</Text>{' '}of your selected ingredients â€”{' '}
+                        <Text style={{ fontWeight: '800' }}>some</Text>{' '}of your selected ingredients –{' '}
                         <Text style={{ fontWeight: '800' }}>not all of them are present</Text>{' '}in each recipe.{`\n\n`}
                         There is no current available meal that uses exactly all your selected ingredients. These are{' '}
                         <Text style={{ fontWeight: '800' }}>possible alternatives</Text>{' '}
@@ -651,7 +651,7 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
     isMatch((ing.name || '').toLowerCase(), ingText)
   );
   // Use backend-calculated servings when available; fall back to frontend estimate for mock data
-  const mealPax = (meal.servings && meal.servings !== 'â€”')
+  const mealPax = (meal.servings && meal.servings !== '–')
     ? parseInt(meal.servings, 10)
     : calculatePaxCapacity(matchedIngredients, meal);
 
@@ -695,7 +695,7 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
       meal.isTop && !isSuggested && { borderColor: '#dcb04d', backgroundColor: '#fffdf7' },
       isSuggested && styles.mealCardSuggested,
     ]}>
-      {/* Meal name row â€” name wraps freely, rank pill stays on the right */}
+      {/* Meal name row – name wraps freely, rank pill stays on the right */}
       <View style={styles.mealNameRow}>
         <Text style={[styles.mealName, isSuggested && { color: '#8a7040' }, { flex: 1 }]}>{meal.name}</Text>
         <View style={[meal.isTop && !isSuggested ? styles.rankPill : styles.rankPill2, { position: 'relative', top: 0, right: 0, marginLeft: 8, flexShrink: 0 }]}>
@@ -772,7 +772,7 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
             <Text style={styles.commentText}>
               We're ready to help you prepare{' '}
               <Text style={{ fontWeight: '800', color: '#156133' }}>{mealPax} serving{mealPax === 1 ? '' : 's'}</Text>{' '}
-              of this meal â€” out of the{' '}
+              of this meal – out of the{' '}
               <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
               you requested. Just a little less than you asked for, but we got you!
             </Text>

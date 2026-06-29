@@ -261,15 +261,6 @@ export default function FoodDonationDetails({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={styles.heroTitleWrap}>
-          <Image
-            source={require('../../assets/images/foodonationicon.png')}
-            style={styles.heroMainIconImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.heroTitle}>Food Donation</Text>
-        </View>
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -283,6 +274,15 @@ export default function FoodDonationDetails({ navigation, route }: any) {
             />
           }
         >
+          <View style={styles.heroTitleWrap}>
+            <Image
+              source={require('../../assets/images/foodonationicon.png')}
+              style={styles.heroMainIconImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.heroTitle}>Food Donation</Text>
+          </View>
+
           <View style={styles.headerFlexRow}>
             <Text style={styles.sectionTitle}>Food Donation Details</Text>
             <TouchableOpacity style={styles.addMoreBtn} onPress={addItem} activeOpacity={0.8}>
@@ -523,8 +523,6 @@ const styles = StyleSheet.create({
 
   topHeader: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,
@@ -551,11 +549,11 @@ const styles = StyleSheet.create({
   },
 
   heroTitleWrap: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 30,
-    paddingBottom: 25,
-    flexDirection: 'row',
+    marginTop: 20,
+    marginBottom: 20,
   },
 
   heroMainIconImage: {
@@ -567,7 +565,7 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#000000',
     letterSpacing: -0.5,
   },

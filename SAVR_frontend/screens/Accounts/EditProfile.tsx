@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   saveButton: { width: 50, alignItems: 'flex-end' },
   saveText: { fontSize: 16, fontWeight: '800', color: '#00592d' },
 
-  scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 },
 
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, marginTop: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '800', color: '#685D52', letterSpacing: -0.5 },

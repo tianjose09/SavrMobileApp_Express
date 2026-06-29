@@ -297,7 +297,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
           }
           await fetchInventory(matchingIngredients, paxNum);
         } else if (!paramKey) {
-          // Normal navigation (no params from dashboard) â€” only reset if we haven't just consumed params
+          // Normal navigation (no params from dashboard) – only reset if we haven't just consumed params
           if (!consumedParamsRef.current) {
             setTargetPax('0');
             setSearchQuery('');
@@ -648,7 +648,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                         idx === filteredIngredients.length - 1 && { borderBottomWidth: 0 }
                       ]}
                     >
-                      {/* Row summary â€” tap to toggle selection */}
+                      {/* Row summary – tap to toggle selection */}
                       <TouchableOpacity
                         activeOpacity={outOfStock ? 1 : 0.8}
                         onPress={() => !outOfStock && toggleRow(item.id)}
@@ -707,7 +707,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                         </TouchableOpacity>
                       )}
 
-                      {/* Inline +/- controls â€” only show when selected */}
+                      {/* Inline +/- controls – only show when selected */}
                       {item.selected && (
                         <View style={styles.inlineQtySection}>
                           <View style={styles.inlineQtyRow}>
@@ -750,7 +750,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                             </View>
                           </View>
 
-                          {/* Unit picker â€” shows when tapped */}
+                          {/* Unit picker – shows when tapped */}
                           {openUnitPickerId === item.id && (
                             <View style={styles.inlineUnitPickerRow}>
                               {UNIT_OPTIONS.map((u) => (

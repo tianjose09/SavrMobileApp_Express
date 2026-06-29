@@ -11,7 +11,7 @@ import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
 import NotificationBell from '../../components/NotificationBell';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬ Types Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬
 type FoodItem = { id: number; name: string; category: string; qty: string; unit: string };
 type RequestedFood = { id: number; name: string; category: string; qty: string; unit: string };
 
@@ -50,7 +50,7 @@ const getCategoryLabel = (cat: string | null) => {
   return CATEGORY_DISPLAY_MAP[cat] || cat;
 };
 
-// â”€â”€â”€ Category icon map (MaterialCommunityIcons names) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬ Category icon map (MaterialCommunityIcons names) Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬
 type IconEntry = { lib: 'mci' | 'ion'; name: string };
 const ICON_COLOR = '#6B7280';
 const ICON_COLOR_ACTIVE = '#fff';
@@ -78,7 +78,7 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
   return <MaterialCommunityIcons name={entry.name as any} size={size} color={c} />;
 }
 
-// â”€â”€â”€ Common units â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬ Common units Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬
 const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
 const CATEGORY_UNIT_MAP: Record<string, string> = {
@@ -570,13 +570,13 @@ export default function CreateRequest({ navigation }: any) {
               style={[styles.inputBox, { marginBottom: 18 }]}
             />
 
-            {/* â”€â”€ Conditional form layout: Financial vs Food â”€â”€ */}
+            {/* Ã¢ââ¬Ã¢ââ¬ Conditional form layout: Financial vs Food Ã¢ââ¬Ã¢ââ¬ */}
             {requestType === 'financial' ? (
               <View>
-                <Text style={styles.inputLabel}>Amount of Money Needed (â‚±) <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                <Text style={styles.inputLabel}>Amount of Money Needed <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TextInput
                   style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="â‚±5000"
+                  placeholder="Ã¢â±5000"
                   placeholderTextColor="#A5D1B8"
                   keyboardType="numeric"
                   value={form.financial_amount}
@@ -827,7 +827,7 @@ export default function CreateRequest({ navigation }: any) {
             </Modal>
           </View>
 
-          {/* â”€â”€ Food Details Card (outside green card) â”€â”€ */}
+          {/* Ã¢ââ¬Ã¢ââ¬ Food Details Card (outside green card) Ã¢ââ¬Ã¢ââ¬ */}
           {requestType === 'food' && (
             <View style={styles.foodDetailsCard}>
               <View style={styles.foodDetailsHeader}>
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
   rowInputs: { flexDirection: 'row', justifyContent: 'space-between' },
   rowInputsNoMargin: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
 
-  // â”€â”€ Food Details white card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢ââ¬Ã¢ââ¬ Food Details white card Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬
   foodDetailsCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, marginTop: 14, borderWidth: 1, borderColor: '#E8EEE9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 5 },
   foodDetailsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#EAF2EC' },
   foodDetailsTitle: { fontSize: 16, fontWeight: '800', color: '#00592d', marginLeft: 8 },

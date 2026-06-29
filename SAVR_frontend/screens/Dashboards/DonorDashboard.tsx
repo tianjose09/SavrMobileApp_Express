@@ -334,7 +334,7 @@ export default function DonorDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>â‚± {donationAmount.toLocaleString('en-US')}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>₱ {donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
