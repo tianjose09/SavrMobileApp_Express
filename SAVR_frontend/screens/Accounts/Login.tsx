@@ -292,11 +292,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderWidth: 1.2,
     borderColor: 'rgba(255,255,255,0.25)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    elevation: 10,
   },
 
   titleRow: {
@@ -380,11 +375,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
   },
   loginBtnText: {
     color: '#FFF',
