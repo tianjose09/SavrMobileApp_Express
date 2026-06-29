@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
-  ActivityIndicator, StatusBar, Image, Animated, Easing, SafeAreaView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, StatusBar, Image, Animated, Easing
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, SafeAreaView, Modal, RefreshControl } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform, ScrollView, Modal, RefreshControl
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -360,7 +363,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
-  scrollContent: { paddingBottom: 60 },
+  scrollContent: { paddingBottom: 130 },
 
   heroBackground: {
     backgroundColor: '#1E583A',

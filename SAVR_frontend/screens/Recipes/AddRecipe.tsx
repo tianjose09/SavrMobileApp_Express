@@ -1,20 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StatusBar,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  RefreshControl,
-  Image,
-  ActivityIndicator,
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, StatusBar, KeyboardAvoidingView, Platform, Alert, RefreshControl, Image, ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -615,7 +603,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 130,
   },
   // ── SECTION HEADER & TITLES ──
   sectionHeaderRow: {

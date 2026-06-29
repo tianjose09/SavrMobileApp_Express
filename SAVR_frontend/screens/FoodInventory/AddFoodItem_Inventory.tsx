@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Platform, StatusBar, ScrollView, Alert, Modal, RefreshControl, KeyboardAvoidingView } from 'react-native';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, StatusBar, ScrollView, Alert, Modal, RefreshControl, KeyboardAvoidingView
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import CustomDropdown from '../../components/CustomDropdown';

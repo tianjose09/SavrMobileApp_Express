@@ -724,7 +724,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 130,
   },
 
   topHeaderWrap: {

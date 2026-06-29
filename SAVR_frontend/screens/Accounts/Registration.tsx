@@ -1,15 +1,8 @@
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ImageBackground,
-  SafeAreaView,
-  Platform,
-  Dimensions,
-  Image,
+  View, Text, StyleSheet, TouchableOpacity, ImageBackground, Platform, Dimensions, Image
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');

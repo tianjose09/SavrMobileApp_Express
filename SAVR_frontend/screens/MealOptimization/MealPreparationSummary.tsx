@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Alert, FlatList, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View
+  Alert, FlatList, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { MealPrepService, PrepMealItem, PrepStatus } from '../../services/mealPrepService';

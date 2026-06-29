@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
-  ActivityIndicator, FlatList, Platform, RefreshControl, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View
+  ActivityIndicator, FlatList, Platform, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';

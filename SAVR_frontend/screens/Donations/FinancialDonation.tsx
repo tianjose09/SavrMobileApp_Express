@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  scrollContent: { paddingHorizontal: 22, paddingBottom: 60, paddingTop: 15 },
+  scrollContent: { paddingHorizontal: 22, paddingBottom: 130, paddingTop: 15 },
 
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, marginTop: 20 },
   pageTitle: { fontSize: 32, fontWeight: '800', color: '#000000', letterSpacing: -0.5 },
