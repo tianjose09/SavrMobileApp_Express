@@ -33,7 +33,7 @@ interface FoodItem {
   photoUri: string | null;
 }
 
-// ── FILIPINO FOODS (supplements TheMealDB which has limited PH coverage) ────
+// â”€â”€ FILIPINO FOODS (supplements TheMealDB which has limited PH coverage) â”€â”€â”€â”€
 const FILIPINO_FOODS = [
   "Adobo", "Afritada", "Arroz Caldo", "Atchara",
   "Bachoy", "Bagoong", "Bangus", "Batchoy", "Bibingka", "Biko", "Binagoongan", "Bistek", "Bopis", "Bulalo",
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

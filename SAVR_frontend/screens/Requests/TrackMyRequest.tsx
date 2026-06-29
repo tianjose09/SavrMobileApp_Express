@@ -15,7 +15,7 @@ if (Platform.OS === 'android') {
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // Spec: delivery has started when its scheduled date+time <= now
 function deliveryStarted(batch: any): boolean {
@@ -26,7 +26,7 @@ function deliveryStarted(batch: any): boolean {
   return new Date(`${batch.delivery_date.slice(0, 10)}T${t}:00`) <= new Date();
 }
 
-// Request-level status — no batch logic here (batches get their own separate cards)
+// Request-level status â€” no batch logic here (batches get their own separate cards)
 function getEffectiveStatus(req: any): string {
   const raw = (req.status || 'PENDING').toUpperCase().trim();
 
@@ -53,7 +53,7 @@ function getEffectiveStatus(req: any): string {
   return 'Pending';
 }
 
-// Spec §3: in_transit/delivered are always active; pending/accepted only when date has arrived
+// Spec Â§3: in_transit/delivered are always active; pending/accepted only when date has arrived
 function batchIsInTransit(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
   if (['in_transit', 'delivered'].includes(s)) return true;
@@ -65,7 +65,7 @@ function batchIsInTransit(batch: any): boolean {
   return false;
 }
 
-// Spec §3: missed = staff flagged it, OR in-transit batch whose date is strictly past
+// Spec Â§3: missed = staff flagged it, OR in-transit batch whose date is strictly past
 function isMissedBatch(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
   if (['notified', 'missed'].includes(s)) return true;
@@ -80,7 +80,7 @@ function getBatchEffectiveStatus(batch: any): 'In Transit' | 'Delivery Missed' |
   if (['completed', 'cancelled'].includes(s)) return null;
   if (isMissedBatch(batch)) return 'Delivery Missed';
   if (batchIsInTransit(batch)) return 'In Transit';
-  return null; // future-dated pending/accepted — stays in Approved
+  return null; // future-dated pending/accepted â€” stays in Approved
 }
 
 function getStatusColor(effectiveStatus: string): string {
@@ -126,7 +126,7 @@ function formatDeliveryDateTime(iso: string | null): string {
   });
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const FILTERS = ['All', 'Pending', 'Approved', 'In Transit', 'Completed', 'Rejected'] as const;
 type FilterType = typeof FILTERS[number];
@@ -250,7 +250,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
     try {
       const res = await ApiService.receiveBeneficiaryStop(requestId, stopId);
       if (res.data.success) {
-        // Optimistically mark that batch as received locally — request stays in Approved
+        // Optimistically mark that batch as received locally â€” request stays in Approved
         // until staff marks Done or drive expires (never completed by beneficiary confirm alone)
         setRequestsData(prev => prev.map(req => {
           if (req.id !== requestId) return req;
@@ -403,7 +403,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   return (
                     <View key={i} style={{ marginTop: i > 0 ? 10 : 0 }}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: '#111', marginBottom: 5 }}>
-                        {name}{category ? ` · ${category}` : ''}
+                        {name}{category ? ` Â· ${category}` : ''}
                       </Text>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                         <View style={styles.badgeRequested}>
@@ -421,7 +421,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                             </View>
                           ) : (
                             <View style={styles.badgeNone}>
-                              <Text style={styles.badgeNoneText}>DELIVERING: —</Text>
+                              <Text style={styles.badgeNoneText}>DELIVERING: â€”</Text>
                             </View>
                           )
                         )}
@@ -433,12 +433,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
             </View>
           )}
 
-          {!isFood && renderSummaryRow('Amount Needed', req.amount ? `₱${parseFloat(req.amount).toLocaleString()}` : null)}
+          {!isFood && renderSummaryRow('Amount Needed', req.amount ? `â‚±${parseFloat(req.amount).toLocaleString()}` : null)}
           {!isFood && (req.receiving_method) && renderSummaryRow('Receiving Method', req.receiving_method)}
           {!isFood && req.account_name && renderSummaryRow('Account Name', req.account_name)}
           {!isFood && req.account_number && renderSummaryRow('Account No.', req.account_number)}
 
-          {/* Financial disbursements — shows each partial payment sent by staff */}
+          {/* Financial disbursements â€” shows each partial payment sent by staff */}
           {!isFood && (() => {
             let disbursements: any[] = [];
             try {
@@ -454,17 +454,17 @@ export default function TrackMyRequest({ route, navigation }: any) {
                 <View style={{ flex: 1.8 }}>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: disbursements.length > 0 ? 8 : 0 }}>
                     <View style={styles.badgeReceived}>
-                      <Text style={styles.badgeReceivedText}>SENT: ₱{totalSent.toLocaleString()}</Text>
+                      <Text style={styles.badgeReceivedText}>SENT: â‚±{totalSent.toLocaleString()}</Text>
                     </View>
                     {req.amount && totalSent < parseFloat(req.amount) && (
                       <View style={styles.badgeRequested}>
-                        <Text style={styles.badgeRequestedText}>REMAINING: ₱{(parseFloat(req.amount) - totalSent).toLocaleString()}</Text>
+                        <Text style={styles.badgeRequestedText}>REMAINING: â‚±{(parseFloat(req.amount) - totalSent).toLocaleString()}</Text>
                       </View>
                     )}
                   </View>
                   {disbursements.map((d: any, i: number) => (
                     <Text key={i} style={{ fontSize: 11, color: '#555', marginTop: 3 }}>
-                      ₱{parseFloat(d.amount || '0').toLocaleString()}{d.date ? '  ·  ' + new Date(d.date).toLocaleDateString('en-PH') : ''}{d.notes ? '  ·  ' + d.notes : ''}
+                      â‚±{parseFloat(d.amount || '0').toLocaleString()}{d.date ? '  Â·  ' + new Date(d.date).toLocaleDateString('en-PH') : ''}{d.notes ? '  Â·  ' + d.notes : ''}
                     </Text>
                   ))}
                 </View>
@@ -473,7 +473,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           })()}
 
           {renderSummaryRow('Target Population', req.population)}
-          {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}–${req.age_max} Years Old` : 'All Ages')}
+          {renderSummaryRow('Age Range', req.age_min && req.age_max ? `${req.age_min}â€“${req.age_max} Years Old` : 'All Ages')}
           {renderSummaryRow('Start Date', (req.start_date || req.created_at) ? new Date(req.start_date || req.created_at).toLocaleDateString('en-PH') : null)}
           {renderSummaryRow('End Date', req.end_date ? new Date(req.end_date).toLocaleDateString('en-PH') : null)}
 
@@ -482,7 +482,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
               <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {}]}>
-                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}
+                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' Â· ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}
               </Text>
             </View>
           )}
@@ -495,7 +495,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             </Text>
           </View>
 
-          {/* Remarks — shown when beneficiary left a note on receipt */}
+          {/* Remarks â€” shown when beneficiary left a note on receipt */}
           {req.remarks ? (
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Your Remarks</Text>
@@ -506,7 +506,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           ) : null}
         </View>
 
-        {/* Cancel — only pending requests */}
+        {/* Cancel â€” only pending requests */}
         {effectiveStatus === 'Pending' && (
           <View style={styles.actionRowContainer}>
             <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.8} onPress={() => handleCancelRequest(req.id)}>
@@ -515,13 +515,13 @@ export default function TrackMyRequest({ route, navigation }: any) {
           </View>
         )}
 
-        {/* Per-batch row — In Transit only; multiple batches already expanded to separate cards */}
+        {/* Per-batch row â€” In Transit only; multiple batches already expanded to separate cards */}
         {effectiveStatus === 'In Transit' && activeBatch && (
           <View style={styles.batchSection}>
             {allBatches.length > 1 && (
               <Text style={styles.batchSectionLabel}>
                 BATCH {activeBatch.batch_number} OF {allBatches.length}
-                {activeBatch.delivery_date ? '  ·  ' + activeBatch.delivery_date : ''}
+                {activeBatch.delivery_date ? '  Â·  ' + activeBatch.delivery_date : ''}
               </Text>
             )}
             <View style={[styles.batchRow, { justifyContent: 'flex-end', borderBottomWidth: 0, paddingBottom: 0 }]}>
@@ -684,7 +684,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                           </View>
                         ) : (
                           <View style={styles.badgeNone}>
-                            <Text style={styles.badgeNoneText}>—</Text>
+                            <Text style={styles.badgeNoneText}>â€”</Text>
                           </View>
                         )}
                       </View>
@@ -705,7 +705,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                     {visibleBatches.map((batch: any, i: number) => (
                       <View key={i} style={{ backgroundColor: '#F8FBF9', borderRadius: 10, padding: 10, marginBottom: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '800', color: '#00592d', marginBottom: 4 }}>
-                          Batch {batch.batch_number}{batch.delivery_date ? '  ·  ' + batch.delivery_date : ''}
+                          Batch {batch.batch_number}{batch.delivery_date ? '  Â·  ' + batch.delivery_date : ''}
                         </Text>
                         {(batch.delivered_food_items || []).map((fi: any, j: number) => (
                           <Text key={j} style={{ fontSize: 12, color: '#333', marginTop: 2 }}>
@@ -797,7 +797,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const styles = StyleSheet.create({
   container: {
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

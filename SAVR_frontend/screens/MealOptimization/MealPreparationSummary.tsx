@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 18,
     marginBottom: 10,
   },
   backBtn: {

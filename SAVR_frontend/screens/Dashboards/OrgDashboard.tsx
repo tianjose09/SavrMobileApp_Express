@@ -246,7 +246,7 @@ export default function OrgDashboard({ navigation }: any) {
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
 
                 <Text style={styles.subtitle}>
-                  Here's your activity overview — keep making an impact!
+                  Here's your activity overview â€” keep making an impact!
                 </Text>
               </Animated.View>
 
@@ -272,7 +272,7 @@ export default function OrgDashboard({ navigation }: any) {
                       {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
-                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
+                      {nextFoodBadge ? `${nextBadgeGoal} donations Â· ${nextBadgeName}` : 'All food badges earned!'}
                     </Text>
                   </View>
                 </View>
@@ -295,7 +295,7 @@ export default function OrgDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>₱ {donationAmount.toLocaleString('en-US')}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>â‚± {donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
@@ -326,7 +326,7 @@ export default function OrgDashboard({ navigation }: any) {
                 </View>
               </Animated.View>
 
-              {/* ACHIEVEMENT BADGES — only show if earned */}
+              {/* ACHIEVEMENT BADGES â€” only show if earned */}
               {featuredBadges && featuredBadges.length > 0 && (
                 <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesTranslateAnim }] }}>
                   <View style={styles.badgesSection}>
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

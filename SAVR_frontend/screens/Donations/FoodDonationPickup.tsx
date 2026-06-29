@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 22,
     paddingBottom: 12,
-    marginTop: 12,
+    marginTop: 20,
   },
   logoImage: {
     width: 170,

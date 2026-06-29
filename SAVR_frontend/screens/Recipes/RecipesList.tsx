@@ -220,7 +220,7 @@ export default function RecipesList({ navigation }: any) {
                       <Text style={styles.ingText}>
                         <Text style={styles.ingQty}>{parseFloat(ing.qty_per_serving)}</Text>
                         {' '}{ing.unit}{'  '}{ing.ingredient_name}
-                        {ing.is_optional && <Text style={styles.optional}> · optional</Text>}
+                        {ing.is_optional && <Text style={styles.optional}> Â· optional</Text>}
                       </Text>
                     </View>
                   ))}
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEEBE7',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
  
-  /* ── CARD ── */
+  /* â”€â”€ CARD â”€â”€ */
   recipeCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,

@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   greenHeader: {
     backgroundColor: '#00592d',
     paddingHorizontal: 22,
-    paddingTop: 10,
+    paddingTop: 18,
     paddingBottom: 26,
   },
 

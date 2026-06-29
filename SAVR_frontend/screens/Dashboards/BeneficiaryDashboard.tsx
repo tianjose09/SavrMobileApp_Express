@@ -149,7 +149,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
               <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
               <View style={styles.subtitleWrapper}>
                 <Text style={styles.subtitle}>
-                  Here’s your beneficiary dashboard — we’re here to support you in receiving the assistance you need.
+                  Hereâ€™s your beneficiary dashboard â€” weâ€™re here to support you in receiving the assistance you need.
                 </Text>
               </View>
 
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

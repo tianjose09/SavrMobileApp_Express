@@ -40,7 +40,7 @@ export default function PrepareMeal({ route, navigation }: any) {
   const prepMealId: string = route.params?.prepMealId || '';
   const mealRequestId: number | undefined = route.params?.mealRequestId;
 
-  // ── Video player (looping chef video) ────────────────────────
+  // â”€â”€ Video player (looping chef video) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const player = useVideoPlayer(
     require('../../assets/images/chefcooking.mp4'),
     (p) => {
@@ -50,7 +50,7 @@ export default function PrepareMeal({ route, navigation }: any) {
     }
   );
 
-  // ── Animated dots ────────────────────────────────────────────
+  // â”€â”€ Animated dots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [isDone, setIsDone] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dotCount, setDotCount] = useState(1);
@@ -62,7 +62,7 @@ export default function PrepareMeal({ route, navigation }: any) {
     return () => clearInterval(interval);
   }, []);
 
-  // ── Handle Done ──────────────────────────────────────────────
+  // â”€â”€ Handle Done â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleDone = async () => {
     setIsSubmitting(true);
     try {
@@ -92,7 +92,7 @@ export default function PrepareMeal({ route, navigation }: any) {
     }
   };
 
-  // ── Done screen ──────────────────────────────────────────────
+  // â”€â”€ Done screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (isDone) {
     return (
       <>
@@ -103,7 +103,7 @@ export default function PrepareMeal({ route, navigation }: any) {
             <View style={styles.doneCheckCircle}>
               <Ionicons name="checkmark" size={56} color="#FFF" />
             </View>
-            <Text style={styles.doneTitle}>Meal Prepared! 🎉</Text>
+            <Text style={styles.doneTitle}>Meal Prepared! ðŸŽ‰</Text>
             <Text style={styles.doneSubtitle}>
               <Text style={{ fontWeight: '800' }}>{meal.name}</Text> has been marked as done.{'\n'}
               Ingredient quantities have been deducted from the inventory.
@@ -134,7 +134,7 @@ export default function PrepareMeal({ route, navigation }: any) {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#156133" />
 
-        {/* ── HEADER ── */}
+        {/* â”€â”€ HEADER â”€â”€ */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={26} color="#FFF" />
@@ -145,7 +145,7 @@ export default function PrepareMeal({ route, navigation }: any) {
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-          {/* ── COOKING VIDEO ── */}
+          {/* â”€â”€ COOKING VIDEO â”€â”€ */}
           <View style={styles.cookingStage}>
             <VideoView
               player={player}
@@ -155,7 +155,7 @@ export default function PrepareMeal({ route, navigation }: any) {
             />
           </View>
 
-          {/* ── TITLE ── */}
+          {/* â”€â”€ TITLE â”€â”€ */}
           <View style={styles.titleSection}>
             <Text style={styles.preparingText}>
               Preparing your food{'.'.repeat(dotCount)}
@@ -169,7 +169,7 @@ export default function PrepareMeal({ route, navigation }: any) {
             )}
           </View>
 
-          {/* ── INGREDIENTS BEING USED ── */}
+          {/* â”€â”€ INGREDIENTS BEING USED â”€â”€ */}
           <View style={styles.ingrSection}>
             <View style={styles.ingrHeader}>
               <MaterialCommunityIcons name="food-variant" size={20} color="#8A3E08" />
@@ -198,7 +198,7 @@ export default function PrepareMeal({ route, navigation }: any) {
             ))}
           </View>
 
-          {/* ── MEAL INFO ── */}
+          {/* â”€â”€ MEAL INFO â”€â”€ */}
           {meal.ingredients_used && (
             <View style={styles.recipeBox}>
               <Text style={styles.recipeTitle}>Full Recipe Ingredients</Text>
@@ -221,7 +221,7 @@ export default function PrepareMeal({ route, navigation }: any) {
             </View>
           )}
 
-          {/* ── DONE BUTTON ── */}
+          {/* â”€â”€ DONE BUTTON â”€â”€ */}
           <TouchableOpacity
             style={[styles.doneButton, isSubmitting && { opacity: 0.7 }]}
             onPress={handleDone}
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 20,
   },
   backBtn: {
     width: 40,
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Cooking Stage ──
+  // â”€â”€ Cooking Stage â”€â”€
   cookingStage: {
     width: '100%',
     height: 280,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     height: 280,
   },
 
-  // ── Title ──
+  // â”€â”€ Title â”€â”€
   titleSection: {
     alignItems: 'center',
     marginBottom: 28,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     color: '#156133',
   },
 
-  // ── Ingredients ──
+  // â”€â”€ Ingredients â”€â”€
   ingrSection: {
     width: '100%',
     backgroundColor: '#fdf6ec',
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ── Recipe Box ──
+  // â”€â”€ Recipe Box â”€â”€
   recipeBox: {
     width: '100%',
     backgroundColor: '#ebf5ee',
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // ── Done Button ──
+  // â”€â”€ Done Button â”€â”€
   doneButton: {
     width: '100%',
     backgroundColor: '#156133',
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  // ── Done Success Screen ──
+  // â”€â”€ Done Success Screen â”€â”€
   doneContainer: {
     flex: 1,
     backgroundColor: '#156133',

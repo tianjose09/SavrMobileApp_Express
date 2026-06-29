@@ -294,7 +294,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
           }
           await fetchInventory(matchingIngredients, paxNum);
         } else if (!paramKey) {
-          // Normal navigation (no params from dashboard) — only reset if we haven't just consumed params
+          // Normal navigation (no params from dashboard) â€” only reset if we haven't just consumed params
           if (!consumedParamsRef.current) {
             setTargetPax('0');
             setSearchQuery('');
@@ -645,7 +645,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                         idx === filteredIngredients.length - 1 && { borderBottomWidth: 0 }
                       ]}
                     >
-                      {/* Row summary — tap to toggle selection */}
+                      {/* Row summary â€” tap to toggle selection */}
                       <TouchableOpacity
                         activeOpacity={outOfStock ? 1 : 0.8}
                         onPress={() => !outOfStock && toggleRow(item.id)}
@@ -673,7 +673,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                               item.urgent && !item.selected && { color: '#E43E3E' },
                               outOfStock && { color: '#bbb' },
                             ]}>
-                              {item.qty} · Exp: {item.expiry}
+                              {item.qty} Â· Exp: {item.expiry}
                             </Text>
                           </View>
                           {outOfStock ? (
@@ -704,7 +704,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                         </TouchableOpacity>
                       )}
 
-                      {/* Inline +/- controls — only show when selected */}
+                      {/* Inline +/- controls â€” only show when selected */}
                       {item.selected && (
                         <View style={styles.inlineQtySection}>
                           <View style={styles.inlineQtyRow}>
@@ -747,7 +747,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                             </View>
                           </View>
 
-                          {/* Unit picker — shows when tapped */}
+                          {/* Unit picker â€” shows when tapped */}
                           {openUnitPickerId === item.id && (
                             <View style={styles.inlineUnitPickerRow}>
                               {UNIT_OPTIONS.map((u) => (
@@ -792,7 +792,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
             <View style={styles.selectedSummaryBar}>
               <MaterialCommunityIcons name="food-variant" size={16} color="#8A3E08" />
               <Text style={styles.selectedSummaryText}>
-                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected · Tap a row to adjust quantity
+                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected Â· Tap a row to adjust quantity
               </Text>
             </View>
           )}
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1356,7 +1356,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // ── Selected Ingredients Panel ──────────────────────────────────────────────
+  // â”€â”€ Selected Ingredients Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   selectedPanel: {
     width: '100%',
     backgroundColor: '#fdf6ec',

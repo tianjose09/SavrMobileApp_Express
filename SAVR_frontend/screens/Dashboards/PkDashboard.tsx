@@ -214,7 +214,7 @@ export default function PkDashboard({ navigation }: any) {
             <View style={styles.whiteBody}>
               <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
               <Text style={styles.subTitle}>
-                Here's your kitchen dashboard — keep nourishing the community!
+                Here's your kitchen dashboard â€” keep nourishing the community!
               </Text>
 
               {/* 4 CARDS GRID */}
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

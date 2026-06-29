@@ -284,7 +284,7 @@ export default function DonorDashboard({ navigation }: any) {
                 <Text style={styles.dashboardTitle}>Donor Dashboard</Text>
 
                 <Text style={styles.subtitle}>
-                  Here’s your donor dashboard — keep making an impact!
+                  Hereâ€™s your donor dashboard â€” keep making an impact!
                 </Text>
               </Animated.View>
 
@@ -319,7 +319,7 @@ export default function DonorDashboard({ navigation }: any) {
                       {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
-                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
+                      {nextFoodBadge ? `${nextBadgeGoal} donations Â· ${nextBadgeName}` : 'All food badges earned!'}
                     </Text>
                   </View>
                 </View>
@@ -347,7 +347,7 @@ export default function DonorDashboard({ navigation }: any) {
                         />
                       </View>
                       <View style={styles.glassTextCol}>
-                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>₱ {donationAmount.toLocaleString('en-US')}</Text>
+                        <Text style={styles.orangeValue} numberOfLines={1} adjustsFontSizeToFit>â‚± {donationAmount.toLocaleString('en-US')}</Text>
                         <Text style={styles.orangeLabel}>TOTAL FINANCIAL</Text>
                         <Text style={styles.orangeLabel}>DONATION</Text>
                       </View>
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
