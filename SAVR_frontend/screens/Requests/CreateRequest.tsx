@@ -336,7 +336,7 @@ export default function CreateRequest({ navigation }: any) {
   }, [requestType, refreshing]);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    // Android: dismiss fires with undefined â€” just close picker, don't update
+    // Android: dismiss fires with undefined — just close picker, don't update
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
       if (event.type === 'dismissed' || !selectedDate) return;

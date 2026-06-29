@@ -385,7 +385,7 @@ export default function Profile({ navigation }: any) {
           <Text style={styles.deactivateText}>Delete My Account</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* ── Change Password Modal ── */}
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   backButton: { position: 'absolute', left: 20 },
   pageTitle: { fontSize: 18, fontWeight: '800', color: '#00592d' },
 
-  scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 },
 
   heroBanner: {
     backgroundColor: '#226E45', borderRadius: 20, padding: 25, marginBottom: 30,

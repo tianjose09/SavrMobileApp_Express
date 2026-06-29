@@ -138,6 +138,11 @@ export default function BeneficiaryDashboard({ navigation }: any) {
             {/* WHITE SHEET */}
             <View style={styles.whiteSheet}>
               <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
+              <View style={styles.subtitleWrapper}>
+                <Text style={styles.subtitle}>
+                  Here's your beneficiary dashboard — we're here to support you in receiving the assistance you need.
+                </Text>
+              </View>
 
               <View style={styles.statsRow}>
                 {/* Active Request Card */}
