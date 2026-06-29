@@ -382,7 +382,6 @@ export default function LandingPage({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={styles.topSafeArea} />
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
@@ -471,11 +470,6 @@ const OFF_WHITE = '#F5F6F1';
 const ORANGE = '#D66F2B';
 
 const styles = StyleSheet.create({
-  topSafeArea: {
-    flex: 0,
-    backgroundColor: BRAND_GREEN,
-  },
-
   safeArea: {
     flex: 1,
     backgroundColor: OFF_WHITE,
@@ -508,7 +502,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 12,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
