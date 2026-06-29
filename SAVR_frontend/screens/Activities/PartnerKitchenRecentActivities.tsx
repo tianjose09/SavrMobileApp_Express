@@ -178,6 +178,7 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.greenHeader}>
           <View style={styles.headerTopRow}>

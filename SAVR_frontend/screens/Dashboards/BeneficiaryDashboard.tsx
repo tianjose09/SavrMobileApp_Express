@@ -88,6 +88,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
         <View style={styles.container}>
           {/* TOP BAR HEADER */}
@@ -279,8 +280,6 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     backgroundColor: '#00592d',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,

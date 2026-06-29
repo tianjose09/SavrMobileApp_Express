@@ -105,6 +105,7 @@ export default function AchievementBadges({ navigation }: any) {
     return (
       <>
         <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+        <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center' }} edges={['bottom']}>
           <ActivityIndicator size="large" color="#00592d" />
           <Text style={{ marginTop: 12, color: '#00592d', fontWeight: '700' }}>Loading badges...</Text>

@@ -87,6 +87,7 @@ export default function Notifications({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={styles.container} edges={['bottom']}>
         {/* Green Header */}
         <View style={styles.greenHeader}>

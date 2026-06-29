@@ -163,6 +163,7 @@ export default function PkDashboard({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
         {/* Slide-in notification banner */}
         <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>

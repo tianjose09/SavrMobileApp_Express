@@ -92,6 +92,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F3F3' }} edges={['bottom']}>
         {/* Header */}
         <View style={styles.header}>

@@ -192,6 +192,7 @@ export default function OrgDashboard({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }} edges={['bottom']}>
         <View style={styles.container}>
           {/* TOP BAR HEADER */}

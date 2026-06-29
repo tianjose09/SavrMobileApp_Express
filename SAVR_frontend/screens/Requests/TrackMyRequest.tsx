@@ -544,6 +544,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green status-bar fill */}
       <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
 
@@ -804,8 +805,6 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     backgroundColor: '#00592d',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 12,

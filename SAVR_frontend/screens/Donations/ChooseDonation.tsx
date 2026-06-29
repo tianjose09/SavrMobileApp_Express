@@ -77,9 +77,9 @@ export default function ChooseDonation({ navigation }: any) {
   return (
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
         <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
