@@ -89,8 +89,8 @@ export default function PrepareMeal({ route, navigation }: any) {
   if (isDone) {
     return (
       <>
-        <SafeAreaView style={{ flex: 0, backgroundColor: '#156133' }} />
-        <SafeAreaView style={styles.doneContainer}>
+        <SafeAreaView style={{ flex: 0, backgroundColor: '#156133' }} edges={['top']} />
+        <SafeAreaView style={styles.doneContainer} edges={['bottom']}>
           <StatusBar barStyle="light-content" backgroundColor="#156133" />
           <View style={styles.doneContent}>
             <View style={styles.doneCheckCircle}>
@@ -123,8 +123,8 @@ export default function PrepareMeal({ route, navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#156133' }} />
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#156133' }} edges={['top']} />
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <StatusBar barStyle="light-content" backgroundColor="#156133" />
 
         {/* â”€â”€ HEADER â”€â”€ */}
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 20,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   backBtn: {

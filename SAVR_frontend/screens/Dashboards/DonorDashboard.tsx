@@ -200,7 +200,7 @@ export default function DonorDashboard({ navigation }: any) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F3F3', justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F3F3', justifyContent: 'center', alignItems: 'center' }} edges={['bottom']}>
         <ActivityIndicator size="large" color="#00592d" />
       </SafeAreaView>
     );
@@ -208,8 +208,8 @@ export default function DonorDashboard({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }} edges={['bottom']}>
         <View style={styles.container}>
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
@@ -273,10 +273,6 @@ export default function DonorDashboard({ navigation }: any) {
                 }}
               >
                 <Text style={styles.dashboardTitle}>Donor Dashboard</Text>
-
-                <Text style={styles.subtitle}>
-                  Hereâ€™s your donor dashboard â€” keep making an impact!
-                </Text>
               </Animated.View>
 
               <Animated.View
@@ -310,7 +306,7 @@ export default function DonorDashboard({ navigation }: any) {
                       {nextBadgeAmount} donations
                     </Text>
                     <Text style={styles.goalLabel} numberOfLines={1} adjustsFontSizeToFit>
-                      {nextFoodBadge ? `${nextBadgeGoal} donations Â· ${nextBadgeName}` : 'All food badges earned!'}
+                      {nextFoodBadge ? `${nextBadgeGoal} donations · ${nextBadgeName}` : 'All food badges earned!'}
                     </Text>
                   </View>
                 </View>
@@ -562,7 +558,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

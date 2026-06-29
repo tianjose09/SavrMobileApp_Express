@@ -51,7 +51,7 @@ function getEffectiveStatus(req: any): string {
   return 'Pending';
 }
 
-// Spec Â§3: in_transit/delivered are always active; pending/accepted only when date has arrived
+// Spec §3: in_transit/delivered are always active; pending/accepted only when date has arrived
 function batchIsInTransit(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
   if (['in_transit', 'delivered'].includes(s)) return true;
@@ -63,7 +63,7 @@ function batchIsInTransit(batch: any): boolean {
   return false;
 }
 
-// Spec Â§3: missed = staff flagged it, OR in-transit batch whose date is strictly past
+// Spec §3: missed = staff flagged it, OR in-transit batch whose date is strictly past
 function isMissedBatch(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
   if (['notified', 'missed'].includes(s)) return true;
@@ -401,7 +401,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   return (
                     <View key={i} style={{ marginTop: i > 0 ? 10 : 0 }}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: '#111', marginBottom: 5 }}>
-                        {name}{category ? ` Â· ${category}` : ''}
+                        {name}{category ? ` · ${category}` : ''}
                       </Text>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                         <View style={styles.badgeRequested}>
@@ -462,7 +462,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   </View>
                   {disbursements.map((d: any, i: number) => (
                     <Text key={i} style={{ fontSize: 11, color: '#555', marginTop: 3 }}>
-                      â‚±{parseFloat(d.amount || '0').toLocaleString()}{d.date ? '  Â·  ' + new Date(d.date).toLocaleDateString('en-PH') : ''}{d.notes ? '  Â·  ' + d.notes : ''}
+                      â‚±{parseFloat(d.amount || '0').toLocaleString()}{d.date ? '  ·  ' + new Date(d.date).toLocaleDateString('en-PH') : ''}{d.notes ? '  ·  ' + d.notes : ''}
                     </Text>
                   ))}
                 </View>
@@ -480,7 +480,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <View style={styles.reportTableRow}>
               <Text style={styles.reportTableCellLabel}>Scheduled Delivery</Text>
               <Text style={[styles.reportTableCellValue, effectiveStatus === 'In Transit' ? { color: '#00592d', fontWeight: '700' } : {}]}>
-                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' Â· ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}
+                {activeBatch.delivery_date}{activeBatch.delivery_time_start ? ' · ' + activeBatch.delivery_time_start + (activeBatch.delivery_time_end ? ' - ' + activeBatch.delivery_time_end : '') : ''}
               </Text>
             </View>
           )}
@@ -519,7 +519,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             {allBatches.length > 1 && (
               <Text style={styles.batchSectionLabel}>
                 BATCH {activeBatch.batch_number} OF {allBatches.length}
-                {activeBatch.delivery_date ? '  Â·  ' + activeBatch.delivery_date : ''}
+                {activeBatch.delivery_date ? '  ·  ' + activeBatch.delivery_date : ''}
               </Text>
             )}
             <View style={[styles.batchRow, { justifyContent: 'flex-end', borderBottomWidth: 0, paddingBottom: 0 }]}>
@@ -703,7 +703,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                     {visibleBatches.map((batch: any, i: number) => (
                       <View key={i} style={{ backgroundColor: '#F8FBF9', borderRadius: 10, padding: 10, marginBottom: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '800', color: '#00592d', marginBottom: 4 }}>
-                          Batch {batch.batch_number}{batch.delivery_date ? '  Â·  ' + batch.delivery_date : ''}
+                          Batch {batch.batch_number}{batch.delivery_date ? '  ·  ' + batch.delivery_date : ''}
                         </Text>
                         {(batch.delivered_food_items || []).map((fi: any, j: number) => (
                           <Text key={j} style={{ fontSize: 12, color: '#333', marginTop: 2 }}>
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

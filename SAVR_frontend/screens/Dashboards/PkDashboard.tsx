@@ -162,8 +162,8 @@ export default function PkDashboard({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
         {/* Slide-in notification banner */}
         <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.notificationContent}>
@@ -216,9 +216,6 @@ export default function PkDashboard({ navigation }: any) {
             {/* WHITE BODY SECTION */}
             <View style={styles.whiteBody}>
               <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
-              <Text style={styles.subTitle}>
-                Here's your kitchen dashboard â€” keep nourishing the community!
-              </Text>
 
               {/* 4 CARDS GRID */}
               <View style={styles.gridContainer}>
@@ -477,7 +474,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

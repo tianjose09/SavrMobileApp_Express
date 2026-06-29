@@ -79,7 +79,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['bottom']}>
         <ActivityIndicator size="large" color="#00592d" />
       </SafeAreaView>
     );
@@ -87,8 +87,8 @@ export default function BeneficiaryDashboard({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
         <View style={styles.container}>
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
@@ -127,7 +127,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                   )}
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                  <Text style={{ color: '#E4B63F', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
                   <Text style={[styles.profileName, { marginLeft: 0 }]} numberOfLines={1}>
                     {userName}
                   </Text>
@@ -138,11 +138,6 @@ export default function BeneficiaryDashboard({ navigation }: any) {
             {/* WHITE SHEET */}
             <View style={styles.whiteSheet}>
               <Text style={styles.dashboardTitle}>Beneficiary Dashboard</Text>
-              <View style={styles.subtitleWrapper}>
-                <Text style={styles.subtitle}>
-                  Hereâ€™s your beneficiary dashboard â€” weâ€™re here to support you in receiving the assistance you need.
-                </Text>
-              </View>
 
               <View style={styles.statsRow}>
                 {/* Active Request Card */}
@@ -282,7 +277,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -91,8 +91,8 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F3F3' }}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F3F3' }} edges={['bottom']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 14,
+    paddingTop: 14,
     paddingBottom: 14,
   },
   backBtn: {

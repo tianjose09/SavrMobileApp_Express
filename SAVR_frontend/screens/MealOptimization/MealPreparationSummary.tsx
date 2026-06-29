@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 18,
+    paddingTop: 18,
     marginBottom: 10,
   },
   backBtn: {

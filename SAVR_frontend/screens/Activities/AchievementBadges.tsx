@@ -104,8 +104,8 @@ export default function AchievementBadges({ navigation }: any) {
   if (loading) {
     return (
       <>
-        <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center' }}>
+        <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center' }} edges={['bottom']}>
           <ActivityIndicator size="large" color="#00592d" />
           <Text style={{ marginTop: 12, color: '#00592d', fontWeight: '700' }}>Loading badges...</Text>
         </SafeAreaView>
@@ -115,8 +115,8 @@ export default function AchievementBadges({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8' }}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8' }} edges={['bottom']}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   greenHeader: {
     backgroundColor: '#00592d',
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 18,
+    paddingTop: 18,
     paddingBottom: 40,
   },
 

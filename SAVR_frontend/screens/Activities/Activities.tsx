@@ -196,8 +196,8 @@ export default function Activities({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.greenHeader}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   greenHeader: {
     backgroundColor: '#00592d',
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 18,
+    paddingTop: 18,
     paddingBottom: 26,
   },
 

@@ -566,7 +566,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <View style={styles.pickerInputWrapper}>
                   <TextInput
                     style={[styles.pickerTextInput, { flex: 1 }]}
-                    placeholder="H:MM"
+                    placeholder="--:--"
                     placeholderTextColor="rgba(0,89,45,0.45)"
                     value={timeFromInput}
                     onChangeText={handleTimeFromChange}
@@ -597,7 +597,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <View style={styles.pickerInputWrapper}>
                   <TextInput
                     style={[styles.pickerTextInput, { flex: 1 }]}
-                    placeholder="H:MM"
+                    placeholder="--:--"
                     placeholderTextColor="rgba(0,89,45,0.45)"
                     value={timeToInput}
                     onChangeText={handleTimeToChange}

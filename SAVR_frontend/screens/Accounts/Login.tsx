@@ -11,8 +11,11 @@ import { registerForPushNotifications } from '../../services/pushNotifications';
 const { width, height } = Dimensions.get('window');
 
 const COLORS = {
-  yellow: '#f4b942',
-  orange: '#c96a2e',
+  yellow: '#E4B63F',
+  orange: '#C97B37',
+  overlay: 'rgba(22, 105, 58, 0.58)',
+  glass: 'rgba(255,255,255,0.08)',
+  glassBorder: 'rgba(255,255,255,0.45)',
 };
 
 const LOCKOUT_KEY = '@savr_login_lockout';
@@ -125,10 +128,11 @@ export default function Login({ navigation }: any) {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/backgrounds/register_bg.png')}
+      source={require('../../assets/images/backgrounds/registration_bg.png')}
       style={styles.background}
       resizeMode="cover"
     >
+      <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.container}
@@ -151,7 +155,7 @@ export default function Login({ navigation }: any) {
             <Text style={styles.subtitle}>Please enter your details</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email or Username <Text style={{ color: '#e74c3c' }}>*</Text></Text>
+              <Text style={styles.label}>Email or Username</Text>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -165,7 +169,7 @@ export default function Login({ navigation }: any) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password <Text style={{ color: '#e74c3c' }}>*</Text></Text>
+              <Text style={styles.label}>Password</Text>
 
               <View style={styles.passwordContainer}>
                 <TextInput
@@ -255,6 +259,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.overlay,
+  },
   safeArea: {
     flex: 1,
   },
@@ -274,13 +282,13 @@ const styles = StyleSheet.create({
   },
 
   glassCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 32,
+    backgroundColor: COLORS.glass,
+    borderRadius: 38,
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 24,
-    borderWidth: 1.2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 2,
+    borderColor: COLORS.glassBorder,
   },
 
   titleRow: {
@@ -318,8 +326,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    borderBottomWidth: 1.2,
-    borderBottomColor: 'rgba(255,255,255,0.85)',
+    borderBottomWidth: 1.5,
+    borderBottomColor: 'rgba(255,255,255,0.95)',
     color: '#FFF',
     paddingVertical: 10,
     fontSize: 15,
@@ -328,8 +336,8 @@ const styles = StyleSheet.create({
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1.2,
-    borderBottomColor: 'rgba(255,255,255,0.85)',
+    borderBottomWidth: 1.5,
+    borderBottomColor: 'rgba(255,255,255,0.95)',
   },
   passwordInput: {
     flex: 1,
@@ -359,8 +367,8 @@ const styles = StyleSheet.create({
   },
 
   loginBtn: {
-    backgroundColor: 'rgba(201, 106, 46, 0.92)',
-    borderRadius: 18,
+    backgroundColor: COLORS.orange,
+    borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 20,

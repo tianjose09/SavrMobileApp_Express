@@ -183,7 +183,7 @@ export default function OrgDashboard({ navigation }: any) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['bottom']}>
         <ActivityIndicator size="large" color="#00592d" />
       </SafeAreaView>
     );
@@ -191,8 +191,8 @@ export default function OrgDashboard({ navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }} edges={['bottom']}>
         <View style={styles.container}>
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
@@ -243,10 +243,6 @@ export default function OrgDashboard({ navigation }: any) {
             <View style={styles.whiteSheet}>
               <Animated.View style={{ opacity: titleFadeAnim, transform: [{ translateY: titleTranslateAnim }] }}>
                 <Text style={styles.dashboardTitle}>Organization Dashboard</Text>
-
-                <Text style={styles.subtitle}>
-                  {"Here's your activity overview - keep making an impact!"}
-                </Text>
               </Animated.View>
 
               <Animated.View style={{ opacity: totalCardFadeAnim, transform: [{ translateY: totalCardTranslateAnim }] }}>
@@ -325,7 +321,7 @@ export default function OrgDashboard({ navigation }: any) {
                 </View>
               </Animated.View>
 
-              {/* ACHIEVEMENT BADGES â€" only show if earned */}
+              {/* ACHIEVEMENT BADGES — only show if earned */}
               {featuredBadges && featuredBadges.length > 0 && (
                 <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesTranslateAnim }] }}>
                   <View style={styles.badgesSection}>
@@ -478,7 +474,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',

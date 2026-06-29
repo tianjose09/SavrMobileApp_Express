@@ -469,8 +469,8 @@ export default function IngrMealPlanning({ route, navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} />
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} edges={['top']} />
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
         {/* TOP BAR HEADER */}
@@ -676,7 +676,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
                               item.urgent && !item.selected && { color: '#E43E3E' },
                               outOfStock && { color: '#bbb' },
                             ]}>
-                              {item.qty} Â· Exp: {item.expiry}
+                              {item.qty} · Exp: {item.expiry}
                             </Text>
                           </View>
                           {outOfStock ? (
@@ -795,7 +795,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
             <View style={styles.selectedSummaryBar}>
               <MaterialCommunityIcons name="food-variant" size={16} color="#8A3E08" />
               <Text style={styles.selectedSummaryText}>
-                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected Â· Tap a row to adjust quantity
+                {ingredients.filter(i => i.selected).length} ingredient{ingredients.filter(i => i.selected).length !== 1 ? 's' : ''} selected · Tap a row to adjust quantity
               </Text>
             </View>
           )}
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 22,
+    paddingTop: 22,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
