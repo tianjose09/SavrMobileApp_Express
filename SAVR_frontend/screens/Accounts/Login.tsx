@@ -285,19 +285,11 @@ const styles = StyleSheet.create({
   },
 
   glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    backgroundColor: 'transparent',
     borderRadius: 32,
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 24,
-    borderWidth: 1.2,
-    borderColor: 'rgba(255,255,255,0.35)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    elevation: 10,
-    overflow: 'hidden',
   },
 
   titleRow: {
