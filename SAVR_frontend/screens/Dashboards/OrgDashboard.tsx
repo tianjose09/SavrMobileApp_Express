@@ -270,7 +270,7 @@ export default function OrgDashboard({ navigation }: any) {
                 </TouchableOpacity>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
-                  <Text style={styles.profileName} numberOfLines={1}>
+                  <Text style={styles.profileName}>
                     {userName}
                   </Text>
                 </View>

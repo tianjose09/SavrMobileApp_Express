@@ -945,7 +945,7 @@ exports.dashboard = async (req, res) => {
     [user.id]
   );
   const [[{ totalfood }]] = await db.execute(
-    "SELECT COUNT(*) AS totalfood FROM food_donation_records WHERE user_id = ? AND status IN ('approved','received','completed')",
+    "SELECT COUNT(*) AS totalfood FROM food_donation_records WHERE user_id = ? AND status IN ('pending', 'scheduled', 'approved', 'received', 'completed')",
     [user.id]
   );
   const [activities] = await db.execute(

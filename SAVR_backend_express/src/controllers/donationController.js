@@ -23,7 +23,7 @@ async function logActivity(userId, type, title, description, icon = 'financialic
 
 async function recalculateBadges(userId) {
   const [[foodRow]] = await db.execute(
-    "SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ? AND status IN ('approved','received')",
+    "SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ? AND status IN ('pending', 'scheduled', 'approved', 'received', 'completed')",
     [userId]
   );
   const [[financialRow]] = await db.execute(
@@ -789,7 +789,7 @@ exports.getDonationStats = async (req, res) => {
     [uid]
   );
   const [[totalFoodRow]] = await db.execute(
-    "SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ? AND status IN ('approved','received')",
+    "SELECT COUNT(*) AS cnt FROM food_donation_records WHERE user_id = ? AND status IN ('pending', 'scheduled', 'approved', 'received', 'completed')",
     [uid]
   );
   const [[totalServiceRow]] = await db.execute(

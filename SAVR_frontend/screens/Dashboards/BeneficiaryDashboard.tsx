@@ -130,7 +130,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 14 }}>
                   <Text style={{ color: '#E4B63F', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
-                  <Text style={[styles.profileName, { marginLeft: 0 }]} numberOfLines={1}>
+                  <Text style={[styles.profileName, { marginLeft: 0 }]}>
                     {userName}
                   </Text>
                 </View>
