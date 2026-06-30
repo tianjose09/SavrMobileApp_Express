@@ -144,11 +144,11 @@ export default function ServiceDonation({ navigation }: any) {
   };
 
   const formatDateString = (d: Date | null) => {
-    if (!d) return 'dd/mm/yyyy';
+    if (!d) return 'mm/dd/yyyy';
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${month}/${day}/${year}`;
   };
 
   const onRefresh = () => {
@@ -468,8 +468,14 @@ export default function ServiceDonation({ navigation }: any) {
                       }}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
-                        {startsAt ? formatDateString(startsAt) : 'dd/mm/yyyy'}
+                      <Text
+                        style={[
+                          styles.inputInner,
+                          { textAlign: 'left', lineHeight: 38, fontSize: 13, paddingRight: 18 },
+                          !startsAt && { color: 'rgba(255,255,255,0.5)' }
+                        ]}
+                      >
+                        {startsAt ? formatDateString(startsAt) : 'mm/dd/yyyy'}
                       </Text>
                       <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
                     </TouchableOpacity>
@@ -492,8 +498,14 @@ export default function ServiceDonation({ navigation }: any) {
                       }}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
-                        {endsAt ? formatDateString(endsAt) : 'dd/mm/yyyy'}
+                      <Text
+                        style={[
+                          styles.inputInner,
+                          { textAlign: 'left', lineHeight: 38, fontSize: 13, paddingRight: 18 },
+                          !endsAt && { color: 'rgba(255,255,255,0.5)' }
+                        ]}
+                      >
+                        {endsAt ? formatDateString(endsAt) : 'mm/dd/yyyy'}
                       </Text>
                       <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
                     </TouchableOpacity>
@@ -546,7 +558,7 @@ export default function ServiceDonation({ navigation }: any) {
                 {/* Row 2: Frequency + Starts At + Ends At */}
                 <View style={[styles.row, { marginBottom: 15 }]}>
                   <View style={[styles.inputGroup, { flex: 1.8, marginRight: 8 }]}>
-                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <Text style={styles.label}>Frequency<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <CustomDropdown
                       selectedValue={frequency}
                       onValueChange={(val) => {
@@ -567,7 +579,7 @@ export default function ServiceDonation({ navigation }: any) {
                   </View>
 
                   <View style={[styles.inputGroup, { flex: 1.1, marginRight: 8 }]}>
-                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <Text style={styles.label}>Starts At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <TouchableOpacity
                       style={[
                         styles.inputBox,
@@ -589,18 +601,21 @@ export default function ServiceDonation({ navigation }: any) {
                       activeOpacity={0.8}
                     >
                       <Text
-                        style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 10, paddingRight: 14 }]}
+                        style={[
+                          styles.inputInner,
+                          { textAlign: 'left', lineHeight: 38, fontSize: 13, paddingRight: 14 },
+                          (!startsAt && !allDay) && { color: 'rgba(255,255,255,0.5)' }
+                        ]}
                         numberOfLines={1}
-                        adjustsFontSizeToFit
                       >
-                        {allDay ? '-- : --' : formatTimeWithAMPM(startsAt)}
+                        {allDay || !startsAt ? '-- : --' : formatTimeWithAMPM(startsAt)}
                       </Text>
                       <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={[styles.inputGroup, { flex: 1.1 }]}>
-                    <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    <Text style={styles.label}>Ends At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
                     <TouchableOpacity
                       style={[
                         styles.inputBox,
@@ -622,11 +637,14 @@ export default function ServiceDonation({ navigation }: any) {
                       activeOpacity={0.8}
                     >
                       <Text
-                        style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 10, paddingRight: 14 }]}
+                        style={[
+                          styles.inputInner,
+                          { textAlign: 'left', lineHeight: 38, fontSize: 13, paddingRight: 14 },
+                          (!endsAt && !allDay) && { color: 'rgba(255,255,255,0.5)' }
+                        ]}
                         numberOfLines={1}
-                        adjustsFontSizeToFit
                       >
-                        {allDay ? '-- : --' : formatTimeWithAMPM(endsAt)}
+                        {allDay || !endsAt ? '-- : --' : formatTimeWithAMPM(endsAt)}
                       </Text>
                       <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
                     </TouchableOpacity>
@@ -1030,7 +1048,7 @@ const styles = StyleSheet.create({
   inputInner: {
     flex: 1,
     color: '#FFF',
-    fontSize: 12,
+    fontSize: 13.5,
     fontWeight: '500',
     height: '100%',
   },

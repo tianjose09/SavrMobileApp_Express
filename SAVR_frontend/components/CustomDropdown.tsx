@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: '#FFF',
-    fontSize: 11.5,
+    fontSize: 13,
     paddingBottom: 2,
     textAlign: 'left',
   },

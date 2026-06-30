@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+
 import { Picker } from '@react-native-picker/picker';
 import CustomDropdown from '../../components/CustomDropdown';
 import { ApiService } from '../../services/api';
@@ -29,9 +29,7 @@ export default function DonorRegistration({ navigation }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false); // Android
-  const [showIOSDatePicker, setShowIOSDatePicker] = useState(false); // iOS Modal
-  const [dob, setDob] = useState(new Date());
+
 
   const {
     provinces,
@@ -69,26 +67,7 @@ export default function DonorRegistration({ navigation }: any) {
     organization_type: '',
   });
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'dismissed' || !selectedDate) return;
-    }
-    const currentDate = selectedDate || dob;
-    setDob(currentDate);
-    const yyyy = currentDate.getFullYear();
-    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(currentDate.getDate()).padStart(2, '0');
-    updateForm('date_of_birth', `${yyyy}-${mm}-${dd}`);
-  };
 
-  const confirmIOSDate = () => {
-    const yyyy = dob.getFullYear();
-    const mm = String(dob.getMonth() + 1).padStart(2, '0');
-    const dd = String(dob.getDate()).padStart(2, '0');
-    updateForm('date_of_birth', `${yyyy}-${mm}-${dd}`);
-    setShowIOSDatePicker(false);
-  };
 
   const updateForm = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -307,39 +286,14 @@ export default function DonorRegistration({ navigation }: any) {
                         </View>
                         <View style={styles.lineInputWrap}>
                           <TextInput
-                            style={[styles.lineInput, { paddingRight: 35 }]}
+                            style={styles.lineInput}
                             placeholder="YYYY-MM-DD"
                             placeholderTextColor="rgba(255,255,255,0.45)"
                             value={form.date_of_birth}
                             onChangeText={(val) => updateForm('date_of_birth', val)}
                             keyboardType="default"
                           />
-                          <TouchableOpacity
-                            onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : setShowDatePicker(true)}
-                            style={{ position: 'absolute', right: 0, height: '100%', justifyContent: 'center', paddingLeft: 10 }}
-                          >
-                            <Ionicons name="calendar" size={18} color="#FFF" />
-                          </TouchableOpacity>
                         </View>
-                        {Platform.OS === 'android' && showDatePicker && (
-                          <DateTimePicker value={dob} mode="date" display="default" onChange={onDateChange} maximumDate={new Date()} />
-                        )}
-                        <Modal visible={showIOSDatePicker} transparent animationType="slide">
-                          <View style={styles.modalOverlay}>
-                            <View style={styles.modalSheet}>
-                              <View style={styles.modalHeader}>
-                                <TouchableOpacity onPress={() => setShowIOSDatePicker(false)}>
-                                  <Text style={styles.modalCancel}>Cancel</Text>
-                                </TouchableOpacity>
-                                <Text style={styles.modalTitle}>Date of Birth</Text>
-                                <TouchableOpacity onPress={confirmIOSDate}>
-                                  <Text style={styles.modalDone}>Done</Text>
-                                </TouchableOpacity>
-                              </View>
-                              <DateTimePicker value={dob} mode="date" display="spinner" maximumDate={new Date()} onChange={(e, d) => { if (d) setDob(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
-                            </View>
-                          </View>
-                        </Modal>
                       </View>
                     </View>
                     <View style={styles.col}>

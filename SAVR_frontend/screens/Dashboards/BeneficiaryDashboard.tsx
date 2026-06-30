@@ -87,7 +87,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#00592d' }}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
 
@@ -221,11 +221,11 @@ export default function BeneficiaryDashboard({ navigation }: any) {
                   <Text style={styles.yellowBtnText}>Now</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </ScrollView>
+        <View style={{ height: 60 }} />
         </View>
-        <View style={{ height: insets.bottom, backgroundColor: '#FFFFFF' }} />
-      </View>
+      </ScrollView>
+    </View>
+  </View>
   );
 }
 
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#00592d',
+    backgroundColor: '#FFFFFF',
   },
   topHeader: {
     backgroundColor: '#00592d',

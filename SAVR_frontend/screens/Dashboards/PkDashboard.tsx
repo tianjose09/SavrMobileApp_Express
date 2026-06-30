@@ -162,7 +162,7 @@ export default function PkDashboard({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#00592d' }}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
 
@@ -420,17 +420,16 @@ export default function PkDashboard({ navigation }: any) {
                 )}
               </View>
 
-              <View style={{ height: 120 }} />
+              <View style={{ height: 60 }} />
         </View>
       </ScrollView>
     </View>
-    <View style={{ height: insets.bottom, backgroundColor: '#FFFFFF' }} />
   </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#00592d' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: { flexGrow: 1 },
 
   notificationBanner: {
