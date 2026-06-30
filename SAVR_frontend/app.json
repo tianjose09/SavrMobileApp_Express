@@ -2,6 +2,7 @@
   "expo": {
     "name": "Philippine FoodBank",
     "slug": "savr-mobile",
+    "owner": "altheaxzuleika",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -58,7 +59,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e7f6560a-32f4-453e-b44e-3cdb4738d140"
+        "projectId": "e67fb697-9a82-4dbe-a98d-6a412a7cfa3b"
       }
     }
   }
