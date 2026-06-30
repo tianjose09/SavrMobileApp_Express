@@ -303,7 +303,7 @@ export default function AchievementBadges({ navigation }: any) {
               <View style={styles.nextGoalTextCol}>
                 <Text style={styles.nextGoalLabel}>NEXT GOAL</Text>
                 <Text style={styles.nextGoalTitle}>
-                  Unlock more{'\n'}achievements
+                  Unlock more achievements
                 </Text>
                 <Text style={styles.nextGoalDesc}>
                   Continue donating and supporting
@@ -725,7 +725,8 @@ const styles = StyleSheet.create({
   },
 
   nextGoalTextCol: {
-    width: '60%',
+    flex: 1,
+    marginRight: 12,
   },
 
   nextGoalLabel: {
