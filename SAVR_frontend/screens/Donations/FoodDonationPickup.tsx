@@ -129,11 +129,16 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     DateTimePickerAndroid.open({
       value: pickupDate || getToday(),
       mode: 'date',
-      minimumDate: getToday(),
       // @ts-ignore accentColor exists at runtime but missing from older type definitions
       accentColor: GREEN,
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
+          const today = getToday();
+          const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          if (selectedDay < today) {
+            Alert.alert('Invalid Date', 'Date cannot be in the past.');
+            return;
+          }
           setPickupDate(date);
           const m = String(date.getMonth() + 1).padStart(2, '0');
           const d = String(date.getDate()).padStart(2, '0');
