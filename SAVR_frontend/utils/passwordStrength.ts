@@ -1,53 +1,50 @@
-export const evaluatePasswordStrength = (password: string) => {
-  if (!password) return { label: '', color: 'transparent', score: 0, missing: [] };
+export interface PasswordRequirement {
+  label: string;
+  met: boolean;
+}
 
-  let score = 0;
-  const missing = [];
+export interface PasswordStrengthResult {
+  label: string;
+  color: string;
+  score: number;
+  missing: string[];
+  progress: number; // 0–1
+  requirements: PasswordRequirement[];
+}
 
-  if (password.length >= 8) {
-    score += 1;
-    if (password.length >= 12) score += 1;
-  } else {
-    missing.push('at least 8 characters');
-  }
+export const evaluatePasswordStrength = (password: string): PasswordStrengthResult => {
+  const requirements: PasswordRequirement[] = [
+    { label: 'At least 12 characters',     met: password.length >= 12 },
+    { label: 'At least 1 number',           met: /[0-9]/.test(password) },
+    { label: 'At least 1 lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'At least 1 uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'At least 1 special character',met: /[^A-Za-z0-9]/.test(password) },
+  ];
 
-  if (/[A-Z]/.test(password)) {
-    score += 1;
-  } else {
-    missing.push('uppercase letter');
-  }
-
-  if (/[a-z]/.test(password)) {
-    score += 1;
-  } else {
-    missing.push('lowercase letter');
-  }
-
-  if (/[0-9]/.test(password)) {
-    score += 1;
-  } else {
-    missing.push('number');
-  }
-
-  if (/[^A-Za-z0-9]/.test(password)) {
-    score += 1;
-  } else {
-    missing.push('special character');
-  }
+  const metCount = requirements.filter(r => r.met).length;
+  const missing  = requirements.filter(r => !r.met).map(r => r.label);
 
   let label = '';
   let color = '';
+  let progress = metCount / requirements.length;
 
-  if (score <= 2) {
-    label = 'Weak Password';
-    color = '#FF4C4C';
-  } else if (score <= 4) {
-    label = 'Fair Password';
-    color = '#E4B63F';
-  } else {
-    label = 'Strong Password';
-    color = '#64cf68ff';
+  if (!password) {
+    return { label: '', color: 'transparent', score: 0, missing: [], progress: 0, requirements };
   }
 
-  return { label, color, score, missing };
+  if (metCount <= 2) {
+    label = 'Weak';
+    color = '#FF4C4C';
+  } else if (metCount <= 3) {
+    label = 'Fair';
+    color = '#E4B63F';
+  } else if (metCount === 4) {
+    label = 'Medium';
+    color = '#E4B63F';
+  } else {
+    label = 'Strong';
+    color = '#4CAF50';
+  }
+
+  return { label, color, score: metCount, missing, progress, requirements };
 };

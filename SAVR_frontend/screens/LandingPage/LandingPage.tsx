@@ -319,6 +319,7 @@ export default function LandingPage({ navigation }: any) {
           </View>
         </View>
       </Animated.View>
+      <View style={{ height: 100 }} />
     </View>
   );
 
@@ -394,6 +395,7 @@ export default function LandingPage({ navigation }: any) {
           </View>
         </Animated.View>
       </View>
+      <View style={{ height: 100 }} />
     </View>
   );
 
@@ -476,7 +478,7 @@ export default function LandingPage({ navigation }: any) {
             <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }}>
               {renderContent()}
             </Animated.View>
-            <View style={{ height: 95 }} />
+            <View style={{ height: 100 }} />
           </Animated.ScrollView>
         </View>
       </SafeAreaView>

@@ -542,21 +542,36 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                     </TouchableOpacity>
                   ),
                 })}
-                {form.password.length > 0 && (
-                  <View style={{ marginTop: -2, marginBottom: 8, marginLeft: 2 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 10, color: '#FFF' }}>Strength: </Text>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: evaluatePasswordStrength(form.password).color }}>
-                        {evaluatePasswordStrength(form.password).label}
+                {form.password.length > 0 && (() => {
+                  const ps = evaluatePasswordStrength(form.password);
+                  return (
+                    <View style={{ marginTop: 6, marginBottom: 10, paddingHorizontal: 2 }}>
+                      {/* Progress bar */}
+                      <View style={{ height: 4, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 8, overflow: 'hidden' }}>
+                        <View style={{ height: 4, borderRadius: 4, backgroundColor: ps.color, width: `${ps.progress * 100}%` }} />
+                      </View>
+                      {/* Label */}
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF', marginBottom: 5 }}>
+                        <Text style={{ color: ps.color }}>{ps.label} password. </Text>
+                        Must contain:
                       </Text>
+                      {/* Requirements checklist */}
+                      {ps.requirements.map((req, i) => (
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
+                          <Ionicons
+                            name={req.met ? 'checkmark' : 'close'}
+                            size={13}
+                            color={req.met ? '#4CAF50' : 'rgba(255,255,255,0.5)'}
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text style={{ fontSize: 10, color: req.met ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)' }}>
+                            {req.label}
+                          </Text>
+                        </View>
+                      ))}
                     </View>
-                    {evaluatePasswordStrength(form.password).missing.length > 0 && (
-                      <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 2, paddingRight: 4 }}>
-                        Needs: {evaluatePasswordStrength(form.password).missing.join(', ')}
-                      </Text>
-                    )}
-                  </View>
-                )}
+                  );
+                })()}
               </View>
 
               {renderLineInput('Confirm Password', 'password_confirmation', {
