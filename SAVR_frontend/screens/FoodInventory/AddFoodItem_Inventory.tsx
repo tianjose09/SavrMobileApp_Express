@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import CustomDropdown from '../../components/CustomDropdown';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
@@ -17,7 +17,6 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
 
   const [expiryText, setExpiryText] = useState('');
   const [expiryDate, setExpiryDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false); // Android
   const [showIOSDatePicker, setShowIOSDatePicker] = useState(false); // iOS Modal
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,18 +36,27 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'dismissed' || !selectedDate) return;
-    }
-    if (selectedDate) {
-      setExpiryDate(selectedDate);
-      const yyyy = selectedDate.getFullYear();
-      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(selectedDate.getDate()).padStart(2, '0');
-      setExpiryText(`${mm}/${dd}/${yyyy}`);
-    }
+  const openAndroidDatePicker = () => {
+    DateTimePickerAndroid.open({
+      value: expiryDate || new Date(),
+      mode: 'date',
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          if (selectedDay < today) {
+            Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
+            return;
+          }
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const y = date.getFullYear();
+          setExpiryDate(date);
+          setExpiryText(`${m}/${d}/${y}`);
+        }
+      },
+    });
   };
 
   const confirmIOSExpiry = () => {
@@ -236,15 +244,12 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                   onChangeText={setExpiryText}
                 />
                 <TouchableOpacity
-                  onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : setShowDatePicker(true)}
+                  onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : openAndroidDatePicker()}
                   style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 50, justifyContent: 'center', alignItems: 'center' }}
                 >
                   <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.9)" />
                 </TouchableOpacity>
               </View>
-              {Platform.OS === 'android' && showDatePicker && (
-                <DateTimePicker value={expiryDate} mode="date" display="spinner" onChange={onDateChange} />
-              )}
               <Modal visible={showIOSDatePicker} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalSheet}>
@@ -364,7 +369,7 @@ const styles = StyleSheet.create({
   },
 
   submitBtn: {
-    backgroundColor: '#0E6A31',
+    backgroundColor: '#d8a612ff',
     borderRadius: 22,
     height: 52,
     justifyContent: 'center',

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View
+  ActivityIndicator, Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { ApiService } from '../../services/api';
 
 const formatTimeSlotTo12Hour = (timeSlotStr: string | null | undefined): string => {
@@ -73,6 +74,41 @@ export default function AllUpcomingPickups({ navigation }: any) {
     return unsub;
   }, [navigation, fetchPickups]);
 
+  const handleDeletePickup = (pickup: Pickup) => {
+    if (pickup.status.toLowerCase() !== 'pending') {
+      Alert.alert(
+        'Cannot Delete',
+        'Only pending pickups can be deleted. For scheduled or approved pickups, please contact support.'
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Cancel Pickup',
+      'Are you sure you want to cancel/delete this pickup request?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await ApiService.deletePickup(pickup.id);
+              if (res?.data?.success) {
+                Alert.alert('Success', 'Pickup deleted successfully.');
+                fetchPickups();
+              } else {
+                Alert.alert('Error', res?.data?.message || 'Failed to delete pickup.');
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.message || 'An error occurred while deleting the pickup.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const formatDisplayDate = (dateStr: string | null) => {
     if (!dateStr) return 'Date TBD';
     const [y, m, d] = dateStr.split('-');
@@ -121,47 +157,68 @@ export default function AllUpcomingPickups({ navigation }: any) {
                 <Text style={styles.emptyText}>No upcoming pickups found.</Text>
               </View>
             ) : (
-              pickups.map((pickup, idx) => (
-                <View key={pickup.id} style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardNumberBadge}>
-                      <Text style={styles.cardNumberText}>#{idx + 1}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pickup.status) + '20' }]}>
-                      <View style={[styles.statusDot, { backgroundColor: getStatusColor(pickup.status) }]} />
-                      <Text style={[styles.statusText, { color: getStatusColor(pickup.status) }]}>
-                        {getStatusLabel(pickup.status)}
-                      </Text>
-                    </View>
-                  </View>
+              pickups.map((pickup, idx) => {
+                const renderRightActions = () => {
+                  return (
+                    <TouchableOpacity
+                      style={styles.swipeDeleteAction}
+                      onPress={() => handleDeletePickup(pickup)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="trash" size={22} color="#FFF" />
+                      <Text style={styles.swipeDeleteText}>Delete</Text>
+                    </TouchableOpacity>
+                  );
+                };
 
-                  <View style={styles.cardBody}>
-                    <View style={styles.infoRow}>
-                      <Ionicons name="calendar-outline" size={16} color="#00592d" />
-                      <Text style={styles.infoLabel}>Date:</Text>
-                      <Text style={styles.infoValue}>{formatDisplayDate(pickup.preferred_date)}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Ionicons name="time-outline" size={16} color="#00592d" />
-                      <Text style={styles.infoLabel}>Time:</Text>
-                      <Text style={styles.infoValue}>{formatTimeSlotTo12Hour(pickup.time_slot)}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Ionicons name="location-outline" size={16} color="#00592d" />
-                      <Text style={styles.infoLabel}>Address:</Text>
-                      <Text style={styles.infoValue} numberOfLines={2}>
-                        {pickup.pickup_address || 'No address provided'}
-                      </Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Ionicons name="time-outline" size={16} color="#888" />
-                      <Text style={styles.infoLabelGray}>Submitted:</Text>
-                      <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
-                    </View>
-                  </View>
+                return (
+                  <Swipeable
+                    key={pickup.id}
+                    renderRightActions={renderRightActions}
+                    overshootRight={false}
+                    friction={2}
+                  >
+                    <View style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.cardNumberBadge}>
+                          <Text style={styles.cardNumberText}>#{idx + 1}</Text>
+                        </View>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pickup.status) + '20' }]}>
+                          <View style={[styles.statusDot, { backgroundColor: getStatusColor(pickup.status) }]} />
+                          <Text style={[styles.statusText, { color: getStatusColor(pickup.status) }]}>
+                            {getStatusLabel(pickup.status)}
+                          </Text>
+                        </View>
+                      </View>
 
-                </View>
-              ))
+                      <View style={styles.cardBody}>
+                        <View style={styles.infoRow}>
+                          <Ionicons name="calendar-outline" size={16} color="#00592d" />
+                          <Text style={styles.infoLabel}>Date:</Text>
+                          <Text style={styles.infoValue}>{formatDisplayDate(pickup.preferred_date)}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                          <Ionicons name="time-outline" size={16} color="#00592d" />
+                          <Text style={styles.infoLabel}>Time:</Text>
+                          <Text style={styles.infoValue}>{formatTimeSlotTo12Hour(pickup.time_slot)}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                          <Ionicons name="location-outline" size={16} color="#00592d" />
+                          <Text style={styles.infoLabel}>Address:</Text>
+                          <Text style={styles.infoValue} numberOfLines={2}>
+                            {pickup.pickup_address || 'No address provided'}
+                          </Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                          <Ionicons name="time-outline" size={16} color="#888" />
+                          <Text style={styles.infoLabelGray}>Submitted:</Text>
+                          <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </Swipeable>
+                );
+              })
             )}
             <View style={{ height: 100 }} />
           </ScrollView>
@@ -298,5 +355,18 @@ const styles = StyleSheet.create({
     color: '#B0B0B0',
     flex: 1,
   },
-
+  swipeDeleteAction: {
+    backgroundColor: '#D32F2F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 18,
+    marginBottom: 16,
+  },
+  swipeDeleteText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 4,
+  },
 });
