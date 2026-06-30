@@ -16,7 +16,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import CustomDropdown from '../../components/CustomDropdown';
@@ -117,6 +117,10 @@ export default function ServiceDonation({ navigation }: any) {
     d.setHours(17, 0, 0, 0);
     return d;
   });
+
+  // Text inputs for Transportation date fields (MM/DD/YYYY)
+  const [deliverAtInput, setDeliverAtInput] = useState('');
+  const [returnAtInput, setReturnAtInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
@@ -154,7 +158,82 @@ export default function ServiceDonation({ navigation }: any) {
   const onRefresh = () => {
     setRefreshing(true);
     resetForm();
+    setDeliverAtInput('');
+    setReturnAtInput('');
     setTimeout(() => setRefreshing(false), 500);
+  };
+
+  const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+
+  /** Auto-inserts slashes to format MM/DD/YYYY as the user types */
+  const handleDeliverAtInput = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = digits;
+    if (digits.length > 2 && digits.length <= 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+    setDeliverAtInput(formatted);
+    if (formatted.length === 10) {
+      const [mm, dd, yyyy] = formatted.split('/');
+      const d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+      if (!isNaN(d.getTime())) setStartsAt(d);
+    } else {
+      setStartsAt(null);
+    }
+  };
+
+  const handleReturnAtInput = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = digits;
+    if (digits.length > 2 && digits.length <= 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+    setReturnAtInput(formatted);
+    if (formatted.length === 10) {
+      const [mm, dd, yyyy] = formatted.split('/');
+      const d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+      if (!isNaN(d.getTime())) setEndsAt(d);
+    } else {
+      setEndsAt(null);
+    }
+  };
+
+  const openAndroidDeliverAt = () => {
+    DateTimePickerAndroid.open({
+      value: startsAt || getToday(),
+      mode: 'date',
+      minimumDate: getToday(),
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          setStartsAt(date);
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const y = date.getFullYear();
+          setDeliverAtInput(`${m}/${d}/${y}`);
+        }
+      },
+    });
+  };
+
+  const openAndroidReturnAt = () => {
+    DateTimePickerAndroid.open({
+      value: endsAt || getToday(),
+      mode: 'date',
+      minimumDate: getToday(),
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          setEndsAt(date);
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const y = date.getFullYear();
+          setReturnAtInput(`${m}/${d}/${y}`);
+        }
+      },
+    });
   };
 
   const toggleCategory = (cat: string) => {
@@ -227,7 +306,7 @@ export default function ServiceDonation({ navigation }: any) {
       const serviceTypeLabel = activeTab === 'TRANSPORTATION' ? 'Transportation' : 'Volunteer Work';
 
       const startsAtStr = allDay || !startsAt ? null : formatTimeWithAMPM(startsAt);
-      const endsAtStr   = allDay || !endsAt   ? null : formatTimeWithAMPM(endsAt);
+      const endsAtStr = allDay || !endsAt ? null : formatTimeWithAMPM(endsAt);
 
       const payload: any = {
         service_type: serviceTypeLabel,
@@ -239,7 +318,7 @@ export default function ServiceDonation({ navigation }: any) {
           // Transportation: date-based fields, no time parsing
           frequency: 'One-Time',
           service_date: startsAt ? startsAt.toISOString().split('T')[0] : null,
-          return_date:  endsAt   ? endsAt.toISOString().split('T')[0]   : null,
+          return_date: endsAt ? endsAt.toISOString().split('T')[0] : null,
           all_day: false,
           quantity: parseInt(quantity) || 1,
           vehicle_type: vehicleType || null,
@@ -266,18 +345,18 @@ export default function ServiceDonation({ navigation }: any) {
       if (response.data.success) {
         const serviceLabel = activeTab === 'VOLUNTEER' ? 'Volunteer Work' : 'Transportation Service';
         const dateLabel = date ? date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'recurring schedule';
-        
+
         Alert.alert(
           `${serviceLabel} Submitted!`,
           `Your ${serviceLabel.toLowerCase()} pledge for ${dateLabel} has been recorded. Thank you!`,
-          [{ 
-            text: 'OK', 
+          [{
+            text: 'OK',
             onPress: () => {
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'ChooseDonation' }],
               });
-            } 
+            }
           }]
         );
       } else {
@@ -455,62 +534,58 @@ export default function ServiceDonation({ navigation }: any) {
                 <View style={[styles.row, { marginBottom: 15 }]}>
                   <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
                     <Text style={styles.label}>To Deliver At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.inputBox,
-                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
-                      ]}
-                      onPress={() => {
-                        if (Platform.OS === 'ios') {
-                          setTempStartsAt(startsAt || new Date());
-                          setShowIOSStartsAt(true);
-                        } else {
-                          setDatePickerMode('starts_at');
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.inputInner,
-                          { textAlign: 'left', lineHeight: 38, fontSize: 13, paddingRight: 18 },
-                          !startsAt && { color: 'rgba(255,255,255,0.5)' }
-                        ]}
+                    <View style={styles.pickerInputWrapper}>
+                      <TextInput
+                        style={styles.pickerTextInput}
+                        placeholder="mm/dd/yyyy"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        value={deliverAtInput}
+                        onChangeText={handleDeliverAtInput}
+                        keyboardType="number-pad"
+                        maxLength={10}
+                      />
+                      <TouchableOpacity
+                        style={styles.pickerIconBtn}
+                        onPress={() => {
+                          if (Platform.OS === 'ios') {
+                            setTempStartsAt(startsAt || new Date());
+                            setShowIOSStartsAt(true);
+                          } else {
+                            openAndroidDeliverAt();
+                          }
+                        }}
                       >
-                        {startsAt ? formatDateString(startsAt) : 'mm/dd/yyyy'}
-                      </Text>
-                      <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
-                    </TouchableOpacity>
+                        <Ionicons name="calendar-outline" size={18} color="rgba(255,255,255,0.8)" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   <View style={[styles.inputGroup, { flex: 1 }]}>
                     <Text style={styles.label}>To Return At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.inputBox,
-                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
-                      ]}
-                      onPress={() => {
-                        if (Platform.OS === 'ios') {
-                          setTempEndsAt(endsAt || new Date());
-                          setShowIOSEndsAt(true);
-                        } else {
-                          setDatePickerMode('ends_at');
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.inputInner,
-                          { textAlign: 'left', lineHeight: 38, fontSize: 13, paddingRight: 18 },
-                          !endsAt && { color: 'rgba(255,255,255,0.5)' }
-                        ]}
+                    <View style={styles.pickerInputWrapper}>
+                      <TextInput
+                        style={styles.pickerTextInput}
+                        placeholder="mm/dd/yyyy"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        value={returnAtInput}
+                        onChangeText={handleReturnAtInput}
+                        keyboardType="number-pad"
+                        maxLength={10}
+                      />
+                      <TouchableOpacity
+                        style={styles.pickerIconBtn}
+                        onPress={() => {
+                          if (Platform.OS === 'ios') {
+                            setTempEndsAt(endsAt || new Date());
+                            setShowIOSEndsAt(true);
+                          } else {
+                            openAndroidReturnAt();
+                          }
+                        }}
                       >
-                        {endsAt ? formatDateString(endsAt) : 'mm/dd/yyyy'}
-                      </Text>
-                      <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
-                    </TouchableOpacity>
+                        <Ionicons name="calendar-outline" size={18} color="rgba(255,255,255,0.8)" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </>
@@ -896,13 +971,23 @@ export default function ServiceDonation({ navigation }: any) {
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowIOSStartsAt(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
               <Text style={styles.modalTitle}>{activeTab === 'TRANSPORTATION' ? 'Select Delivery Date' : 'Select Start Time'}</Text>
-              <TouchableOpacity onPress={() => { setStartsAt(tempStartsAt); setShowIOSStartsAt(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                setStartsAt(tempStartsAt);
+                if (activeTab === 'TRANSPORTATION') {
+                  const m = String(tempStartsAt.getMonth() + 1).padStart(2, '0');
+                  const d = String(tempStartsAt.getDate()).padStart(2, '0');
+                  const y = tempStartsAt.getFullYear();
+                  setDeliverAtInput(`${m}/${d}/${y}`);
+                }
+                setShowIOSStartsAt(false);
+              }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
               <DateTimePicker
                 value={tempStartsAt}
                 mode={activeTab === 'TRANSPORTATION' ? 'date' : 'time'}
                 display="spinner"
+                minimumDate={activeTab === 'TRANSPORTATION' ? new Date() : undefined}
                 onChange={(_, d) => { if (d) setTempStartsAt(d); }}
                 style={{ width: '100%', alignSelf: 'center' }}
                 textColor="#1a1a1a"
@@ -919,13 +1004,23 @@ export default function ServiceDonation({ navigation }: any) {
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowIOSEndsAt(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
               <Text style={styles.modalTitle}>{activeTab === 'TRANSPORTATION' ? 'Select Return Date' : 'Select End Time'}</Text>
-              <TouchableOpacity onPress={() => { setEndsAt(tempEndsAt); setShowIOSEndsAt(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                setEndsAt(tempEndsAt);
+                if (activeTab === 'TRANSPORTATION') {
+                  const m = String(tempEndsAt.getMonth() + 1).padStart(2, '0');
+                  const d = String(tempEndsAt.getDate()).padStart(2, '0');
+                  const y = tempEndsAt.getFullYear();
+                  setReturnAtInput(`${m}/${d}/${y}`);
+                }
+                setShowIOSEndsAt(false);
+              }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
               <DateTimePicker
                 value={tempEndsAt}
                 mode={activeTab === 'TRANSPORTATION' ? 'date' : 'time'}
                 display="spinner"
+                minimumDate={activeTab === 'TRANSPORTATION' ? new Date() : undefined}
                 onChange={(_, d) => { if (d) setTempEndsAt(d); }}
                 style={{ width: '100%', alignSelf: 'center' }}
                 textColor="#1a1a1a"
@@ -1058,6 +1153,27 @@ const styles = StyleSheet.create({
   },
   dropdownIcon: { marginLeft: 5 },
   absolutePicker: { display: 'none' },
+
+  pickerInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 8,
+    height: 44,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  pickerTextInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    paddingVertical: 0,
+  },
+  pickerIconBtn: {
+    padding: 4,
+  },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },

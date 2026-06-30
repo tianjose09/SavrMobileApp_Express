@@ -424,7 +424,7 @@ export default function PkDashboard({ navigation }: any) {
 
             <View style={styles.divider} />
 
-            <Animated.View style={{ transform: [{ translateY: activitiesScrollTranslateY }] }}>
+            <View>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Activities</Text>
                 <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
@@ -452,7 +452,7 @@ export default function PkDashboard({ navigation }: any) {
                   ))
                 )}
               </View>
-            </Animated.View>
+            </View>
 
             <View style={{ height: 60 }} />
           </View>
