@@ -202,6 +202,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const mapRef = useRef<MapView>(null);
   const isProgrammaticMove = useRef(false);
+  const isMapDragged = useRef(false);
 
   const { foodItems } = route.params || { foodItems: [] };
 
@@ -509,12 +510,18 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             zoomEnabled={scheduleType === 'pickup'}
             pitchEnabled={scheduleType === 'pickup'}
             rotateEnabled={scheduleType === 'pickup'}
-            onRegionChangeComplete={(reg) => {
+            onPanDrag={() => {
+              if (scheduleType === 'pickup') isMapDragged.current = true;
+            }}
+            onRegionChangeComplete={(reg, details) => {
               if (scheduleType === 'pickup') {
                 setLocation(reg);
+                const wasDragged = details?.isGesture || isMapDragged.current;
                 if (isProgrammaticMove.current) {
                   isProgrammaticMove.current = false;
-                } else {
+                  isMapDragged.current = false;
+                } else if (wasDragged) {
+                  isMapDragged.current = false;
                   reverseGeocode(reg.latitude, reg.longitude);
                 }
               }

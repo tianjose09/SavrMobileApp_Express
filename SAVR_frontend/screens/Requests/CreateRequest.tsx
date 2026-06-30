@@ -114,6 +114,65 @@ export default function CreateRequest({ navigation }: any) {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const mapRef = useRef<MapView>(null);
   const isProgrammaticMove = useRef(false);
+  const isMapDragged = useRef(false);
+
+  // Address Autocomplete states
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [isUserTyping, setIsUserTyping] = useState(false);
+  const isSelectingSuggestion = useRef(false);
+
+  const fetchAddressSuggestions = async (query: string) => {
+    if (!query || query.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    setIsSearchingAddress(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=ph`,
+        {
+          headers: {
+            'User-Agent': 'SavrMobileApp',
+          },
+        }
+      );
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setSuggestions(data);
+      } else {
+        setSuggestions([]);
+      }
+    } catch (err) {
+      console.error('Error fetching address suggestions:', err);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  const selectSuggestion = async (item: any) => {
+    setIsUserTyping(false);
+    isSelectingSuggestion.current = true;
+    setSuggestions([]);
+
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+
+    const newRegion = {
+      latitude: lat,
+      longitude: lon,
+      latitudeDelta: 0.008,
+      longitudeDelta: 0.008,
+    };
+    isProgrammaticMove.current = true;
+    setLocation(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 800);
+
+    updateForm('street', item.display_name);
+
+    // Call reverseGeocode to fill in zip, city, barangay accurately based on OSM coordinates
+    await reverseGeocode(lat, lon);
+  };
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedFoodName, setSelectedFoodName] = useState<string>('');
@@ -185,6 +244,7 @@ export default function CreateRequest({ navigation }: any) {
   };
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
+    setIsUserTyping(false);
     setIsReverseGeocoding(true);
     try {
       const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -227,29 +287,29 @@ export default function CreateRequest({ navigation }: any) {
     })();
   }, []);
 
-  // Debounced auto-geocoder to move the map region as the user types
+  // Debounce autocomplete suggestions fetching as the user types
   useEffect(() => {
-    if (!form.street.trim()) return;
+    if (!isUserTyping) {
+      setSuggestions([]);
+      return;
+    }
 
-    const delayDebounceFn = setTimeout(async () => {
-      try {
-        const results = await Location.geocodeAsync(form.street);
-        if (results.length > 0) {
-          const { latitude, longitude } = results[0];
-          const newRegion = { latitude, longitude, latitudeDelta: 0.0422, longitudeDelta: 0.0221 };
+    if (!form.street || form.street.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
 
-          // Move the map region programmatically without triggering reverse geocoding
-          isProgrammaticMove.current = true;
-          setLocation(newRegion);
-          mapRef.current?.animateToRegion(newRegion, 800);
-        }
-      } catch (e) {
-        // silent fail for background auto-geocoding
-      }
-    }, 1200);
+    if (isSelectingSuggestion.current) {
+      isSelectingSuggestion.current = false;
+      return;
+    }
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [form.street]);
+    const timer = setTimeout(() => {
+      fetchAddressSuggestions(form.street);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [form.street, isUserTyping]);
 
 
   const resetForm = () => {
@@ -673,7 +733,7 @@ export default function CreateRequest({ navigation }: any) {
                 </View>
               )}
 
-              <View style={{ marginBottom: 18 }}>
+              <View style={{ marginBottom: 18, zIndex: 9999 }}>
                 <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
                 <TextInput
                   style={[styles.inputBox, { height: undefined, minHeight: 42, paddingVertical: 8 }]}
@@ -683,13 +743,56 @@ export default function CreateRequest({ navigation }: any) {
                   placeholderTextColor="#A5D1B8"
                   value={form.street}
                   onChangeText={(val) => {
+                    setIsUserTyping(true);
                     updateForm('street', val);
                     updateForm('barangay', val ? (form.barangay || 'Manual') : '');
                     updateForm('city_municipality', val ? (form.city_municipality || 'Manual') : '');
                   }}
-                  onSubmitEditing={() => geocodeAddress(form.street)}
+                  onFocus={() => {
+                    if (form.street && form.street.length >= 3) {
+                      setIsUserTyping(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Small timeout to allow suggestion item onPress to fire before hiding the list
+                    setTimeout(() => {
+                      setIsUserTyping(false);
+                      setSuggestions([]);
+                    }, 250);
+                  }}
+                  onSubmitEditing={() => {
+                    setIsUserTyping(false);
+                    geocodeAddress(form.street);
+                  }}
                   returnKeyType="search"
                 />
+
+                {suggestions.length > 0 && (
+                  <View style={styles.suggestionOverlay}>
+                    {suggestions.map((item, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.suggestionItem,
+                          index < suggestions.length - 1 && styles.suggestionItemBorder
+                        ]}
+                        onPress={() => selectSuggestion(item)}
+                      >
+                        <Ionicons name="location-outline" size={16} color="#00592d" style={{ marginRight: 8, marginTop: 2 }} />
+                        <Text style={styles.suggestionText} numberOfLines={2}>
+                          {item.display_name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {isSearchingAddress && (
+                  <View style={styles.suggestionLoading}>
+                    <ActivityIndicator size="small" color="#00592d" />
+                    <Text style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>Searching address...</Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.mapContainer}>
@@ -702,11 +805,17 @@ export default function CreateRequest({ navigation }: any) {
                   zoomEnabled={true}
                   pitchEnabled={true}
                   rotateEnabled={true}
-                  onRegionChangeComplete={(reg) => {
+                  onPanDrag={() => {
+                    isMapDragged.current = true;
+                  }}
+                  onRegionChangeComplete={(reg, details) => {
                     setLocation(reg);
+                    const wasDragged = details?.isGesture || isMapDragged.current;
                     if (isProgrammaticMove.current) {
                       isProgrammaticMove.current = false;
-                    } else {
+                      isMapDragged.current = false; // Reset just in case
+                    } else if (wasDragged) {
+                      isMapDragged.current = false;
                       reverseGeocode(reg.latitude, reg.longitude);
                     }
                   }}
@@ -1124,5 +1233,52 @@ const styles = StyleSheet.create({
     marginTop: -40,
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  suggestionOverlay: {
+    position: 'absolute',
+    top: 65,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 9999,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  suggestionItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDF2F7',
+  },
+  suggestionText: {
+    fontSize: 12.5,
+    color: '#2D3748',
+    flex: 1,
+    lineHeight: 16,
+  },
+  suggestionLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    position: 'absolute',
+    top: 65,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
   },
 });
