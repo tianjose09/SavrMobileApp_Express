@@ -10,6 +10,13 @@ import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
 import NotificationBell from '../../components/NotificationBell';
 
+/** Returns "FirstName LastName" – skips any middle name(s) */
+const getFirstLastName = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 2) return fullName.trim();
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 export default function DonorDashboard({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('Juan Dela Cruz');
@@ -122,7 +129,7 @@ export default function DonorDashboard({ navigation }: any) {
       const localPic = await StorageUtils.getItem(picKey);
       if (localPic) setProfilePic(localPic);
 
-      setUserName(localName);
+      setUserName(getFirstLastName(localName));
       setSplitName(localName.split(' ')[0]);
       setInitial(localName.charAt(0).toUpperCase());
 
@@ -132,7 +139,7 @@ export default function DonorDashboard({ navigation }: any) {
         const data = dashRes.data;
 
         if (data.display_name) {
-          setUserName(data.display_name);
+          setUserName(getFirstLastName(data.display_name));
           setSplitName(data.display_name.split(' ')[0]);
           setInitial(data.display_name.charAt(0).toUpperCase());
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
@@ -623,6 +630,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     flexShrink: 1,
+    flexWrap: 'wrap',
   },
 
   whiteSheet: {

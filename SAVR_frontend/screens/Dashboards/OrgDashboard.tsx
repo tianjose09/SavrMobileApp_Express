@@ -10,6 +10,13 @@ import { ApiService } from '../../services/api';
 import { BADGE_IMAGES } from '../../utils/badges';
 import NotificationBell from '../../components/NotificationBell';
 
+/** Returns "FirstName LastName" – skips any middle name(s) */
+const getFirstLastName = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 2) return fullName.trim();
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 export default function OrgDashboard({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('');
@@ -122,7 +129,7 @@ export default function OrgDashboard({ navigation }: any) {
           }
         } catch (_) {}
       }
-      setUserName(bestLocalName || 'NGO Partner');
+      setUserName(getFirstLastName(bestLocalName || 'NGO Partner'));
       setInitial((bestLocalName || 'N').charAt(0).toUpperCase());
 
       try {
@@ -131,7 +138,7 @@ export default function OrgDashboard({ navigation }: any) {
           const data = dashRes.data;
 
           if (data.display_name) {
-            setUserName(data.display_name);
+            setUserName(getFirstLastName(data.display_name));
             setInitial(data.display_name.charAt(0).toUpperCase());
             StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
           }
@@ -554,6 +561,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     flexShrink: 1,
+    flexWrap: 'wrap',
   },
 
   whiteSheet: {

@@ -67,6 +67,23 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
     setShowIOSDatePicker(false);
   };
 
+  /**
+   * Auto-formats expiry input as MM/DD/YYYY.
+   * Slashes are inserted automatically after 2nd and 4th digit.
+   */
+  const handleExpiryInput = (text: string) => {
+    // Strip everything that is not a digit
+    const digits = text.replace(/[^0-9]/g, '');
+
+    let formatted = digits;
+    if (digits.length > 2 && digits.length <= 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+    setExpiryText(formatted);
+  };
+
   const handleAddFood = async () => {
     if (!foodName || !category || !quantity || !unit) {
       Alert.alert('Required', 'Please fill out all required fields first!');
@@ -241,7 +258,9 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                   placeholder="mm/dd/yyyy"
                   placeholderTextColor="rgba(255,255,255,0.7)"
                   value={expiryText}
-                  onChangeText={setExpiryText}
+                  onChangeText={handleExpiryInput}
+                  keyboardType="number-pad"
+                  maxLength={10}
                 />
                 <TouchableOpacity
                   onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : openAndroidDatePicker()}
