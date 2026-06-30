@@ -214,8 +214,10 @@ export default function ServiceDonation({ navigation }: any) {
         Alert.alert('Error', 'Please select delivery and return dates.');
         return;
       }
-      if (startsAt >= endsAt) {
-        Alert.alert('Invalid Date Range', 'Return date must be after delivery date.');
+      const startDay = new Date(startsAt.getFullYear(), startsAt.getMonth(), startsAt.getDate());
+      const endDay = new Date(endsAt.getFullYear(), endsAt.getMonth(), endsAt.getDate());
+      if (startDay > endDay) {
+        Alert.alert('Invalid Date Range', 'Return date cannot be before delivery date.');
         return;
       }
     }
