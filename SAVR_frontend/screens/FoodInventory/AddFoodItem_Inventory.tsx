@@ -47,7 +47,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
       const yyyy = selectedDate.getFullYear();
       const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const dd = String(selectedDate.getDate()).padStart(2, '0');
-      setExpiryText(`${yyyy}-${mm}-${dd}`);
+      setExpiryText(`${mm}/${dd}/${yyyy}`);
     }
   };
 
@@ -55,7 +55,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
     const yyyy = expiryDate.getFullYear();
     const mm = String(expiryDate.getMonth() + 1).padStart(2, '0');
     const dd = String(expiryDate.getDate()).padStart(2, '0');
-    setExpiryText(`${yyyy}-${mm}-${dd}`);
+    setExpiryText(`${mm}/${dd}/${yyyy}`);
     setShowIOSDatePicker(false);
   };
 
@@ -70,10 +70,20 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
       return;
     }
 
-    const entered = new Date(expiryText);
+    const parts = expiryText.split('/');
+    if (parts.length !== 3) {
+      Alert.alert('Invalid Date', 'Please enter a valid expiration date (MM/DD/YYYY).');
+      return;
+    }
+    const mm = parts[0];
+    const dd = parts[1];
+    const yyyy = parts[2];
+    const formattedExpiry = `${yyyy}-${mm}-${dd}`;
+
+    const entered = new Date(formattedExpiry);
     entered.setHours(0, 0, 0, 0);
     if (isNaN(entered.getTime())) {
-      Alert.alert('Invalid Date', 'Please enter a valid expiration date (YYYY-MM-DD).');
+      Alert.alert('Invalid Date', 'Please enter a valid expiration date (MM/DD/YYYY).');
       return;
     }
     if (entered < today) {
@@ -84,12 +94,12 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
     setIsSubmitting(true);
     try {
       await ApiService.addInventory({
-        food_name:       foodName,
+        food_name: foodName,
         category,
-        quantity:        parseFloat(quantity),
+        quantity: parseFloat(quantity),
         unit,
-        expiration_date: expiryText || null,
-        meal_type:       'Raw Ingredients',
+        expiration_date: formattedExpiry || null,
+        meal_type: 'Raw Ingredients',
       });
 
       Alert.alert(
@@ -124,147 +134,147 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#0e6a31"
-            colors={['#0e6a31']}
-          />
-        }
-      >
-
-        {/* TITLE */}
-        <Text style={styles.heroTitle}>Add Food Items</Text>
-
-        {/* GREEN CARD WRAPPER */}
-        <View style={styles.card}>
-
-          <View style={styles.inputGroupOuter}>
-            <Text style={styles.label}>Food Item Name <Text style={{ color: '#F5B922' }}>*</Text></Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Rice, Canned Goods, Vegetables"
-              placeholderTextColor="rgba(255,255,255,0.7)"
-              value={foodName}
-              onChangeText={setFoodName}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#0e6a31"
+              colors={['#0e6a31']}
             />
-          </View>
+          }
+        >
 
-          <View style={styles.inputGroupOuter}>
-            <Text style={styles.label}>Category <Text style={{ color: '#F5B922' }}>*</Text></Text>
-            <CustomDropdown
-              selectedValue={category}
-              onValueChange={(val) => {
-                setCategory(val);
-                if (val === 'Canned Goods') {
-                  setUnit('pcs');
-                }
-              }}
-              placeholder="Select Category"
-              items={[
-                { label: "Canned Goods: Non-Perishable", value: "Canned Goods" },
-                { label: "Dairy: Perishable", value: "Dairy" },
-                { label: "Dry Goods: Non-Perishable", value: "Dry Goods" },
-                { label: "Fats & Oils: Non-Perishable", value: "Fats & Oils" },
-                { label: "Fruits: Perishable", value: "Fruits" },
-                { label: "Grains & Cereals: Non-Perishable", value: "Grains & Cereals" },
-                { label: "Liquid Goods: Non-Perishable", value: "Liquid Goods" },
-                { label: "Beverages: Non-Perishable", value: "Beverages" },
-                { label: "Meat: Perishable", value: "Meat" },
-                { label: "Sugars & Sweets: Non-Perishable", value: "Sugars & Sweets" },
-                { label: "Protein Alternatives: Both", value: "Protein Alternatives" },
-                { label: "Vegetables: Perishable", value: "Vegetables" },
-              ]}
-              style={styles.input}
-            />
-          </View>
+          {/* TITLE */}
+          <Text style={styles.heroTitle}>Add Food Items</Text>
 
-          <View style={styles.row}>
-            <View style={[styles.inputGroupOuter, { flex: 1, marginRight: 15 }]}>
-              <Text style={styles.label}>Quantity <Text style={{ color: '#F5B922' }}>*</Text></Text>
+          {/* GREEN CARD WRAPPER */}
+          <View style={styles.card}>
+
+            <View style={styles.inputGroupOuter}>
+              <Text style={styles.label}>Food Item Name <Text style={{ color: '#DCAB18' }}>*</Text></Text>
               <TextInput
                 style={styles.input}
-                placeholder="10"
+                placeholder="e.g., Rice, Canned Goods, Vegetables"
                 placeholderTextColor="rgba(255,255,255,0.7)"
-                keyboardType="numeric"
-                value={quantity}
-                onChangeText={setQuantity}
+                value={foodName}
+                onChangeText={setFoodName}
               />
             </View>
 
-            <View style={[styles.inputGroupOuter, { flex: 1 }]}>
-              <Text style={styles.label}>Unit <Text style={{ color: '#F5B922' }}>*</Text></Text>
+            <View style={styles.inputGroupOuter}>
+              <Text style={styles.label}>Category <Text style={{ color: '#DCAB18' }}>*</Text></Text>
               <CustomDropdown
-                selectedValue={unit}
-                onValueChange={setUnit}
-                placeholder="kg"
+                selectedValue={category}
+                onValueChange={(val) => {
+                  setCategory(val);
+                  if (val === 'Canned Goods') {
+                    setUnit('pcs');
+                  }
+                }}
+                placeholder="Select Category"
                 items={[
-                  { label: "kg", value: "kg" },
-                  { label: "pcs", value: "pcs" },
-                  { label: "meal", value: "meal" },
-                  { label: "L", value: "L" }
+                  { label: "Canned Goods: Non-Perishable", value: "Canned Goods" },
+                  { label: "Dairy: Perishable", value: "Dairy" },
+                  { label: "Dry Goods: Non-Perishable", value: "Dry Goods" },
+                  { label: "Fats & Oils: Non-Perishable", value: "Fats & Oils" },
+                  { label: "Fruits: Perishable", value: "Fruits" },
+                  { label: "Grains & Cereals: Non-Perishable", value: "Grains & Cereals" },
+                  { label: "Liquid Goods: Non-Perishable", value: "Liquid Goods" },
+                  { label: "Beverages: Non-Perishable", value: "Beverages" },
+                  { label: "Meat: Perishable", value: "Meat" },
+                  { label: "Sugars & Sweets: Non-Perishable", value: "Sugars & Sweets" },
+                  { label: "Protein Alternatives: Both", value: "Protein Alternatives" },
+                  { label: "Vegetables: Perishable", value: "Vegetables" },
                 ]}
                 style={styles.input}
-                disableSort={true}
               />
             </View>
-          </View>
 
-          <View style={styles.inputGroupOuter}>
-            <Text style={styles.label}>Expiration Date <Text style={{ color: '#F5B922' }}>*</Text></Text>
-            <View style={{ position: 'relative', justifyContent: 'center' }}>
-              <TextInput
-                style={[styles.input, { paddingRight: 35 }]}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="rgba(255,255,255,0.7)"
-                value={expiryText}
-                onChangeText={setExpiryText}
-              />
-              <TouchableOpacity
-                onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : setShowDatePicker(true)}
-                style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 50, justifyContent: 'center', alignItems: 'center' }}
-              >
-                <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.9)" />
-              </TouchableOpacity>
+            <View style={styles.row}>
+              <View style={[styles.inputGroupOuter, { flex: 1, marginRight: 15 }]}>
+                <Text style={styles.label}>Quantity <Text style={{ color: '#DCAB18' }}>*</Text></Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Input Quantity"
+                  placeholderTextColor="rgba(255,255,255,0.7)"
+                  keyboardType="numeric"
+                  value={quantity}
+                  onChangeText={setQuantity}
+                />
+              </View>
+
+              <View style={[styles.inputGroupOuter, { flex: 1 }]}>
+                <Text style={styles.label}>Unit <Text style={{ color: '#DCAB18' }}>*</Text></Text>
+                <CustomDropdown
+                  selectedValue={unit}
+                  onValueChange={setUnit}
+                  placeholder="kg"
+                  items={[
+                    { label: "kg", value: "kg" },
+                    { label: "pcs", value: "pcs" },
+                    { label: "meal", value: "meal" },
+                    { label: "L", value: "L" }
+                  ]}
+                  style={styles.input}
+                  disableSort={true}
+                />
+              </View>
             </View>
-            {Platform.OS === 'android' && showDatePicker && (
-              <DateTimePicker value={expiryDate} mode="date" display="default" minimumDate={today} onChange={onDateChange} />
-            )}
-            <Modal visible={showIOSDatePicker} transparent animationType="slide">
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalSheet}>
-                  <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={() => setShowIOSDatePicker(false)}>
-                      <Text style={styles.modalCancel}>Cancel</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.modalTitle}>Expiration Date</Text>
-                    <TouchableOpacity onPress={confirmIOSExpiry}>
-                      <Text style={styles.modalDone}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-                    <DateTimePicker value={expiryDate} mode="date" display="spinner" minimumDate={today} onChange={(e, d) => { if (d) setExpiryDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+
+            <View style={styles.inputGroupOuter}>
+              <Text style={styles.label}>Expiration Date <Text style={{ color: '#DCAB18' }}>*</Text></Text>
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
+                <TextInput
+                  style={[styles.input, { paddingRight: 35 }]}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor="rgba(255,255,255,0.7)"
+                  value={expiryText}
+                  onChangeText={setExpiryText}
+                />
+                <TouchableOpacity
+                  onPress={() => Platform.OS === 'ios' ? setShowIOSDatePicker(true) : setShowDatePicker(true)}
+                  style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 50, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.9)" />
+                </TouchableOpacity>
+              </View>
+              {Platform.OS === 'android' && showDatePicker && (
+                <DateTimePicker value={expiryDate} mode="date" display="default" minimumDate={today} onChange={onDateChange} />
+              )}
+              <Modal visible={showIOSDatePicker} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalSheet}>
+                    <View style={styles.modalHeader}>
+                      <TouchableOpacity onPress={() => setShowIOSDatePicker(false)}>
+                        <Text style={styles.modalCancel}>Cancel</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.modalTitle}>Expiration Date</Text>
+                      <TouchableOpacity onPress={confirmIOSExpiry}>
+                        <Text style={styles.modalDone}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                      <DateTimePicker value={expiryDate} mode="date" display="spinner" minimumDate={today} onChange={(e, d) => { if (d) setExpiryDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Modal>
+              </Modal>
+            </View>
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleAddFood} disabled={isSubmitting}>
+              <Text style={styles.submitBtnText}>
+                {isSubmitting ? "ADDING..." : "+ ADD FOOD"}
+              </Text>
+            </TouchableOpacity>
+
           </View>
 
-          <TouchableOpacity style={styles.submitBtn} onPress={handleAddFood} disabled={isSubmitting}>
-            <Text style={styles.submitBtnText}>
-              {isSubmitting ? "ADDING..." : "+ ADD FOOD"}
-            </Text>
-          </TouchableOpacity>
-
-        </View>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
+          <View style={{ height: 120 }} />
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -283,6 +293,8 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 26,
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#EAEAEA',
   },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   scrollContent: {
@@ -352,7 +364,7 @@ const styles = StyleSheet.create({
   },
 
   submitBtn: {
-    backgroundColor: '#F5B922',
+    backgroundColor: '#DCAB18',
     borderRadius: 22,
     height: 52,
     justifyContent: 'center',

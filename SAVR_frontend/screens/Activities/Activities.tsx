@@ -295,7 +295,7 @@ export default function Activities({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#00592d',
+    backgroundColor: '#FFFFFF',
   },
 
   greenHeader: {

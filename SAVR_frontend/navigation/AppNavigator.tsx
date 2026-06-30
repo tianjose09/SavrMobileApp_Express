@@ -290,7 +290,7 @@ function MainTabs() {
         tabBarActiveTintColor: '#FFF',
         tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
         tabBarStyle: {
-          backgroundColor: '#00592d',
+          backgroundColor: Platform.OS === 'android' ? '#FFFFFF' : '#00592d',
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
           height: 70 + insets.bottom,
@@ -307,6 +307,16 @@ function MainTabs() {
           shadowOpacity: 0.1,
           shadowRadius: 10,
         },
+        tabBarBackground: () => (
+          <View
+            style={{
+              backgroundColor: '#00592d',
+              height: Platform.OS === 'android' ? 70 : 70 + insets.bottom,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+            }}
+          />
+        ),
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: 'bold',

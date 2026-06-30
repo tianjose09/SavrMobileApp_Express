@@ -97,8 +97,7 @@ export default function GlobalAlertModal() {
           onPress={handleBackdropPress}
         />
         <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
-          {/* Top colored accent line */}
-          <View style={[styles.accentLine, { backgroundColor: iconCfg.color }]} />
+
 
           {/* Icon */}
           <View style={styles.iconContainer}>
@@ -186,13 +185,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     overflow: 'hidden',
   },
-  accentLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
+
   iconContainer: {
     marginBottom: 14,
   },

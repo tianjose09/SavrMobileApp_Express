@@ -573,7 +573,7 @@ export default function AddRecipe({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 280 }} />
+          <View style={{ height: 20 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1024,19 +1024,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#156133',
-    paddingVertical: 16,
-    borderRadius: 30,
-    shadowColor: '#0c3e20',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: '#DCAB18',
+    borderRadius: 22,
+    height: 52,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    marginHorizontal: 35,
   },
   premiumSaveBtnText: {
-    color: '#FFF',
-    fontSize: 17,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
 });

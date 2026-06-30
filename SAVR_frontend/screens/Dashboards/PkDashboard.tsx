@@ -176,260 +176,260 @@ export default function PkDashboard({ navigation }: any) {
       </Animated.View>
 
       <View style={[styles.container, { flex: 1 }]}>
-          {/* TOP BAR HEADER */}
-          <View style={styles.topHeader}>
-            <Image
-              source={require('../../assets/images/logo/logowhite.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <NotificationBell navigation={navigation} color="#FFFFFF" size={26} style={{ marginRight: 5 }} />
-              <TouchableOpacity
-                onPress={() => navigation.openDrawer()}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
+        {/* TOP BAR HEADER */}
+        <View style={styles.topHeader}>
+          <Image
+            source={require('../../assets/images/logo/logowhite.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <NotificationBell navigation={navigation} color="#FFFFFF" size={26} style={{ marginRight: 5 }} />
+            <TouchableOpacity
+              onPress={() => navigation.openDrawer()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="menu-outline" size={32} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
+
+          {/* PROFILE HEADER SECTION */}
+          <View style={styles.profileHeader}>
+            <View style={styles.profileRow}>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarCircle}>
+                {profilePic ? (
+                  <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
+                ) : (
+                  <Text style={styles.avatarText}>{initial || 'P'}</Text>
+                )}
               </TouchableOpacity>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
+                <Text style={[styles.userName, { marginLeft: 0 }]} numberOfLines={1}>{userName}</Text>
+              </View>
             </View>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
+          {/* WHITE BODY SECTION */}
+          <View style={styles.whiteBody}>
+            <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
+            <Text style={styles.subTitle}>
+              Here's your kitchen dashboard — keep making an impact!
+            </Text>
 
-            {/* PROFILE HEADER SECTION */}
-            <View style={styles.profileHeader}>
-              <View style={styles.profileRow}>
-                <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarCircle}>
-                  {profilePic ? (
-                    <Image source={{ uri: profilePic }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
-                  ) : (
-                    <Text style={styles.avatarText}>{initial || 'P'}</Text>
-                  )}
-                </TouchableOpacity>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
-                  <Text style={[styles.userName, { marginLeft: 0 }]} numberOfLines={1}>{userName}</Text>
+            {/* 4 CARDS GRID */}
+            <View style={styles.gridContainer}>
+              {/* Card 1 */}
+              <LinearGradient
+                colors={['#F9D038', '#D39C16']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.card}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                  style={styles.glassCardGloss}
+                />
+                <View style={styles.cardIconWrap}>
+                  <MaterialCommunityIcons name="package-variant-closed" size={48} color="#FFF" />
                 </View>
-              </View>
+                <View style={styles.cardTextWrap}>
+                  <Text style={styles.cardValue}>{inventoryCount}</Text>
+                  <Text style={styles.cardLabel}>Inventory Items</Text>
+                </View>
+              </LinearGradient>
+
+              {/* Card 2 */}
+              <LinearGradient
+                colors={['#F9D038', '#D39C16']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.card}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                  style={styles.glassCardGloss}
+                />
+                <View style={styles.cardIconWrap}>
+                  <Ionicons name="restaurant" size={46} color="#FFF" />
+                </View>
+                <View style={styles.cardTextWrap}>
+                  <Text style={styles.cardValue}>{mealsServed}</Text>
+                  <Text style={styles.cardLabel}>Meals Served</Text>
+                </View>
+              </LinearGradient>
+
+              {/* Card 3 */}
+              <LinearGradient
+                colors={['#008f51', '#00592d']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.card}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                  style={styles.glassCardGloss}
+                />
+                <View style={styles.cardIconWrap}>
+                  <Ionicons name="warning-outline" size={54} color="#FFF" />
+                </View>
+                <View style={styles.cardTextWrap}>
+                  <Text style={styles.cardValue}>{lowStockCount}</Text>
+                  <Text style={styles.cardLabel}>Low Stock</Text>
+                </View>
+              </LinearGradient>
+
+              {/* Card 4 */}
+              <LinearGradient
+                colors={['#008f51', '#00592d']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.card}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                  style={styles.glassCardGloss}
+                />
+                <View style={styles.cardIconWrap}>
+                  <Ionicons name="hourglass-outline" size={44} color="#FFF" />
+                </View>
+                <View style={styles.cardTextWrap}>
+                  <Text style={styles.cardValue}>{expiringCount}</Text>
+                  <Text style={styles.cardLabel}>Expiring Soon</Text>
+                </View>
+              </LinearGradient>
             </View>
 
-            {/* WHITE BODY SECTION */}
-            <View style={styles.whiteBody}>
-              <Text style={styles.mainTitle}>Kitchen Dashboard</Text>
-              <Text style={styles.subTitle}>
-                Here's your kitchen dashboard — keep making an impact!
-              </Text>
+            <View style={styles.divider} />
 
-              {/* 4 CARDS GRID */}
-              <View style={styles.gridContainer}>
-                {/* Card 1 */}
-                <LinearGradient
-                  colors={['#F9D038', '#D39C16']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.card}
-                >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
-                    style={styles.glassCardGloss}
-                  />
-                  <View style={styles.cardIconWrap}>
-                    <MaterialCommunityIcons name="package-variant-closed" size={48} color="#FFF" />
-                  </View>
-                  <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardValue}>{inventoryCount}</Text>
-                    <Text style={styles.cardLabel}>Inventory Items</Text>
-                  </View>
-                </LinearGradient>
-
-                {/* Card 2 */}
-                <LinearGradient
-                  colors={['#F9D038', '#D39C16']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.card}
-                >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
-                    style={styles.glassCardGloss}
-                  />
-                  <View style={styles.cardIconWrap}>
-                    <Ionicons name="restaurant" size={46} color="#FFF" />
-                  </View>
-                  <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardValue}>{mealsServed}</Text>
-                    <Text style={styles.cardLabel}>Meals Served</Text>
-                  </View>
-                </LinearGradient>
-
-                {/* Card 3 */}
-                <LinearGradient
-                  colors={['#008f51', '#00592d']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.card}
-                >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
-                    style={styles.glassCardGloss}
-                  />
-                  <View style={styles.cardIconWrap}>
-                    <Ionicons name="warning-outline" size={54} color="#FFF" />
-                  </View>
-                  <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardValue}>{lowStockCount}</Text>
-                    <Text style={styles.cardLabel}>Low Stock</Text>
-                  </View>
-                </LinearGradient>
-
-                {/* Card 4 */}
-                <LinearGradient
-                  colors={['#008f51', '#00592d']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.card}
-                >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
-                    style={styles.glassCardGloss}
-                  />
-                  <View style={styles.cardIconWrap}>
-                    <Ionicons name="hourglass-outline" size={44} color="#FFF" />
-                  </View>
-                  <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardValue}>{expiringCount}</Text>
-                    <Text style={styles.cardLabel}>Expiring Soon</Text>
-                  </View>
-                </LinearGradient>
+            {/* STAFF MEAL REQUESTS */}
+            <View style={{ marginTop: 25, paddingBottom: 15, paddingHorizontal: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <FontAwesome5 name="sync-alt" size={12} color="#00592d" />
+                <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '800', color: '#00592d', letterSpacing: 0.5 }}>STAFF MEAL REQUESTS</Text>
               </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.drivesScroll}>
+                {staffRequests.map((reqItem, idx) => {
+                  const gradientColors: [string, string] = idx % 2 === 0
+                    ? ['#E29C20', '#E29C20']
+                    : ['#D87A38', '#D87A38'];
 
-              <View style={styles.divider} />
+                  const mealItems: any[] = Array.isArray(reqItem.items) ? reqItem.items : [];
+                  const mainMeal = mealItems[0] || { food_name: 'Meal', quantity: 0, unit: 'servings' };
 
-              {/* STAFF MEAL REQUESTS */}
-              <View style={{ marginTop: 25, paddingBottom: 15, paddingHorizontal: 4 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <FontAwesome5 name="sync-alt" size={12} color="#00592d" />
-                  <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '800', color: '#00592d', letterSpacing: 0.5 }}>STAFF MEAL REQUESTS</Text>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.drivesScroll}>
-                  {staffRequests.map((reqItem, idx) => {
-                    const gradientColors: [string, string] = idx % 2 === 0
-                      ? ['#E29C20', '#E29C20']
-                      : ['#D87A38', '#D87A38'];
-
-                    const mealItems: any[] = Array.isArray(reqItem.items) ? reqItem.items : [];
-                    const mainMeal = mealItems[0] || { food_name: 'Meal', quantity: 0, unit: 'servings' };
-
-                    return (
-                      <View style={styles.driveCard} key={reqItem.id || idx}>
+                  return (
+                    <View style={styles.driveCard} key={reqItem.id || idx}>
+                      <LinearGradient
+                        colors={gradientColors}
+                        style={styles.driveCardGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
                         <LinearGradient
-                          colors={gradientColors}
-                          style={styles.driveCardGradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                        >
-                          <LinearGradient
-                            colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
-                            style={StyleSheet.absoluteFillObject}
-                          />
+                          colors={['rgba(255, 255, 255, 0.15)', 'rgba(0, 0, 0, 0.05)']}
+                          style={StyleSheet.absoluteFillObject}
+                        />
 
-                          <View style={styles.driveCardContent}>
-                            <View>
-                              <Text style={styles.driveName} numberOfLines={2}>{reqItem.drive_title}</Text>
-                              <View style={styles.driveTopRow}>
-                                <View style={styles.driveStatusWrap}>
-                                  <Text style={styles.driveStatus}>Meal Prep</Text>
-                                </View>
-                                <View style={[styles.driveUrgencyWrap, { backgroundColor: reqItem.urgency?.toLowerCase() === 'high' ? '#D0112B' : (reqItem.urgency?.toLowerCase() === 'medium' ? '#B45309' : '#00592d') }]}>
-                                  <Text style={styles.driveUrgency}>{reqItem.urgency ? reqItem.urgency.charAt(0).toUpperCase() + reqItem.urgency.slice(1).toLowerCase() : ''} Urgency</Text>
-                                </View>
+                        <View style={styles.driveCardContent}>
+                          <View>
+                            <Text style={styles.driveName} numberOfLines={2}>{reqItem.drive_title}</Text>
+                            <View style={styles.driveTopRow}>
+                              <View style={styles.driveStatusWrap}>
+                                <Text style={styles.driveStatus}>Meal Prep</Text>
                               </View>
-                              {reqItem.start_date && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                                  <FontAwesome5 name="calendar-alt" size={10} color="rgba(255,255,255,0.7)" />
-                                  <Text style={[styles.driveDate, { marginBottom: 0, marginLeft: 6 }]}>
-                                    {new Date(reqItem.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                    {reqItem.end_date ? ` - ${new Date(reqItem.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-                                  </Text>
-                                </View>
-                              )}
+                              <View style={[styles.driveUrgencyWrap, { backgroundColor: reqItem.urgency?.toLowerCase() === 'high' ? '#D0112B' : (reqItem.urgency?.toLowerCase() === 'medium' ? '#B45309' : '#00592d') }]}>
+                                <Text style={styles.driveUrgency}>{reqItem.urgency ? reqItem.urgency.charAt(0).toUpperCase() + reqItem.urgency.slice(1).toLowerCase() : ''} Urgency</Text>
+                              </View>
                             </View>
-
-                            <View style={styles.driveItemsBox}>
-                              <Text style={styles.driveItemsLabel}>MEALS TO PREPARE</Text>
-                              {mealItems.slice(0, 2).map((item: any, i: number) => (
-                                <View key={i} style={styles.driveItemRow}>
-                                  <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name}</Text>
-                                  <Text style={styles.driveItemQty}>{Math.round(item.quantity)} {item.unit}</Text>
-                                </View>
-                              ))}
-                              {mealItems.length > 2 && (
-                                <View style={styles.driveItemRow}>
-                                  <Text style={styles.driveItemName}>+ {mealItems.length - 2} more items</Text>
-                                </View>
-                              )}
-                            </View>
-
-                            <TouchableOpacity
-                              style={styles.driveBtn}
-                              onPress={() => handleCookMeal(mainMeal.food_name, Math.round(parseFloat(mainMeal.quantity)) || 0, reqItem.id)}
-                            >
-                              <Text style={styles.driveBtnText}>Cook This Meal</Text>
-                              <FontAwesome5 name="chevron-right" size={9} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                            </TouchableOpacity>
+                            {reqItem.start_date && (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                <FontAwesome5 name="calendar-alt" size={10} color="rgba(255,255,255,0.7)" />
+                                <Text style={[styles.driveDate, { marginBottom: 0, marginLeft: 6 }]}>
+                                  {new Date(reqItem.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  {reqItem.end_date ? ` - ${new Date(reqItem.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                                </Text>
+                              </View>
+                            )}
                           </View>
-                        </LinearGradient>
-                      </View>
-                    );
-                  })}
-                  {staffRequests.length === 0 && (
-                    <View style={styles.driveEmpty}>
-                      <Text style={styles.driveEmptyText}>No active meal requests at the moment.</Text>
+
+                          <View style={styles.driveItemsBox}>
+                            <Text style={styles.driveItemsLabel}>MEALS TO PREPARE</Text>
+                            {mealItems.slice(0, 2).map((item: any, i: number) => (
+                              <View key={i} style={styles.driveItemRow}>
+                                <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name}</Text>
+                                <Text style={styles.driveItemQty}>{Math.round(item.quantity)} {item.unit}</Text>
+                              </View>
+                            ))}
+                            {mealItems.length > 2 && (
+                              <View style={styles.driveItemRow}>
+                                <Text style={styles.driveItemName}>+ {mealItems.length - 2} more items</Text>
+                              </View>
+                            )}
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.driveBtn}
+                            onPress={() => handleCookMeal(mainMeal.food_name, Math.round(parseFloat(mainMeal.quantity)) || 0, reqItem.id)}
+                          >
+                            <Text style={styles.driveBtnText}>Cook This Meal</Text>
+                            <FontAwesome5 name="chevron-right" size={9} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                          </TouchableOpacity>
+                        </View>
+                      </LinearGradient>
                     </View>
-                  )}
-                </ScrollView>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Activities</Text>
-                <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Activities List */}
-              <View style={styles.activitiesContainer}>
-                {isLoading && activities.length === 0 ? (
-                  <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
-                ) : activities.length === 0 ? (
-                  <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-                    <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
+                  );
+                })}
+                {staffRequests.length === 0 && (
+                  <View style={styles.driveEmpty}>
+                    <Text style={styles.driveEmptyText}>No active meal requests at the moment.</Text>
                   </View>
-                ) : (
-                  activities.slice(0, 2).map((act, i) => (
-                    <View key={i} style={styles.activityRow}>
-                      <View style={styles.activityLeft}>
-                        <Text style={styles.actTitle}>{act.title}</Text>
-                        <Text style={styles.actDesc}>{act.description}</Text>
-                      </View>
-                      <Text style={styles.actTime}>{act.time_ago}</Text>
-                    </View>
-                  ))
                 )}
-              </View>
+              </ScrollView>
+            </View>
 
-              <View style={{ height: 60 }} />
-        </View>
-      </ScrollView>
+            <View style={styles.divider} />
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Activities</Text>
+              <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Activities List */}
+            <View style={styles.activitiesContainer}>
+              {isLoading && activities.length === 0 ? (
+                <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
+              ) : activities.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                  <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
+                </View>
+              ) : (
+                activities.slice(0, 2).map((act, i) => (
+                  <View key={i} style={styles.activityRow}>
+                    <View style={styles.activityLeft}>
+                      <Text style={styles.actTitle}>{act.title}</Text>
+                      <Text style={styles.actDesc}>{act.description}</Text>
+                    </View>
+                    <Text style={styles.actTime}>{act.time_ago}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            <View style={{ height: 60 }} />
+          </View>
+        </ScrollView>
+      </View>
     </View>
-  </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#00592d' },
   scrollContent: { flexGrow: 1 },
 
   notificationBanner: {
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 36,
     paddingTop: 35,
     paddingHorizontal: 20,
-    paddingBottom: 130,
+    paddingBottom: 75,
   },
   mainTitle: {
     fontSize: 34,

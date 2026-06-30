@@ -324,7 +324,7 @@ export default function AchievementBadges({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={{ height: 50 }} />
+            <View style={{ height: 10 }} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -336,6 +336,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     backgroundColor: '#F8F8F8',
+    paddingBottom: 120,
   },
 
   greenHeader: {

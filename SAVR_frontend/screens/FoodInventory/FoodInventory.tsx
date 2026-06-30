@@ -248,8 +248,7 @@ export default function FoodInventory({ route, navigation }: any) {
                 </View>
 
                 {/* Empty space for bottom bar */}
-                <View style={{ height: 120 }} />
-                <View style={{ height: 120 }} />
+                <View style={{ height: 130 }} />
             </ScrollView>
         </View>
     );

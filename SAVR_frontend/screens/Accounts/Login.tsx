@@ -165,6 +165,9 @@ export default function Login({ navigation }: any) {
                 autoCorrect={false}
                 placeholder="Enter your email or username"
                 placeholderTextColor="rgba(255,255,255,0.55)"
+                textContentType="username"
+                autoComplete="username"
+                importantForAutofill="yes"
               />
             </View>
 
@@ -180,6 +183,9 @@ export default function Login({ navigation }: any) {
                   autoCapitalize="none"
                   placeholder="Enter your password"
                   placeholderTextColor="rgba(255,255,255,0.55)"
+                  textContentType="password"
+                  autoComplete="password"
+                  importantForAutofill="yes"
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
