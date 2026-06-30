@@ -463,7 +463,7 @@ export default function PkDashboard({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#00592d' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: { flexGrow: 1 },
 
   notificationBanner: {

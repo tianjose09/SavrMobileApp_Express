@@ -535,7 +535,7 @@ export default function DonorDashboard({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#00592d',
+    backgroundColor: '#FFFFFF',
   },
 
   notificationBanner: {
