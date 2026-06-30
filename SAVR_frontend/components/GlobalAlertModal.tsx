@@ -61,17 +61,46 @@ export default function GlobalAlertModal() {
     }
   };
 
-  // Determine icon type based on Title
   const getIconConfig = () => {
     const tLower = title.toLowerCase();
-    if (tLower.includes('success') || tLower.includes('confirm') || tLower.includes('created') || tLower.includes('sent') || tLower.includes('saved')) {
+    if (
+      tLower.includes('success') ||
+      tLower.includes('confirm') ||
+      tLower.includes('created') ||
+      tLower.includes('sent') ||
+      tLower.includes('saved') ||
+      tLower.includes('submitted') ||
+      tLower.includes('scheduled') ||
+      tLower.includes('added') ||
+      tLower.includes('received') ||
+      tLower.includes('done') ||
+      tLower.includes('complete') ||
+      tLower.includes('marked') ||
+      tLower.includes('✅') ||
+      tLower.includes('🎉')
+    ) {
       return { name: 'checkmark-circle-outline' as const, color: '#267A41' };
     }
-    if (tLower.includes('error') || tLower.includes('fail') || tLower.includes('invalid') || tLower.includes('locked') || tLower.includes('missing')) {
+    if (
+      tLower.includes('error') ||
+      tLower.includes('fail') ||
+      tLower.includes('invalid') ||
+      tLower.includes('locked') ||
+      tLower.includes('missing') ||
+      tLower.includes('required')
+    ) {
       return { name: 'alert-circle-outline' as const, color: '#C0392B' };
     }
-    if (tLower.includes('cancel') || tLower.includes('sure') || tLower.includes('delete') || tLower.includes('remove')) {
+    if (
+      tLower.includes('cancel') ||
+      tLower.includes('sure') ||
+      tLower.includes('delete') ||
+      tLower.includes('remove')
+    ) {
       return { name: 'help-circle-outline' as const, color: '#D35400' };
+    }
+    if (tLower.includes('notice') || tLower.includes('note') || tLower.includes('alert') || tLower.includes('info')) {
+      return { name: 'information-circle-outline' as const, color: '#2980B9' };
     }
     return { name: 'information-circle-outline' as const, color: '#00592d' };
   };

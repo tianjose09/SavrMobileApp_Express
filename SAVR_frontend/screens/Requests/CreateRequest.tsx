@@ -537,9 +537,17 @@ export default function CreateRequest({ navigation }: any) {
       const res = await ApiService.submitBeneficiaryRequest(payload);
       if (res.data.success) {
         resetForm();
-        Alert.alert('Success', 'Your request has been submitted successfully.');
+        const requestLabel = requestType === 'food' ? 'Food Request' : 'Financial Request';
+        Alert.alert(
+          `${requestLabel} Submitted!`,
+          `Your ${requestLabel.toLowerCase()} has been submitted successfully. You will be notified once it has been reviewed.`,
+          [{
+            text: 'OK',
+            onPress: () => navigation.goBack?.(),
+          }]
+        );
       } else {
-        Alert.alert('Error', res.data.message || 'Failed to submit request.');
+        Alert.alert('Submission Failed', res.data.message || 'Failed to submit request.');
         isSubmitting.current = false;
       }
     } catch (error: any) {

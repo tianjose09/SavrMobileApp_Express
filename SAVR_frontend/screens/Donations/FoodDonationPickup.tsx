@@ -357,19 +357,35 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       const response = await ApiService.submitFoodDonation(formData);
       if (response.data.success) {
         const donatedItemsStr = foodItems.map((fi: any) => `${fi.quantity} of ${fi.type}`).join(', ');
-        Alert.alert(
-          'Food Donation Received!',
-          `You successfully donated ${donatedItemsStr}. Thank you for your contribution!`,
-          [{ 
-            text: 'OK', 
-            onPress: () => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'ChooseDonation' }],
-              });
-            }
-          }]
-        );
+        if (scheduleType === 'pickup') {
+          Alert.alert(
+            'Pickup Scheduled!',
+            `You have scheduled a pickup for ${donatedItemsStr}. We will be in touch to confirm your pickup schedule. Thank you for your contribution!`,
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'ChooseDonation' }],
+                });
+              }
+            }]
+          );
+        } else {
+          Alert.alert(
+            'Delivery Scheduled!',
+            `You have scheduled to deliver ${donatedItemsStr}. Please deliver to our warehouse at Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 during your selected slot. Thank you for your contribution!`,
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'ChooseDonation' }],
+                });
+              }
+            }]
+          );
+        }
       } else {
         Alert.alert('Error', response.data.message || 'Failed to submit.');
       }

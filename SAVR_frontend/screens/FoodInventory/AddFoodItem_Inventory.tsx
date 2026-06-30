@@ -103,9 +103,9 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
       });
 
       Alert.alert(
-        'Success',
-        `You successfully added ${quantity} ${unit} of ${foodName}.`,
-        [{ text: 'Okay', onPress: () => navigation.goBack() }]
+        'Item Added!',
+        `${quantity} ${unit} of ${foodName} has been successfully added to your inventory.`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (e: any) {
       const message = e?.response?.data?.message || 'Error adding food. Please try again.';
