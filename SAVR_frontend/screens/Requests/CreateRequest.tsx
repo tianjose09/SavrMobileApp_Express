@@ -424,6 +424,12 @@ export default function CreateRequest({ navigation }: any) {
       if (event.type === 'dismissed' || !selectedDate) return;
     }
     const currentDate = selectedDate || dateObj;
+    const today = getToday();
+    const selectedDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    if (selectedDay < today) {
+      Alert.alert('Invalid Date', 'Date cannot be in the past.');
+      return;
+    }
     setDateObj(currentDate);
     const yyyy = currentDate.getFullYear();
     const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -445,6 +451,12 @@ export default function CreateRequest({ navigation }: any) {
       if (event.type === 'dismissed' || !selectedDate) return;
     }
     const currentDate = selectedDate || endDateObj;
+    const today = getToday();
+    const selectedDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    if (selectedDay < today) {
+      Alert.alert('Invalid Date', 'End date cannot be in the past.');
+      return;
+    }
     setEndDateObj(currentDate);
     const yyyy = currentDate.getFullYear();
     const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -884,7 +896,6 @@ export default function CreateRequest({ navigation }: any) {
                   value={dateObj}
                   mode="date"
                   display="default"
-                  minimumDate={getToday()}
                   onChange={onDateChange}
                 />
               )}
@@ -893,7 +904,6 @@ export default function CreateRequest({ navigation }: any) {
                   value={endDateObj}
                   mode="date"
                   display="default"
-                  minimumDate={getToday()}
                   onChange={onEndDateChange}
                 />
               )}

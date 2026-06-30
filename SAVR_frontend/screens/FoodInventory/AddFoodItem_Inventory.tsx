@@ -243,7 +243,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
                 </TouchableOpacity>
               </View>
               {Platform.OS === 'android' && showDatePicker && (
-                <DateTimePicker value={expiryDate} mode="date" display="default" minimumDate={today} onChange={onDateChange} />
+                <DateTimePicker value={expiryDate} mode="date" display="default" onChange={onDateChange} />
               )}
               <Modal visible={showIOSDatePicker} transparent animationType="slide">
                 <View style={styles.modalOverlay}>

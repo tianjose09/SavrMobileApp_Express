@@ -484,11 +484,16 @@ export default function FoodDonationDetails({ navigation, route }: any) {
             value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
             mode="date"
             display="default"
-            minimumDate={getToday()}
             onChange={(event, date) => {
               const currentId = showDatePickerId;
               setShowDatePickerId(null);
               if (event.type === 'set' && date && currentId) {
+                const today = getToday();
+                const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                if (selectedDay < today) {
+                  Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
+                  return;
+                }
                 updateItem(currentId, 'expiryDate', date);
               }
             }}
