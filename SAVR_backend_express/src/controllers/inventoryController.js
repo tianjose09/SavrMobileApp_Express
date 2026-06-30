@@ -70,7 +70,7 @@ db.execute(`
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
-    "SELECT * FROM food_inventory WHERE meal_type = 'Raw Ingredients' AND (category IS NULL OR (category != 'Prepared Meals' AND category != 'Prep Meal')) AND LOWER(unit) IN ('kg', 'pcs', 'l') ORDER BY food_name"
+    "SELECT * FROM food_inventory ORDER BY food_name"
   );
 
   return res.json({

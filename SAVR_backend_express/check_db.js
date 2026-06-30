@@ -12,7 +12,7 @@ const pool = new Pool({
 
 async function run() {
   try {
-    const res = await pool.query('SELECT * FROM food_donations LIMIT 1');
+    const res = await pool.query('SELECT * FROM food_inventory');
     console.log('QueryResult:', res.rows);
   } catch (e) {
     console.error('Error querying food_donations:', e);
