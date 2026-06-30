@@ -16,6 +16,26 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
   const [refreshing, setRefreshing] = useState(false);
 
+  // PICKUP States
+  const [pickupDate, setPickupDate] = useState<Date | null>(null);
+  const [pickupTimeFrom, setPickupTimeFrom] = useState<Date | null>(null);
+  const [pickupTimeTo, setPickupTimeTo] = useState<Date | null>(null);
+  const [dateInput, setDateInput] = useState('');
+  const [timeFromInput, setTimeFromInput] = useState('');
+  const [ampmFrom, setAmpmFrom] = useState<'AM' | 'PM'>('AM');
+  const [timeToInput, setTimeToInput] = useState('');
+  const [ampmTo, setAmpmTo] = useState<'AM' | 'PM'>('PM');
+
+  // DELIVERY States
+  const [deliveryDate, setDeliveryDate] = useState<Date | null>(null);
+  const [deliveryTimeFrom, setDeliveryTimeFrom] = useState<Date | null>(null);
+  const [deliveryTimeTo, setDeliveryTimeTo] = useState<Date | null>(null);
+  const [deliveryDateInput, setDeliveryDateInput] = useState('');
+  const [deliveryTimeFromInput, setDeliveryTimeFromInput] = useState('');
+  const [deliveryAmpmFrom, setDeliveryAmpmFrom] = useState<'AM' | 'PM'>('AM');
+  const [deliveryTimeToInput, setDeliveryTimeToInput] = useState('');
+  const [deliveryAmpmTo, setDeliveryAmpmTo] = useState<'AM' | 'PM'>('PM');
+
   const onRefresh = () => {
     setRefreshing(true);
     setPickupAddress('');
@@ -27,6 +47,15 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     setTimeToInput('');
     setAmpmFrom('AM');
     setAmpmTo('PM');
+
+    setDeliveryDate(null);
+    setDeliveryTimeFrom(null);
+    setDeliveryTimeTo(null);
+    setDeliveryDateInput('');
+    setDeliveryTimeFromInput('');
+    setDeliveryTimeToInput('');
+    setDeliveryAmpmFrom('AM');
+    setDeliveryAmpmTo('PM');
     setTimeout(() => setRefreshing(false), 500);
   };
 
@@ -43,23 +72,14 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     longitudeDelta: 0.0221,
   });
 
-  const [pickupDate, setPickupDate] = useState<Date | null>(null);
-  const [pickupTimeFrom, setPickupTimeFrom] = useState<Date | null>(null);
-  const [pickupTimeTo, setPickupTimeTo] = useState<Date | null>(null);
   const [showIOSDate, setShowIOSDate] = useState(false);
   const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
   const [showIOSDateTo, setShowIOSDateTo] = useState(false);
 
-  // Text input states for manual typing
-  const [dateInput, setDateInput] = useState('');
-  const [timeFromInput, setTimeFromInput] = useState('');
-  const [ampmFrom, setAmpmFrom] = useState<'AM' | 'PM'>('AM');
-  const [timeToInput, setTimeToInput] = useState('');
-  const [ampmTo, setAmpmTo] = useState<'AM' | 'PM'>('PM');
-
   const GREEN = '#00592d';
 
   const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const getTomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0, 0, 0, 0); return d; };
 
   // Parse "MM/DD/YYYY" → Date
   const parseDateInput = (text: string): Date | null => {
@@ -94,40 +114,72 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     if (digits.length <= 2) formatted = digits;
     else if (digits.length <= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
     else formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8);
-    setDateInput(formatted);
-    setPickupDate(parseDateInput(formatted));
+    
+    if (scheduleType === 'pickup') {
+      setDateInput(formatted);
+      setPickupDate(parseDateInput(formatted));
+    } else {
+      setDeliveryDateInput(formatted);
+      setDeliveryDate(parseDateInput(formatted));
+    }
   };
 
   // Auto-format time as user types (inserts colon)
   const handleTimeFromChange = (text: string) => {
     const digits = text.replace(/[^0-9]/g, '');
     const formatted = digits.length <= 2 ? digits : digits.slice(0, 2) + ':' + digits.slice(2, 4);
-    setTimeFromInput(formatted);
-    setPickupTimeFrom(parseTimeText(formatted, ampmFrom));
+    
+    if (scheduleType === 'pickup') {
+      setTimeFromInput(formatted);
+      setPickupTimeFrom(parseTimeText(formatted, ampmFrom));
+    } else {
+      setDeliveryTimeFromInput(formatted);
+      setDeliveryTimeFrom(parseTimeText(formatted, deliveryAmpmFrom));
+    }
   };
 
   const handleTimeToChange = (text: string) => {
     const digits = text.replace(/[^0-9]/g, '');
     const formatted = digits.length <= 2 ? digits : digits.slice(0, 2) + ':' + digits.slice(2, 4);
-    setTimeToInput(formatted);
-    setPickupTimeTo(parseTimeText(formatted, ampmTo));
+    
+    if (scheduleType === 'pickup') {
+      setTimeToInput(formatted);
+      setPickupTimeTo(parseTimeText(formatted, ampmTo));
+    } else {
+      setDeliveryTimeToInput(formatted);
+      setDeliveryTimeTo(parseTimeText(formatted, deliveryAmpmTo));
+    }
   };
 
   const toggleAmpmFrom = () => {
-    const next = ampmFrom === 'AM' ? 'PM' : 'AM';
-    setAmpmFrom(next);
-    if (timeFromInput.match(/^\d{1,2}:\d{2}$/)) setPickupTimeFrom(parseTimeText(timeFromInput, next));
+    if (scheduleType === 'pickup') {
+      const next = ampmFrom === 'AM' ? 'PM' : 'AM';
+      setAmpmFrom(next);
+      if (timeFromInput.match(/^\d{1,2}:\d{2}$/)) setPickupTimeFrom(parseTimeText(timeFromInput, next));
+    } else {
+      const next = deliveryAmpmFrom === 'AM' ? 'PM' : 'AM';
+      setDeliveryAmpmFrom(next);
+      if (deliveryTimeFromInput.match(/^\d{1,2}:\d{2}$/)) setDeliveryTimeFrom(parseTimeText(deliveryTimeFromInput, next));
+    }
   };
 
   const toggleAmpmTo = () => {
-    const next = ampmTo === 'AM' ? 'PM' : 'AM';
-    setAmpmTo(next);
-    if (timeToInput.match(/^\d{1,2}:\d{2}$/)) setPickupTimeTo(parseTimeText(timeToInput, next));
+    if (scheduleType === 'pickup') {
+      const next = ampmTo === 'AM' ? 'PM' : 'AM';
+      setAmpmTo(next);
+      if (timeToInput.match(/^\d{1,2}:\d{2}$/)) setPickupTimeTo(parseTimeText(timeToInput, next));
+    } else {
+      const next = deliveryAmpmTo === 'AM' ? 'PM' : 'AM';
+      setDeliveryAmpmTo(next);
+      if (deliveryTimeToInput.match(/^\d{1,2}:\d{2}$/)) setDeliveryTimeTo(parseTimeText(deliveryTimeToInput, next));
+    }
   };
 
   const openAndroidDate = () => {
+    const isPickup = scheduleType === 'pickup';
+    const currentDateValue = isPickup ? pickupDate : deliveryDate;
     DateTimePickerAndroid.open({
-      value: pickupDate || getToday(),
+      value: currentDateValue || getToday(),
       mode: 'date',
       // @ts-ignore accentColor exists at runtime but missing from older type definitions
       accentColor: GREEN,
@@ -139,19 +191,26 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             Alert.alert('Invalid Date', 'Date cannot be in the past.');
             return;
           }
-          setPickupDate(date);
           const m = String(date.getMonth() + 1).padStart(2, '0');
           const d = String(date.getDate()).padStart(2, '0');
           const y = date.getFullYear();
-          setDateInput(`${m}/${d}/${y}`);
+          if (isPickup) {
+            setPickupDate(date);
+            setDateInput(`${m}/${d}/${y}`);
+          } else {
+            setDeliveryDate(date);
+            setDeliveryDateInput(`${m}/${d}/${y}`);
+          }
         }
       },
     });
   };
 
   const openAndroidTimeFrom = () => {
-    const d = pickupTimeFrom ? new Date(pickupTimeFrom) : new Date();
-    if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
+    const isPickup = scheduleType === 'pickup';
+    const currentTimeFrom = isPickup ? pickupTimeFrom : deliveryTimeFrom;
+    const d = currentTimeFrom ? new Date(currentTimeFrom) : new Date();
+    if (!currentTimeFrom) d.setHours(7, 0, 0, 0);
     DateTimePickerAndroid.open({
       value: d,
       mode: 'time',
@@ -160,21 +219,30 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       accentColor: GREEN,
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
-          setPickupTimeFrom(date);
           let h = date.getHours();
           const min = date.getMinutes();
           const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
           h = h % 12 || 12;
-          setTimeFromInput(`${h}:${String(min).padStart(2, '0')}`);
-          setAmpmFrom(ap);
+          const formatted = `${h}:${String(min).padStart(2, '0')}`;
+          if (isPickup) {
+            setPickupTimeFrom(date);
+            setTimeFromInput(formatted);
+            setAmpmFrom(ap);
+          } else {
+            setDeliveryTimeFrom(date);
+            setDeliveryTimeFromInput(formatted);
+            setDeliveryAmpmFrom(ap);
+          }
         }
       },
     });
   };
 
   const openAndroidTimeTo = () => {
-    const d = pickupTimeTo ? new Date(pickupTimeTo) : new Date();
-    if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
+    const isPickup = scheduleType === 'pickup';
+    const currentTimeTo = isPickup ? pickupTimeTo : deliveryTimeTo;
+    const d = currentTimeTo ? new Date(currentTimeTo) : new Date();
+    if (!currentTimeTo) d.setHours(9, 0, 0, 0);
     DateTimePickerAndroid.open({
       value: d,
       mode: 'time',
@@ -183,13 +251,20 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       accentColor: GREEN,
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
-          setPickupTimeTo(date);
           let h = date.getHours();
           const min = date.getMinutes();
           const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
           h = h % 12 || 12;
-          setTimeToInput(`${h}:${String(min).padStart(2, '0')}`);
-          setAmpmTo(ap);
+          const formatted = `${h}:${String(min).padStart(2, '0')}`;
+          if (isPickup) {
+            setPickupTimeTo(date);
+            setTimeToInput(formatted);
+            setAmpmTo(ap);
+          } else {
+            setDeliveryTimeTo(date);
+            setDeliveryTimeToInput(formatted);
+            setDeliveryAmpmTo(ap);
+          }
         }
       },
     });
@@ -268,60 +343,90 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   }, []);
 
   const handleSubmit = async () => {
-    if (!pickupDate) {
+    const isPickup = scheduleType === 'pickup';
+    const targetDate = isPickup ? pickupDate : deliveryDate;
+    const targetTimeFrom = isPickup ? pickupTimeFrom : deliveryTimeFrom;
+    const targetTimeTo = isPickup ? pickupTimeTo : deliveryTimeTo;
+
+    if (!targetDate) {
       Alert.alert('Error', 'Please select a preferred date.');
       return;
     }
-    const today = getToday();
-    if (pickupDate < today) {
-      Alert.alert('Invalid Date', 'Please select today or a future date.');
-      return;
+
+    if (isPickup) {
+      const today = getToday();
+      if (targetDate < today) {
+        Alert.alert('Invalid Date', 'Please select today or a future date.');
+        return;
+      }
+    } else {
+      const tomorrow = getTomorrow();
+      if (targetDate < tomorrow) {
+        Alert.alert('Invalid Date', 'Please select a date starting from tomorrow onwards.');
+        return;
+      }
     }
-    if (!pickupTimeFrom || !pickupTimeTo) {
+
+    if (!targetTimeFrom || !targetTimeTo) {
       Alert.alert('Error', 'Please select both start and end times for the slot.');
       return;
     }
-    const fromHours = pickupTimeFrom.getHours();
-    const fromMinutes = pickupTimeFrom.getMinutes();
-    const toHours = pickupTimeTo.getHours();
-    const toMinutes = pickupTimeTo.getMinutes();
 
-    if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
-      return;
+    const fromHours = targetTimeFrom.getHours();
+    const fromMinutes = targetTimeFrom.getMinutes();
+    const toHours = targetTimeTo.getHours();
+    const toMinutes = targetTimeTo.getMinutes();
+
+    if (isPickup) {
+      if (fromHours < 7 || fromHours > 21 || (fromHours === 21 && fromMinutes > 0)) {
+        Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 9:00 PM.');
+        return;
+      }
+      if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
+        Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
+        return;
+      }
+    } else {
+      if (fromHours < 7 || fromHours > 17 || (fromHours === 17 && fromMinutes > 0)) {
+        Alert.alert('Invalid Time', 'Please select a start time between 7:00 AM and 5:00 PM.');
+        return;
+      }
+      if (toHours < 7 || toHours > 17 || (toHours === 17 && toMinutes > 0)) {
+        Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 5:00 PM.');
+        return;
+      }
     }
-    if (toHours < 7 || toHours > 21 || (toHours === 21 && toMinutes > 0)) {
-      Alert.alert('Invalid Time', 'Please select an end time between 7:00 AM and 9:00 PM.');
-      return;
-    }
-    if (pickupTimeFrom >= pickupTimeTo) {
+
+    if (targetTimeFrom >= targetTimeTo) {
       Alert.alert('Invalid Time Slot', 'End time must be after the start time.');
       return;
     }
+
     const now = new Date();
     const isToday =
-      pickupDate.getFullYear() === now.getFullYear() &&
-      pickupDate.getMonth() === now.getMonth() &&
-      pickupDate.getDate() === now.getDate();
+      targetDate.getFullYear() === now.getFullYear() &&
+      targetDate.getMonth() === now.getMonth() &&
+      targetDate.getDate() === now.getDate();
     if (isToday) {
-      const startDateTime = new Date(pickupDate);
+      const startDateTime = new Date(targetDate);
       startDateTime.setHours(fromHours, fromMinutes, 0, 0);
       if (startDateTime <= now) {
         Alert.alert('Invalid Time', 'The selected start time has already passed. Please choose a future time.');
         return;
       }
     }
-    if (scheduleType === 'pickup' && !pickupAddress.trim()) {
+
+    if (isPickup && !pickupAddress.trim()) {
       Alert.alert('Error', 'Please enter a pickup address.');
       return;
     }
+
     setIsLoading(true);
     try {
       const formData = new FormData();
-
       formData.append('schedule_type', scheduleType);
 
-      if (scheduleType === 'pickup') {
+      if (isPickup) {
         formData.append('pickup_latitude', location.latitude.toString());
         formData.append('pickup_longitude', location.longitude.toString());
         formData.append('pickup_address', pickupAddress.trim() || `${location.latitude}, ${location.longitude}`);
@@ -331,9 +436,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines');
       }
 
-      const finalDateStr = `${pickupDate.getFullYear()}-${String(pickupDate.getMonth() + 1).padStart(2, '0')}-${String(pickupDate.getDate()).padStart(2, '0')}`;
-      const fromStr = pickupTimeFrom.toTimeString().split(' ')[0].substring(0, 5);
-      const toStr = pickupTimeTo.toTimeString().split(' ')[0].substring(0, 5);
+      const finalDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+      const fromStr = targetTimeFrom.toTimeString().split(' ')[0].substring(0, 5);
+      const toStr = targetTimeTo.toTimeString().split(' ')[0].substring(0, 5);
       const finalTimeStr = `${fromStr} - ${toStr}`;
       formData.append('preferred_date', finalDateStr);
       formData.append('time_slot', finalTimeStr);
@@ -347,7 +452,6 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         photo_filename: fi.photoUri ? fi.photoUri.split('/').pop() : null,
       }))));
 
-      // Use plain 'food_images' field name (not indexed) so multer .array() picks them up
       foodItems.forEach((item: any) => {
         if (item.photoUri) {
           let filename = item.photoUri.split('/').pop() || `food_photo.jpg`;
@@ -362,7 +466,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       const response = await ApiService.submitFoodDonation(formData);
       if (response.data.success) {
         const donatedItemsStr = foodItems.map((fi: any) => `${fi.quantity} of ${fi.type}`).join(', ');
-        if (scheduleType === 'pickup') {
+        if (isPickup) {
           Alert.alert(
             'Pickup Scheduled!',
             `You have scheduled a pickup for ${donatedItemsStr}. We will be in touch to confirm your pickup schedule. Thank you for your contribution!`,
@@ -569,7 +673,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 style={styles.pickerTextInput}
                 placeholder="MM/DD/YYYY"
                 placeholderTextColor="rgba(0,89,45,0.45)"
-                value={dateInput}
+                value={scheduleType === 'pickup' ? dateInput : deliveryDateInput}
                 onChangeText={handleDateInputChange}
                 keyboardType="numeric"
                 maxLength={10}
@@ -577,8 +681,14 @@ export default function FoodDonationPickup({ route, navigation }: any) {
               <TouchableOpacity
                 style={styles.pickerIconBtn}
                 onPress={() => {
-                  if (Platform.OS === 'ios') { setTempPickupDate(pickupDate || getToday()); setShowIOSDate(true); }
-                  else openAndroidDate();
+                  const isPickup = scheduleType === 'pickup';
+                  const currentVal = isPickup ? pickupDate : deliveryDate;
+                  if (Platform.OS === 'ios') {
+                    setTempPickupDate(currentVal || getToday());
+                    setShowIOSDate(true);
+                  } else {
+                    openAndroidDate();
+                  }
                 }}
               >
                 <Ionicons name="calendar-outline" size={20} color="#8CA697" />
@@ -596,23 +706,27 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                     style={[styles.pickerTextInput, { flex: 1 }]}
                     placeholder="--:--"
                     placeholderTextColor="rgba(0,89,45,0.45)"
-                    value={timeFromInput}
+                    value={scheduleType === 'pickup' ? timeFromInput : deliveryTimeFromInput}
                     onChangeText={handleTimeFromChange}
                     keyboardType="numeric"
                     maxLength={5}
                   />
                   <TouchableOpacity style={styles.ampmBtn} onPress={toggleAmpmFrom}>
-                    <Text style={styles.ampmText}>{ampmFrom}</Text>
+                    <Text style={styles.ampmText}>{scheduleType === 'pickup' ? ampmFrom : deliveryAmpmFrom}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.pickerIconBtn}
                     onPress={() => {
+                      const isPickup = scheduleType === 'pickup';
+                      const currentVal = isPickup ? pickupTimeFrom : deliveryTimeFrom;
                       if (Platform.OS === 'ios') {
-                        const d = pickupTimeFrom ? new Date(pickupTimeFrom) : new Date();
-                        if (!pickupTimeFrom) d.setHours(7, 0, 0, 0);
+                        const d = currentVal ? new Date(currentVal) : new Date();
+                        if (!currentVal) d.setHours(7, 0, 0, 0);
                         setTempPickupTimeFrom(d);
                         setShowIOSDateFrom(true);
-                      } else openAndroidTimeFrom();
+                      } else {
+                        openAndroidTimeFrom();
+                      }
                     }}
                   >
                     <Ionicons name="time-outline" size={20} color="#8CA697" />
@@ -627,23 +741,27 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                     style={[styles.pickerTextInput, { flex: 1 }]}
                     placeholder="--:--"
                     placeholderTextColor="rgba(0,89,45,0.45)"
-                    value={timeToInput}
+                    value={scheduleType === 'pickup' ? timeToInput : deliveryTimeToInput}
                     onChangeText={handleTimeToChange}
                     keyboardType="numeric"
                     maxLength={5}
                   />
                   <TouchableOpacity style={styles.ampmBtn} onPress={toggleAmpmTo}>
-                    <Text style={styles.ampmText}>{ampmTo}</Text>
+                    <Text style={styles.ampmText}>{scheduleType === 'pickup' ? ampmTo : deliveryAmpmTo}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.pickerIconBtn}
                     onPress={() => {
+                      const isPickup = scheduleType === 'pickup';
+                      const currentVal = isPickup ? pickupTimeTo : deliveryTimeTo;
                       if (Platform.OS === 'ios') {
-                        const d = pickupTimeTo ? new Date(pickupTimeTo) : new Date();
-                        if (!pickupTimeTo) d.setHours(9, 0, 0, 0);
+                        const d = currentVal ? new Date(currentVal) : new Date();
+                        if (!currentVal) d.setHours(9, 0, 0, 0);
                         setTempPickupTimeTo(d);
                         setShowIOSDateTo(true);
-                      } else openAndroidTimeTo();
+                      } else {
+                        openAndroidTimeTo();
+                      }
                     }}
                   >
                     <Ionicons name="time-outline" size={20} color="#8CA697" />
@@ -662,15 +780,28 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
                 <Text style={styles.modalTitle}>Select Date</Text>
                 <TouchableOpacity onPress={() => {
-                  setPickupDate(tempPickupDate);
                   const m = String(tempPickupDate.getMonth() + 1).padStart(2, '0');
                   const d = String(tempPickupDate.getDate()).padStart(2, '0');
                   const y = tempPickupDate.getFullYear();
-                  setDateInput(`${m}/${d}/${y}`);
+                  if (scheduleType === 'pickup') {
+                    setPickupDate(tempPickupDate);
+                    setDateInput(`${m}/${d}/${y}`);
+                  } else {
+                    setDeliveryDate(tempPickupDate);
+                    setDeliveryDateInput(`${m}/${d}/${y}`);
+                  }
                   setShowIOSDate(false);
                 }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
-              <DateTimePicker value={tempPickupDate} mode="date" display="spinner" minimumDate={getToday()} onChange={(_, d) => { if (d) setTempPickupDate(d); }} style={{ width: 320, alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker
+                value={tempPickupDate}
+                mode="date"
+                display="spinner"
+                minimumDate={scheduleType === 'pickup' ? getToday() : getTomorrow()}
+                onChange={(_, d) => { if (d) setTempPickupDate(d); }}
+                style={{ width: 320, alignSelf: 'center' }}
+                textColor="#1a1a1a"
+              />
             </View>
           </View>
         </Modal>
@@ -683,13 +814,20 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <TouchableOpacity onPress={() => setShowIOSDateFrom(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
                 <Text style={styles.modalTitle}>Select Start Time</Text>
                 <TouchableOpacity onPress={() => {
-                  setPickupTimeFrom(tempPickupTimeFrom);
                   let h = tempPickupTimeFrom.getHours();
                   const min = tempPickupTimeFrom.getMinutes();
                   const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
                   h = h % 12 || 12;
-                  setTimeFromInput(`${h}:${String(min).padStart(2, '0')}`);
-                  setAmpmFrom(ap);
+                  const formatted = `${h}:${String(min).padStart(2, '0')}`;
+                  if (scheduleType === 'pickup') {
+                    setPickupTimeFrom(tempPickupTimeFrom);
+                    setTimeFromInput(formatted);
+                    setAmpmFrom(ap);
+                  } else {
+                    setDeliveryTimeFrom(tempPickupTimeFrom);
+                    setDeliveryTimeFromInput(formatted);
+                    setDeliveryAmpmFrom(ap);
+                  }
                   setShowIOSDateFrom(false);
                 }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>
@@ -706,13 +844,20 @@ export default function FoodDonationPickup({ route, navigation }: any) {
                 <TouchableOpacity onPress={() => setShowIOSDateTo(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
                 <Text style={styles.modalTitle}>Select End Time</Text>
                 <TouchableOpacity onPress={() => {
-                  setPickupTimeTo(tempPickupTimeTo);
                   let h = tempPickupTimeTo.getHours();
                   const min = tempPickupTimeTo.getMinutes();
                   const ap: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
                   h = h % 12 || 12;
-                  setTimeToInput(`${h}:${String(min).padStart(2, '0')}`);
-                  setAmpmTo(ap);
+                  const formatted = `${h}:${String(min).padStart(2, '0')}`;
+                  if (scheduleType === 'pickup') {
+                    setPickupTimeTo(tempPickupTimeTo);
+                    setTimeToInput(formatted);
+                    setAmpmTo(ap);
+                  } else {
+                    setDeliveryTimeTo(tempPickupTimeTo);
+                    setDeliveryTimeToInput(formatted);
+                    setDeliveryAmpmTo(ap);
+                  }
                   setShowIOSDateTo(false);
                 }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
               </View>

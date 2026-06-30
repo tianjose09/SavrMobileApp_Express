@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomDropdown from '../../components/CustomDropdown';
 import { ApiService } from '../../services/api';
@@ -17,6 +17,7 @@ interface FoodItem {
   unit: string;
   category: string;
   expiryDate: Date | null;
+  expiryDateText?: string;
   specialNotes: string;
   photoUri: string | null;
 }
@@ -49,9 +50,8 @@ export default function FoodDonationDetails({ navigation, route }: any) {
   };
 
   const [items, setItems] = useState<FoodItem[]>([
-    { id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null },
+    { id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, expiryDateText: '', specialNotes: '', photoUri: null },
   ]);
-  const [showDatePickerId, setShowDatePickerId] = useState<string | null>(null);
   const [showIOSDatePickerId, setShowIOSDatePickerId] = useState<string | null>(null);
   const [iosTempDate, setIosTempDate] = useState(new Date());
   const [categoryItems, setCategoryItems] = useState<{ label: string; value: string }[]>([]);
@@ -104,6 +104,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
         unit: di.unit || 'kg',
         category: di.category || '',
         expiryDate: null,
+        expiryDateText: '',
         specialNotes: '',
         photoUri: null,
       })));
@@ -121,11 +122,12 @@ export default function FoodDonationDetails({ navigation, route }: any) {
         unit: di.unit || 'kg',
         category: di.category || '',
         expiryDate: null,
+        expiryDateText: '',
         specialNotes: '',
         photoUri: null,
       })));
     } else {
-      setItems([{ id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null }]);
+      setItems([{ id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, expiryDateText: '', specialNotes: '', photoUri: null }]);
     }
     setTimeout(() => setRefreshing(false), 500);
   };
@@ -174,6 +176,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
         unit: 'kg',
         category: '',
         expiryDate: null,
+        expiryDateText: '',
         specialNotes: '',
         photoUri: null,
       },
@@ -199,6 +202,73 @@ export default function FoodDonationDetails({ navigation, route }: any) {
       }
       return item;
     }));
+  };
+
+  const updateItemAndText = (id: string, date: Date | null, dateText: string) => {
+    setItems(items.map((item) => {
+      if (item.id === id) {
+        const updated = { ...item, expiryDate: date, expiryDateText: dateText };
+        if (item.category === 'Canned Goods') {
+          updated.unit = 'pcs';
+        }
+        return updated;
+      }
+      return item;
+    }));
+  };
+
+  const parseDateInput = (text: string): Date | null => {
+    const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const m = parseInt(match[1]) - 1;
+    const d = parseInt(match[2]);
+    const y = parseInt(match[3]);
+    const date = new Date(y, m, d);
+    if (date.getFullYear() !== y || date.getMonth() !== m || date.getDate() !== d) return null;
+    return date;
+  };
+
+  const handleDateInputChange = (itemId: string, text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    if (digits.length <= 2) formatted = digits;
+    else if (digits.length <= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+    else formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8);
+
+    const parsedDate = parseDateInput(formatted);
+    if (parsedDate) {
+      const today = getToday();
+      const selectedDay = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+      if (selectedDay < today) {
+        Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
+        updateItemAndText(itemId, null, formatted);
+        return;
+      }
+      updateItemAndText(itemId, parsedDate, formatted);
+    } else {
+      updateItemAndText(itemId, null, formatted);
+    }
+  };
+
+  const openAndroidDatePicker = (itemId: string, currentDate: Date | null) => {
+    DateTimePickerAndroid.open({
+      value: currentDate || new Date(),
+      mode: 'date',
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          const today = getToday();
+          const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          if (selectedDay < today) {
+            Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
+            return;
+          }
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const y = date.getFullYear();
+          updateItemAndText(itemId, date, `${m}/${d}/${y}`);
+        }
+      },
+    });
   };
 
   const pickImage = async (id: string) => {
@@ -404,32 +474,30 @@ export default function FoodDonationDetails({ navigation, route }: any) {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Expiration Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                <TouchableOpacity
-                  style={styles.dateInput}
-                  onPress={() => {
-                    if (Platform.OS === 'ios') {
-                      setIosTempDate(item.expiryDate || new Date());
-                      setShowIOSDatePickerId(item.id);
-                    } else {
-                      setShowDatePickerId(item.id);
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
-                    <Text
-                      style={[
-                        styles.dateText,
-                        !item.expiryDate && { color: 'rgba(255,255,255,0.65)' },
-                      ]}
-                    >
-                      {item.expiryDate
-                        ? item.expiryDate.toLocaleDateString()
-                        : 'mm/dd/yyyy'}
-                    </Text>
+                <View style={[styles.dateInput, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 0 }]}>
+                  <TextInput
+                    style={{ flex: 1, color: '#FFF', fontSize: 14, paddingRight: 8, height: '100%', paddingVertical: 0 }}
+                    placeholder="mm/dd/yyyy"
+                    placeholderTextColor="rgba(255,255,255,0.65)"
+                    value={item.expiryDateText || ''}
+                    onChangeText={(val) => handleDateInputChange(item.id, val)}
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (Platform.OS === 'ios') {
+                        setIosTempDate(item.expiryDate || new Date());
+                        setShowIOSDatePickerId(item.id);
+                      } else {
+                        openAndroidDatePicker(item.id, item.expiryDate);
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
                     <Ionicons name="calendar-outline" size={20} color={item.expiryDate ? "#FFF" : "rgba(255,255,255,0.65)"} />
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -477,30 +545,6 @@ export default function FoodDonationDetails({ navigation, route }: any) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Android native date picker dialog */}
-      {
-        Platform.OS === 'android' && showDatePickerId !== null && (
-          <DateTimePicker
-            value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
-            mode="date"
-            display="spinner"
-            onChange={(event, date) => {
-              const currentId = showDatePickerId;
-              setShowDatePickerId(null);
-              if (event.type === 'set' && date && currentId) {
-                const today = getToday();
-                const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                if (selectedDay < today) {
-                  Alert.alert('Invalid Date', 'Expiration date cannot be in the past.');
-                  return;
-                }
-                updateItem(currentId, 'expiryDate', date);
-              }
-            }}
-          />
-        )
-      }
-
       {/* iOS date picker modal */}
       <Modal visible={showIOSDatePickerId !== null} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -511,7 +555,12 @@ export default function FoodDonationDetails({ navigation, route }: any) {
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Expiration Date</Text>
               <TouchableOpacity onPress={() => {
-                if (showIOSDatePickerId) updateItem(showIOSDatePickerId, 'expiryDate', iosTempDate);
+                if (showIOSDatePickerId) {
+                  const m = String(iosTempDate.getMonth() + 1).padStart(2, '0');
+                  const d = String(iosTempDate.getDate()).padStart(2, '0');
+                  const y = iosTempDate.getFullYear();
+                  updateItemAndText(showIOSDatePickerId, iosTempDate, `${m}/${d}/${y}`);
+                }
                 setShowIOSDatePickerId(null);
               }}>
                 <Text style={styles.modalDone}>Done</Text>

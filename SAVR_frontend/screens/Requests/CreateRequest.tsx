@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { ApiService } from '../../services/api';
@@ -101,13 +101,13 @@ export default function CreateRequest({ navigation }: any) {
 
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
   const [dateObj, setDateObj] = useState(new Date());
 
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showEndIOSPicker, setShowEndIOSPicker] = useState(false);
   const [endDateObj, setEndDateObj] = useState(new Date());
+  const [startDateText, setStartDateText] = useState('');
+  const [endDateText, setEndDateText] = useState('');
   const isSubmitting = useRef(false);
 
   const [location, setLocation] = useState({
@@ -327,6 +327,8 @@ export default function CreateRequest({ navigation }: any) {
     setItemQty('');
     setDateObj(new Date());
     setEndDateObj(new Date());
+    setStartDateText('');
+    setEndDateText('');
     isSubmitting.current = false;
   };
 
@@ -336,6 +338,8 @@ export default function CreateRequest({ navigation }: any) {
     setFinancialForm({ title: '', financial_amount: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '', receiving_method: '', account_name: '', account_number: '' });
     setDateObj(new Date());
     setEndDateObj(new Date());
+    setStartDateText('');
+    setEndDateText('');
     setRequestedFoods([]);
     setSelectedCategory(null);
     setSelectedFoodName('');
@@ -418,57 +422,155 @@ export default function CreateRequest({ navigation }: any) {
     fetchBackendData();
   }, [requestType, refreshing]);
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'dismissed' || !selectedDate) return;
+  const parseDateInput = (text: string): Date | null => {
+    const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const m = parseInt(match[1]) - 1;
+    const d = parseInt(match[2]);
+    const y = parseInt(match[3]);
+    const date = new Date(y, m, d);
+    if (date.getFullYear() !== y || date.getMonth() !== m || date.getDate() !== d) return null;
+    return date;
+  };
+
+  const handleStartDateTextChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    if (digits.length <= 2) formatted = digits;
+    else if (digits.length <= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+    else formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8);
+    setStartDateText(formatted);
+
+    const parsedDate = parseDateInput(formatted);
+    if (parsedDate) {
+      if (form.end_date) {
+        const startDay = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+        const endDay = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+        if (startDay > endDay) {
+          Alert.alert('Invalid Date', 'Start date cannot be after the end date.');
+          return;
+        }
+      }
+      setDateObj(parsedDate);
+      const yyyy = parsedDate.getFullYear();
+      const mm = String(parsedDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(parsedDate.getDate()).padStart(2, '0');
+      updateForm('needed_date', `${yyyy}-${mm}-${dd}`);
+    } else {
+      updateForm('needed_date', '');
     }
-    const currentDate = selectedDate || dateObj;
-    const today = getToday();
-    const selectedDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-    if (selectedDay < today) {
-      Alert.alert('Invalid Date', 'Date cannot be in the past.');
-      return;
+  };
+
+  const handleEndDateTextChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    if (digits.length <= 2) formatted = digits;
+    else if (digits.length <= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+    else formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8);
+    setEndDateText(formatted);
+
+    const parsedDate = parseDateInput(formatted);
+    if (parsedDate) {
+      if (form.needed_date) {
+        const startDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        const endDay = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+        if (endDay < startDay) {
+          Alert.alert('Invalid Date', 'End date cannot be before the start date.');
+          return;
+        }
+      }
+      setEndDateObj(parsedDate);
+      const yyyy = parsedDate.getFullYear();
+      const mm = String(parsedDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(parsedDate.getDate()).padStart(2, '0');
+      updateForm('end_date', `${yyyy}-${mm}-${dd}`);
+    } else {
+      updateForm('end_date', '');
     }
-    setDateObj(currentDate);
-    const yyyy = currentDate.getFullYear();
-    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(currentDate.getDate()).padStart(2, '0');
-    updateForm('needed_date', `${yyyy}-${mm}-${dd}`);
+  };
+
+  const openAndroidDatePicker = () => {
+    DateTimePickerAndroid.open({
+      value: dateObj,
+      mode: 'date',
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          if (form.end_date) {
+            const selectedStartDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const endDay = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+            if (selectedStartDay > endDay) {
+              Alert.alert('Invalid Date', 'Start date cannot be after the end date.');
+              return;
+            }
+          }
+          setDateObj(date);
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          updateForm('needed_date', `${yyyy}-${mm}-${dd}`);
+          setStartDateText(`${mm}/${dd}/${yyyy}`);
+        }
+      },
+    });
   };
 
   const confirmIOSDate = () => {
+    if (form.end_date) {
+      const startDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      const endDay = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+      if (startDay > endDay) {
+        Alert.alert('Invalid Date', 'Start date cannot be after the end date.');
+        return;
+      }
+    }
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
     const dd = String(dateObj.getDate()).padStart(2, '0');
     updateForm('needed_date', `${yyyy}-${mm}-${dd}`);
+    setStartDateText(`${mm}/${dd}/${yyyy}`);
     setShowIOSPicker(false);
   };
 
-  const onEndDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowEndDatePicker(false);
-      if (event.type === 'dismissed' || !selectedDate) return;
-    }
-    const currentDate = selectedDate || endDateObj;
-    const today = getToday();
-    const selectedDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-    if (selectedDay < today) {
-      Alert.alert('Invalid Date', 'End date cannot be in the past.');
-      return;
-    }
-    setEndDateObj(currentDate);
-    const yyyy = currentDate.getFullYear();
-    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(currentDate.getDate()).padStart(2, '0');
-    updateForm('end_date', `${yyyy}-${mm}-${dd}`);
+  const openAndroidEndDatePicker = () => {
+    DateTimePickerAndroid.open({
+      value: endDateObj,
+      mode: 'date',
+      minimumDate: form.needed_date ? dateObj : undefined,
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          if (form.needed_date) {
+            const startDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            const selectedEndDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            if (selectedEndDay < startDay) {
+              Alert.alert('Invalid Date', 'End date cannot be before the start date.');
+              return;
+            }
+          }
+          setEndDateObj(date);
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          updateForm('end_date', `${yyyy}-${mm}-${dd}`);
+          setEndDateText(`${mm}/${dd}/${yyyy}`);
+        }
+      },
+    });
   };
 
   const confirmIOSEndDate = () => {
+    if (form.needed_date) {
+      const startDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      const endDay = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+      if (endDay < startDay) {
+        Alert.alert('Invalid Date', 'End date cannot be before the start date.');
+        return;
+      }
+    }
     const yyyy = endDateObj.getFullYear();
     const mm = String(endDateObj.getMonth() + 1).padStart(2, '0');
     const dd = String(endDateObj.getDate()).padStart(2, '0');
     updateForm('end_date', `${yyyy}-${mm}-${dd}`);
+    setEndDateText(`${mm}/${dd}/${yyyy}`);
     setShowEndIOSPicker(false);
   };
 
@@ -854,59 +956,52 @@ export default function CreateRequest({ navigation }: any) {
               <View style={[styles.rowInputs, { marginBottom: 18 }]}>
                 <View style={{ flex: 1, marginRight: 10 }}>
                   <Text style={styles.inputLabel}>Start Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                  <TouchableOpacity
-                    style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
-                    onPress={() => {
-                      if (Platform.OS === 'ios') setShowIOSPicker(true);
-                      else setShowDatePicker(true);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
-                        {form.needed_date || 'mm/dd/yyyy'}
-                      </Text>
+                  <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 }]}>
+                    <TextInput
+                      style={{ flex: 1, color: '#FFF', fontSize: 13, paddingRight: 8, height: '100%' }}
+                      placeholder="mm/dd/yyyy"
+                      placeholderTextColor="#A5D1B8"
+                      value={startDateText}
+                      onChangeText={handleStartDateTextChange}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (Platform.OS === 'ios') setShowIOSPicker(true);
+                        else openAndroidDatePicker();
+                      }}
+                      activeOpacity={0.8}
+                    >
                       <Ionicons name="calendar-outline" size={16} color="#FFF" />
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>End Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                  <TouchableOpacity
-                    style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
-                    onPress={() => {
-                      if (Platform.OS === 'ios') setShowEndIOSPicker(true);
-                      else setShowEndDatePicker(true);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ color: form.end_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
-                        {form.end_date || 'mm/dd/yyyy'}
-                      </Text>
+                  <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 }]}>
+                    <TextInput
+                      style={{ flex: 1, color: '#FFF', fontSize: 13, paddingRight: 8, height: '100%' }}
+                      placeholder="mm/dd/yyyy"
+                      placeholderTextColor="#A5D1B8"
+                      value={endDateText}
+                      onChangeText={handleEndDateTextChange}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (Platform.OS === 'ios') setShowEndIOSPicker(true);
+                        else openAndroidEndDatePicker();
+                      }}
+                      activeOpacity={0.8}
+                    >
                       <Ionicons name="calendar-outline" size={16} color="#FFF" />
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-
-              {Platform.OS === 'android' && showDatePicker && (
-                <DateTimePicker
-                  value={dateObj}
-                  mode="date"
-                  display="spinner"
-                  onChange={onDateChange}
-                />
-              )}
-              {Platform.OS === 'android' && showEndDatePicker && (
-                <DateTimePicker
-                  value={endDateObj}
-                  mode="date"
-                  display="spinner"
-                  onChange={onEndDateChange}
-                />
-              )}
 
               <Modal visible={showIOSPicker} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
@@ -925,7 +1020,6 @@ export default function CreateRequest({ navigation }: any) {
                         value={dateObj}
                         mode="date"
                         display="spinner"
-                        minimumDate={getToday()}
                         onChange={(e, d) => { if (d) setDateObj(d); }}
                         style={{ width: '100%', alignSelf: 'center' }}
                         textColor="#1a1a1a"
@@ -952,7 +1046,7 @@ export default function CreateRequest({ navigation }: any) {
                         value={endDateObj}
                         mode="date"
                         display="spinner"
-                        minimumDate={getToday()}
+                        minimumDate={form.needed_date ? dateObj : undefined}
                         onChange={(e, d) => { if (d) setEndDateObj(d); }}
                         style={{ width: '100%', alignSelf: 'center' }}
                         textColor="#1a1a1a"
