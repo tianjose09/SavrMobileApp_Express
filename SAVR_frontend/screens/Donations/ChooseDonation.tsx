@@ -53,9 +53,12 @@ export default function ChooseDonation({ navigation }: any) {
     try {
       const response = await ApiService.getUpcomingPickups();
       if (response.data.success) {
-        const sorted = (response.data.pickups || []).sort((a: any, b: any) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled'];
+        const sorted = (response.data.pickups || [])
+          .filter((p: any) => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
+          .sort((a: any, b: any) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         setPickups(sorted);
       }
     } catch (e) {

@@ -934,7 +934,7 @@ exports.dashboard = async (req, res) => {
     [user.id]
   );
   const [[{ totalfood }]] = await db.execute(
-    'SELECT COUNT(*) AS totalfood FROM food_donation_records WHERE user_id = ?',
+    "SELECT COUNT(*) AS totalfood FROM food_donation_records WHERE user_id = ? AND status IN ('approved','received','completed')",
     [user.id]
   );
   const [activities] = await db.execute(
@@ -964,7 +964,7 @@ exports.dashboard = async (req, res) => {
     [user.id]
   );
   const [[{ totalservice }]] = await db.execute(
-    "SELECT COUNT(*) AS totalservice FROM service_donation_records WHERE user_id = ?",
+    "SELECT COUNT(*) AS totalservice FROM service_donation_records WHERE user_id = ? AND status IN ('confirmed','completed','approved')",
     [user.id]
   );
 

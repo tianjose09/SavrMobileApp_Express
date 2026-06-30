@@ -50,11 +50,14 @@ export default function AllUpcomingPickups({ navigation }: any) {
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const sorted = (res.data.pickups as Pickup[]).sort((a, b) => {
-          const da = new Date(a.created_at).getTime();
-          const db2 = new Date(b.created_at).getTime();
-          return db2 - da;
-        });
+        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled'];
+        const sorted = (res.data.pickups as Pickup[])
+          .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
+          .sort((a, b) => {
+            const da = new Date(a.created_at).getTime();
+            const db2 = new Date(b.created_at).getTime();
+            return db2 - da;
+          });
         setPickups(sorted);
       }
     } catch (e) {
