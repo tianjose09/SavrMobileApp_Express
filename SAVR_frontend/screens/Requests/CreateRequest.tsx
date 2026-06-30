@@ -50,7 +50,6 @@ const getCategoryLabel = (cat: string | null) => {
   return CATEGORY_DISPLAY_MAP[cat] || cat;
 };
 
-// Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬ Category icon map (MaterialCommunityIcons names) Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬
 type IconEntry = { lib: 'mci' | 'ion'; name: string };
 const ICON_COLOR = '#6B7280';
 const ICON_COLOR_ACTIVE = '#fff';
@@ -78,7 +77,6 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
   return <MaterialCommunityIcons name={entry.name as any} size={size} color={c} />;
 }
 
-// Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬ Common units Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬Ã¢ââ¬
 const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
 const CATEGORY_UNIT_MAP: Record<string, string> = {
@@ -97,17 +95,17 @@ function getAllowedUnits(category: string | null): string[] {
 export default function CreateRequest({ navigation }: any) {
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false); // Android
-  const [showIOSPicker, setShowIOSPicker] = useState(false);   // iOS Modal
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showIOSPicker, setShowIOSPicker] = useState(false);
   const [dateObj, setDateObj] = useState(new Date());
 
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false); // Android
-  const [showEndIOSPicker, setShowEndIOSPicker] = useState(false);   // iOS Modal
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showEndIOSPicker, setShowEndIOSPicker] = useState(false);
   const [endDateObj, setEndDateObj] = useState(new Date());
   const isSubmitting = useRef(false);
 
   const [location, setLocation] = useState({
-    latitude: 14.4445, // roughly Las Pinas
+    latitude: 14.4445,
     longitude: 120.9842,
     latitudeDelta: 0.0422,
     longitudeDelta: 0.0221,
@@ -117,7 +115,6 @@ export default function CreateRequest({ navigation }: any) {
   const mapRef = useRef<MapView>(null);
   const isProgrammaticMove = useRef(false);
 
-  // Food request details state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedFoodName, setSelectedFoodName] = useState<string>('');
   const [itemQty, setItemQty] = useState('');
@@ -130,7 +127,6 @@ export default function CreateRequest({ navigation }: any) {
     'Dry Goods': PRESET_FOODS_BY_CATEGORY['Dry Goods']
   });
 
-  // Separate state for each tab — changes in one never bleed into the other
   const [foodForm, setFoodForm] = useState({
     title: '', population: '', age_start: '', age_end: '',
     street: '', barangay: '', city_municipality: '', postal_zip_code: '',
@@ -143,7 +139,6 @@ export default function CreateRequest({ navigation }: any) {
     receiving_method: '', account_name: '', account_number: '',
   });
 
-  // Computed read-only view of the active form — never set this directly
   const form = (requestType === 'food' ? foodForm : financialForm) as {
     title: string; financial_amount: string; population: string;
     age_start: string; age_end: string; street: string; barangay: string;
@@ -154,7 +149,6 @@ export default function CreateRequest({ navigation }: any) {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  // Write to whichever form tab is currently active
   const updateForm = (key: string, val: string) => {
     if (requestType === 'food') {
       setFoodForm(prev => ({ ...prev, [key]: val }));
@@ -163,7 +157,6 @@ export default function CreateRequest({ navigation }: any) {
     }
   };
 
-  // Used by startup geocoder — populate address in both forms at once
   const updateBothForms = (key: string, val: string) => {
     setFoodForm(prev => ({ ...prev, [key]: val }));
     setFinancialForm(prev => ({ ...prev, [key]: val }));
@@ -233,6 +226,31 @@ export default function CreateRequest({ navigation }: any) {
       } catch (e) { }
     })();
   }, []);
+
+  // Debounced auto-geocoder to move the map region as the user types
+  useEffect(() => {
+    if (!form.street.trim()) return;
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const results = await Location.geocodeAsync(form.street);
+        if (results.length > 0) {
+          const { latitude, longitude } = results[0];
+          const newRegion = { latitude, longitude, latitudeDelta: 0.0422, longitudeDelta: 0.0221 };
+
+          // Move the map region programmatically without triggering reverse geocoding
+          isProgrammaticMove.current = true;
+          setLocation(newRegion);
+          mapRef.current?.animateToRegion(newRegion, 800);
+        }
+      } catch (e) {
+        // silent fail for background auto-geocoding
+      }
+    }, 1200);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [form.street]);
+
 
   const resetForm = () => {
     setFoodForm({ title: '', population: '', age_start: '', age_end: '', street: '', barangay: '', city_municipality: '', postal_zip_code: '', needed_date: '', end_date: '', urgency_level: '' });
@@ -318,7 +336,6 @@ export default function CreateRequest({ navigation }: any) {
         console.error('Failed to fetch meal names:', err);
       }
 
-      // De-duplicate lists
       bevList = [...new Set(bevList)].sort();
       cannedList = [...new Set(cannedList)].sort();
       prepList = [...new Set(prepList)].sort();
@@ -336,7 +353,6 @@ export default function CreateRequest({ navigation }: any) {
   }, [requestType, refreshing]);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    // Android: dismiss fires with undefined — just close picker, don't update
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
       if (event.type === 'dismissed' || !selectedDate) return;
@@ -479,7 +495,6 @@ export default function CreateRequest({ navigation }: any) {
       <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} edges={['top']} />
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
-        {/* TOP BAR HEADER */}
         <View style={styles.topHeader}>
           <Image source={require('../../assets/images/logo/logobrown.png')} style={styles.logoImage} resizeMode="contain" />
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -495,452 +510,434 @@ export default function CreateRequest({ navigation }: any) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#00592d']}
-              tintColor="#00592d"
-            />
-          }
-        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#00592d']}
+                tintColor="#00592d"
+              />
+            }
+          >
 
-          {/* Title */}
-          <View style={styles.titleRow}>
-            <Image
-              source={require('../../assets/images/icons/createrequesticon.png')}
-              style={styles.titleIconImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.pageTitle}>Create Request</Text>
-          </View>
-
-          {/* Tabs */}
-          <View style={styles.tabsRow}>
-            <TouchableOpacity style={[styles.tabButton, requestType === 'food' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('food')} activeOpacity={0.9}>
+            <View style={styles.titleRow}>
               <Image
-                source={require('../../assets/images/icons/foodicon.png')}
-                style={{
-                  width: 22,
-                  height: 22,
-                  marginRight: 8,
-                  tintColor: requestType === 'food' ? '#FFFFFF' : '#222222',
-                }}
+                source={require('../../assets/images/icons/createrequesticon.png')}
+                style={styles.titleIconImage}
                 resizeMode="contain"
               />
-              <Text style={[styles.tabText, requestType === 'food' ? styles.tabTextActive : styles.tabTextInactive]}>FOOD</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton, requestType === 'financial' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('financial')} activeOpacity={0.9}>
-              <Image
-                source={require('../../assets/images/icons/financialicon.png')}
-                style={{
-                  width: 20,
-                  height: 20,
-                  marginRight: 8,
-                  tintColor: requestType === 'financial' ? '#FFFFFF' : '#222222',
-                }}
-                resizeMode="contain"
-              />
-              <Text style={[styles.tabText, requestType === 'financial' ? styles.tabTextActive : styles.tabTextInactive]}>FINANCIAL</Text>
-            </TouchableOpacity>
-          </View>
+              <Text style={styles.pageTitle}>Create Request</Text>
+            </View>
 
-          {/* Form Card */}
-          <View style={styles.formCard}>
-
-            <Text style={styles.inputLabel}>Name of Drive <Text style={{ color: '#E8A835' }}>*</Text></Text>
-            <TextInput
-              style={styles.inputBox}
-              placeholder="e.g. Kapatiran Fire Tondo Relief"
-              placeholderTextColor="#A5D1B8"
-              value={form.title}
-              onChangeText={(val) => updateForm('title', val)}
-            />
-
-            <Text style={styles.inputLabel}>Urgency Level <Text style={{ color: '#E8A835' }}>*</Text></Text>
-            <CustomDropdown
-              selectedValue={form.urgency_level}
-              onValueChange={(val) => updateForm('urgency_level', val)}
-              placeholder="Select Level"
-              items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
-              style={[styles.inputBox, { marginBottom: 18 }]}
-            />
-
-            {/* Ã¢ââ¬Ã¢ââ¬ Conditional form layout: Financial vs Food Ã¢ââ¬Ã¢ââ¬ */}
-            {requestType === 'financial' ? (
-              <View>
-                <Text style={styles.inputLabel}>Amount of Money Needed <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <TextInput
-                  style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="Ã¢â±5000"
-                  placeholderTextColor="#A5D1B8"
-                  keyboardType="numeric"
-                  value={form.financial_amount}
-                  onChangeText={(val) => updateForm('financial_amount', val)}
-                  onBlur={() => {
-                    if (form.financial_amount) {
-                      const clean = form.financial_amount.replace(/[^0-9.]/g, '');
-                      const parsed = parseFloat(clean);
-                      if (!isNaN(parsed)) {
-                        updateForm('financial_amount', parsed.toFixed(2));
-                      }
-                    }
+            <View style={styles.tabsRow}>
+              <TouchableOpacity style={[styles.tabButton, requestType === 'food' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('food')} activeOpacity={0.9}>
+                <Image
+                  source={require('../../assets/images/icons/foodicon.png')}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    marginRight: 8,
+                    tintColor: requestType === 'food' ? '#FFFFFF' : '#222222',
                   }}
+                  resizeMode="contain"
                 />
-
-                {/* Population & Age */}
-                <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-                  <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
-                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="e.g. 200" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
-                  </View>
-                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <Text style={styles.inputLabel}>Age Range</Text>
-                    <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
-                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
-                      <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
-                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
-                    </View>
-                  </View>
-                </View>
-
-                {/* Receiving Account Details Header */}
-                <View style={styles.receivingAccHeader}>
-                  <Ionicons name="wallet-outline" size={18} color="#E8A835" />
-                  <Text style={styles.receivingAccTitle}>Receiving Account Details</Text>
-                </View>
-
-                <Text style={styles.inputLabel}>Receiving Method <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <CustomDropdown
-                  selectedValue={form.receiving_method}
-                  onValueChange={(val) => updateForm('receiving_method', val)}
-                  placeholder="Select Method"
-                  items={[
-                    { label: 'E-Wallet', value: 'E-Wallet' },
-                    { label: 'Bank', value: 'Bank' },
-                  ]}
-                  style={[styles.inputBox, { marginBottom: 18 }]}
+                <Text style={[styles.tabText, requestType === 'food' ? styles.tabTextActive : styles.tabTextInactive]}>FOOD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.tabButton, requestType === 'financial' ? styles.tabActive : styles.tabInactive]} onPress={() => setRequestType('financial')} activeOpacity={0.9}>
+                <Image
+                  source={require('../../assets/images/icons/financialicon.png')}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    marginRight: 8,
+                    tintColor: requestType === 'financial' ? '#FFFFFF' : '#222222',
+                  }}
+                  resizeMode="contain"
                 />
+                <Text style={[styles.tabText, requestType === 'financial' ? styles.tabTextActive : styles.tabTextInactive]}>FINANCIAL</Text>
+              </TouchableOpacity>
+            </View>
 
-                <Text style={styles.inputLabel}>Account Name <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <TextInput
-                  style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="eg. Juan dela Cruz"
-                  placeholderTextColor="#A5D1B8"
-                  value={form.account_name}
-                  onChangeText={(val) => updateForm('account_name', val)}
-                />
+            <View style={styles.formCard}>
 
-                <Text style={styles.inputLabel}>Account Number / Mobile No. <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <TextInput
-                  style={[styles.inputBox, { marginBottom: 18 }]}
-                  placeholder="eg. 09171234567 or bank account no."
-                  placeholderTextColor="#A5D1B8"
-                  keyboardType="numeric"
-                  value={form.account_number}
-                  onChangeText={(val) => updateForm('account_number', val)}
-                />
-              </View>
-            ) : (
-              <View>
-                {/* Population & Age */}
-                <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-                  <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
-                    <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                    <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="e.g. 200" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
-                  </View>
-                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <Text style={styles.inputLabel}>Age Range</Text>
-                    <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
-                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
-                      <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
-                      <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* Address / Coverage Row */}
-            <View style={{ marginBottom: 18 }}>
-              <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
+              <Text style={styles.inputLabel}>Name of Drive <Text style={{ color: '#E8A835' }}>*</Text></Text>
               <TextInput
-                style={[styles.inputBox, { height: undefined, minHeight: 42, paddingVertical: 8 }]}
-                multiline={true}
-                blurOnSubmit={true}
-                placeholder="Street, Barangay, City"
+                style={styles.inputBox}
+                placeholder="e.g. Kapatiran Fire Tondo Relief"
                 placeholderTextColor="#A5D1B8"
-                value={form.street}
-                onChangeText={(val) => {
-                  updateForm('street', val);
-                  updateForm('barangay', val ? (form.barangay || 'Manual') : '');
-                  updateForm('city_municipality', val ? (form.city_municipality || 'Manual') : '');
-                }}
-                onSubmitEditing={() => geocodeAddress(form.street)}
-                returnKeyType="search"
+                value={form.title}
+                onChangeText={(val) => updateForm('title', val)}
               />
-            </View>
 
-            {/* Google Map */}
-            <View style={styles.mapContainer}>
-              <MapView
-                ref={mapRef}
-                provider={PROVIDER_GOOGLE}
-                style={styles.map}
-                region={location}
-                scrollEnabled={true}
-                zoomEnabled={true}
-                pitchEnabled={true}
-                rotateEnabled={true}
-                onRegionChangeComplete={(reg) => {
-                  setLocation(reg);
-                  if (isProgrammaticMove.current) {
-                    isProgrammaticMove.current = false;
-                  } else {
-                    reverseGeocode(reg.latitude, reg.longitude);
-                  }
-                }}
-              />
-              <View pointerEvents="none" style={styles.markerFixed}>
-                <Ionicons name="location" size={40} color="red" />
-              </View>
-            </View>
-
-            {/* Dates Row */}
-            <View style={[styles.rowInputs, { marginBottom: 18 }]}>
-              <View style={{ flex: 1, marginRight: 10 }}>
-                <Text style={styles.inputLabel}>Start Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <TouchableOpacity
-                  style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
-                  onPress={() => {
-                    if (Platform.OS === 'ios') setShowIOSPicker(true);
-                    else setShowDatePicker(true);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
-                      {form.needed_date || 'mm/dd/yyyy'}
-                    </Text>
-                    <Ionicons name="calendar-outline" size={16} color="#FFF" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>End Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
-                <TouchableOpacity
-                  style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
-                  onPress={() => {
-                    if (Platform.OS === 'ios') setShowEndIOSPicker(true);
-                    else setShowEndDatePicker(true);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: form.end_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
-                      {form.end_date || 'mm/dd/yyyy'}
-                    </Text>
-                    <Ionicons name="calendar-outline" size={16} color="#FFF" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Android native pickers */}
-            {Platform.OS === 'android' && showDatePicker && (
-              <DateTimePicker
-                value={dateObj}
-                mode="date"
-                display="default"
-                minimumDate={new Date()}
-                onChange={onDateChange}
-              />
-            )}
-            {Platform.OS === 'android' && showEndDatePicker && (
-              <DateTimePicker
-                value={endDateObj}
-                mode="date"
-                display="default"
-                minimumDate={new Date()}
-                onChange={onEndDateChange}
-              />
-            )}
-
-            {/* iOS Modal pickers */}
-            <Modal visible={showIOSPicker} transparent animationType="slide">
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalSheet}>
-                  <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
-                      <Text style={styles.modalCancel}>Cancel</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.modalTitle}>Start Date</Text>
-                    <TouchableOpacity onPress={confirmIOSDate}>
-                      <Text style={styles.modalDone}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-                    <DateTimePicker
-                      value={dateObj}
-                      mode="date"
-                      display="spinner"
-                      minimumDate={new Date()}
-                      onChange={(e, d) => { if (d) setDateObj(d); }}
-                      style={{ width: '100%', alignSelf: 'center' }}
-                      textColor="#1a1a1a"
-                    />
-                  </View>
-                </View>
-              </View>
-            </Modal>
-
-            <Modal visible={showEndIOSPicker} transparent animationType="slide">
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalSheet}>
-                  <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={() => setShowEndIOSPicker(false)}>
-                      <Text style={styles.modalCancel}>Cancel</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.modalTitle}>End Date</Text>
-                    <TouchableOpacity onPress={confirmIOSEndDate}>
-                      <Text style={styles.modalDone}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-                    <DateTimePicker
-                      value={endDateObj}
-                      mode="date"
-                      display="spinner"
-                      minimumDate={new Date()}
-                      onChange={(e, d) => { if (d) setEndDateObj(d); }}
-                      style={{ width: '100%', alignSelf: 'center' }}
-                      textColor="#1a1a1a"
-                    />
-                  </View>
-                </View>
-              </View>
-            </Modal>
-          </View>
-
-          {/* Ã¢ââ¬Ã¢ââ¬ Food Details Card (outside green card) Ã¢ââ¬Ã¢ââ¬ */}
-          {requestType === 'food' && (
-            <View style={styles.foodDetailsCard}>
-              <View style={styles.foodDetailsHeader}>
-                <MaterialCommunityIcons name="food-variant" size={18} color="#00592d" />
-                <Text style={styles.foodDetailsTitle}>Food Details <Text style={{ color: '#E8A835' }}>*</Text></Text>
-              </View>
-
-              {/* Category selector */}
+              <Text style={styles.inputLabel}>Urgency Level <Text style={{ color: '#E8A835' }}>*</Text></Text>
               <CustomDropdown
-                selectedValue={selectedCategory || ''}
-                onValueChange={(val) => {
-                  setSelectedCategory(val || null);
-                  setSelectedFoodName('');
-                  setItemQty('');
-                  setItemUnit(CATEGORY_UNIT_MAP[val] ?? 'kg');
-                }}
-                placeholder="Food Category"
-                items={[
-                  { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
-                  { label: 'Prepared Meals: Perishable', value: 'Prepared Meals' },
-                  { label: 'Beverages: Non-Perishable', value: 'Beverages' },
-                  { label: 'Dry Goods: Non-Perishable', value: 'Dry Goods' }
-                ]}
-                style={styles.fdCatDropdown}
-                disableSort={true}
-                placeholderTextColor="#A3A3A3"
+                selectedValue={form.urgency_level}
+                onValueChange={(val) => updateForm('urgency_level', val)}
+                placeholder="Select Level"
+                items={[{ label: 'LOW', value: 'LOW' }, { label: 'MEDIUM', value: 'MEDIUM' }, { label: 'HIGH', value: 'HIGH' }]}
+                style={[styles.inputBox, { marginBottom: 18 }]}
               />
 
-              {/* Row for Food Name, Qty, Unit, Add + */}
-              <View style={styles.fdInputRow}>
-                <View style={{ flex: 2.5 }}>
-                  <CustomDropdown
-                    selectedValue={selectedFoodName}
-                    onValueChange={(val) => setSelectedFoodName(val)}
-                    placeholder="Food Name"
-                    items={
-                      selectedCategory
-                        ? (dynamicFoods[selectedCategory] || []).map(f => ({ label: f, value: f }))
-                        : []
-                    }
-                    style={styles.fdFoodNameDropdown}
-                    disableSort={true}
-                    placeholderTextColor="#A3A3A3"
-                  />
-                </View>
-
-                <View style={{ flex: 1.0 }}>
+              {requestType === 'financial' ? (
+                <View>
+                  <Text style={styles.inputLabel}>Amount of Money Needed <Text style={{ color: '#E8A835' }}>*</Text></Text>
                   <TextInput
-                    style={styles.fdQtyInputNew}
-                    placeholder="Qty"
-                    placeholderTextColor="#A3A3A3"
+                    style={[styles.inputBox, { marginBottom: 18 }]}
+                    placeholder="e.g. ₱5000"
+                    placeholderTextColor="#A5D1B8"
                     keyboardType="numeric"
-                    value={itemQty}
-                    onChangeText={setItemQty}
-                    textAlign="center"
+                    value={form.financial_amount}
+                    onChangeText={(val) => updateForm('financial_amount', val)}
+                    onBlur={() => {
+                      if (form.financial_amount) {
+                        const clean = form.financial_amount.replace(/[^0-9.]/g, '');
+                        const parsed = parseFloat(clean);
+                        if (!isNaN(parsed)) {
+                          updateForm('financial_amount', parsed.toFixed(2));
+                        }
+                      }
+                    }}
                   />
-                </View>
 
-                <View style={{ flex: 1.2 }}>
+                  <View style={[styles.rowInputs, { marginBottom: 18 }]}>
+                    <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
+                      <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                      <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="e.g. 200" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                    </View>
+                    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                      <Text style={styles.inputLabel}>Age Range</Text>
+                      <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
+                        <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                        <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
+                        <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.receivingAccHeader}>
+                    <Ionicons name="wallet-outline" size={18} color="#E8A835" />
+                    <Text style={styles.receivingAccTitle}>Receiving Account Details</Text>
+                  </View>
+
+                  <Text style={styles.inputLabel}>Receiving Method <Text style={{ color: '#E8A835' }}>*</Text></Text>
                   <CustomDropdown
-                    selectedValue={itemUnit}
-                    onValueChange={(val) => setItemUnit(val)}
-                    placeholder="Unit"
-                    items={getAllowedUnits(selectedCategory).map(u => ({ label: u, value: u }))}
-                    style={styles.fdUnitDropdownNew}
-                    disableSort={true}
-                    placeholderTextColor="#A3A3A3"
+                    selectedValue={form.receiving_method}
+                    onValueChange={(val) => updateForm('receiving_method', val)}
+                    placeholder="Select Method"
+                    items={[
+                      { label: 'E-Wallet', value: 'E-Wallet' },
+                      { label: 'Bank', value: 'Bank' },
+                    ]}
+                    style={[styles.inputBox, { marginBottom: 18 }]}
+                  />
+
+                  <Text style={styles.inputLabel}>Account Name <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                  <TextInput
+                    style={[styles.inputBox, { marginBottom: 18 }]}
+                    placeholder="eg. Juan dela Cruz"
+                    placeholderTextColor="#A5D1B8"
+                    value={form.account_name}
+                    onChangeText={(val) => updateForm('account_name', val)}
+                  />
+
+                  <Text style={styles.inputLabel}>Account Number / Mobile No. <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                  <TextInput
+                    style={[styles.inputBox, { marginBottom: 18 }]}
+                    placeholder="eg. 09171234567 or bank account no."
+                    placeholderTextColor="#A5D1B8"
+                    keyboardType="numeric"
+                    value={form.account_number}
+                    onChangeText={(val) => updateForm('account_number', val)}
                   />
                 </View>
+              ) : (
+                <View>
+                  <View style={[styles.rowInputs, { marginBottom: 18 }]}>
+                    <View style={{ flex: 1, marginRight: 6, justifyContent: 'flex-end' }}>
+                      <Text style={styles.inputLabel} numberOfLines={1} adjustsFontSizeToFit>Number of Population <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                      <TextInput style={[styles.inputBox, { marginBottom: 0 }]} placeholder="e.g. 200" placeholderTextColor="#A5D1B8" textAlign="left" keyboardType="numeric" value={form.population} onChangeText={(val) => updateForm('population', val)} />
+                    </View>
+                    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                      <Text style={styles.inputLabel}>Age Range</Text>
+                      <View style={[styles.rowInputsNoMargin, { marginBottom: 0 }]}>
+                        <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Min" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_start} onChangeText={(val) => updateForm('age_start', val)} />
+                        <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', alignSelf: 'center', marginBottom: 0, paddingHorizontal: 6 }}>-</Text>
+                        <TextInput style={[styles.inputBox, { flex: 1, marginBottom: 0 }]} placeholder="Max" placeholderTextColor="#A5D1B8" textAlign="center" keyboardType="numeric" value={form.age_end} onChangeText={(val) => updateForm('age_end', val)} />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
 
-                <View style={{ flex: 1.0 }}>
-                  <TouchableOpacity style={styles.fdAddBtnNew} onPress={addFoodToList} activeOpacity={0.8}>
-                    <Ionicons name="add" size={22} color="#FFFFFF" />
+              <View style={{ marginBottom: 18 }}>
+                <Text style={styles.inputLabel}>Address / Coverage <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                <TextInput
+                  style={[styles.inputBox, { height: undefined, minHeight: 42, paddingVertical: 8 }]}
+                  multiline={true}
+                  blurOnSubmit={true}
+                  placeholder="Street, Barangay, City"
+                  placeholderTextColor="#A5D1B8"
+                  value={form.street}
+                  onChangeText={(val) => {
+                    updateForm('street', val);
+                    updateForm('barangay', val ? (form.barangay || 'Manual') : '');
+                    updateForm('city_municipality', val ? (form.city_municipality || 'Manual') : '');
+                  }}
+                  onSubmitEditing={() => geocodeAddress(form.street)}
+                  returnKeyType="search"
+                />
+              </View>
+
+              <View style={styles.mapContainer}>
+                <MapView
+                  ref={mapRef}
+                  provider={PROVIDER_GOOGLE}
+                  style={styles.map}
+                  region={location}
+                  scrollEnabled={true}
+                  zoomEnabled={true}
+                  pitchEnabled={true}
+                  rotateEnabled={true}
+                  onRegionChangeComplete={(reg) => {
+                    setLocation(reg);
+                    if (isProgrammaticMove.current) {
+                      isProgrammaticMove.current = false;
+                    } else {
+                      reverseGeocode(reg.latitude, reg.longitude);
+                    }
+                  }}
+                />
+                <View pointerEvents="none" style={styles.markerFixed}>
+                  <Ionicons name="location" size={40} color="red" />
+                </View>
+              </View>
+
+              <View style={[styles.rowInputs, { marginBottom: 18 }]}>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                  <Text style={styles.inputLabel}>Start Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                  <TouchableOpacity
+                    style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') setShowIOSPicker(true);
+                      else setShowDatePicker(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ color: form.needed_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
+                        {form.needed_date || 'mm/dd/yyyy'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={16} color="#FFF" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>End Date <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                  <TouchableOpacity
+                    style={[styles.inputBox, { justifyContent: 'center', marginBottom: 0 }]}
+                    onPress={() => {
+                      if (Platform.OS === 'ios') setShowEndIOSPicker(true);
+                      else setShowEndDatePicker(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ color: form.end_date ? '#FFF' : '#A5D1B8', fontSize: 13, flex: 1 }} numberOfLines={1}>
+                        {form.end_date || 'mm/dd/yyyy'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={16} color="#FFF" />
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Table header */}
-              <View style={styles.fdTableHeader}>
-                <Text style={[styles.fdTableCol, { flex: 1 }]}>TYPE</Text>
-                <Text style={[styles.fdTableCol, { flex: 2 }]}>FOOD NAME</Text>
-                <Text style={[styles.fdTableCol, { flex: 1, textAlign: 'right' }]}>QTY</Text>
-                <Text style={styles.fdTableCol}> </Text>
-              </View>
+              {Platform.OS === 'android' && showDatePicker && (
+                <DateTimePicker
+                  value={dateObj}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={onDateChange}
+                />
+              )}
+              {Platform.OS === 'android' && showEndDatePicker && (
+                <DateTimePicker
+                  value={endDateObj}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={onEndDateChange}
+                />
+              )}
 
-              {/* Table rows */}
-              {requestedFoods.length === 0 ? (
-                <View style={styles.fdTableEmpty}>
-                  <Text style={styles.fdTableEmptyText}>No items added yet</Text>
+              <Modal visible={showIOSPicker} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalSheet}>
+                    <View style={styles.modalHeader}>
+                      <TouchableOpacity onPress={() => setShowIOSPicker(false)}>
+                        <Text style={styles.modalCancel}>Cancel</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.modalTitle}>Start Date</Text>
+                      <TouchableOpacity onPress={confirmIOSDate}>
+                        <Text style={styles.modalDone}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                      <DateTimePicker
+                        value={dateObj}
+                        mode="date"
+                        display="spinner"
+                        minimumDate={new Date()}
+                        onChange={(e, d) => { if (d) setDateObj(d); }}
+                        style={{ width: '100%', alignSelf: 'center' }}
+                        textColor="#1a1a1a"
+                      />
+                    </View>
+                  </View>
                 </View>
-              ) : (
-                requestedFoods.map((f, idx) => (
-                  <View key={`${f.id}-${idx}`} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
-                    <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{getCategoryLabel(f.category)}</Text>
-                    <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
-                    <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
-                    <TouchableOpacity onPress={() => removeFood(f.id)} style={{ paddingLeft: 10 }}>
-                      <Ionicons name="trash-outline" size={15} color="#E74C3C" />
+              </Modal>
+
+              <Modal visible={showEndIOSPicker} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalSheet}>
+                    <View style={styles.modalHeader}>
+                      <TouchableOpacity onPress={() => setShowEndIOSPicker(false)}>
+                        <Text style={styles.modalCancel}>Cancel</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.modalTitle}>End Date</Text>
+                      <TouchableOpacity onPress={confirmIOSEndDate}>
+                        <Text style={styles.modalDone}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                      <DateTimePicker
+                        value={endDateObj}
+                        mode="date"
+                        display="spinner"
+                        minimumDate={new Date()}
+                        onChange={(e, d) => { if (d) setEndDateObj(d); }}
+                        style={{ width: '100%', alignSelf: 'center' }}
+                        textColor="#1a1a1a"
+                      />
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+
+            {requestType === 'food' && (
+              <View style={styles.foodDetailsCard}>
+                <View style={styles.foodDetailsHeader}>
+                  <MaterialCommunityIcons name="food-variant" size={18} color="#00592d" />
+                  <Text style={styles.foodDetailsTitle}>Food Details <Text style={{ color: '#E8A835' }}>*</Text></Text>
+                </View>
+
+                <CustomDropdown
+                  selectedValue={selectedCategory || ''}
+                  onValueChange={(val) => {
+                    setSelectedCategory(val || null);
+                    setSelectedFoodName('');
+                    setItemQty('');
+                    setItemUnit(CATEGORY_UNIT_MAP[val] ?? 'kg');
+                  }}
+                  placeholder="Food Category"
+                  items={[
+                    { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
+                    { label: 'Prepared Meals: Perishable', value: 'Prepared Meals' },
+                    { label: 'Beverages: Non-Perishable', value: 'Beverages' },
+                    { label: 'Dry Goods: Non-Perishable', value: 'Dry Goods' }
+                  ]}
+                  style={styles.fdCatDropdown}
+                  disableSort={true}
+                  placeholderTextColor="#A3A3A3"
+                />
+
+                <View style={styles.fdInputRow}>
+                  <View style={{ flex: 2.5 }}>
+                    <CustomDropdown
+                      selectedValue={selectedFoodName}
+                      onValueChange={(val) => setSelectedFoodName(val)}
+                      placeholder="Food Name"
+                      items={
+                        selectedCategory
+                          ? (dynamicFoods[selectedCategory] || []).map(f => ({ label: f, value: f }))
+                          : []
+                      }
+                      style={styles.fdFoodNameDropdown}
+                      disableSort={true}
+                      placeholderTextColor="#A3A3A3"
+                    />
+                  </View>
+
+                  <View style={{ flex: 1.0 }}>
+                    <TextInput
+                      style={styles.fdQtyInputNew}
+                      placeholder="Qty"
+                      placeholderTextColor="#A3A3A3"
+                      keyboardType="numeric"
+                      value={itemQty}
+                      onChangeText={setItemQty}
+                      textAlign="center"
+                    />
+                  </View>
+
+                  <View style={{ flex: 1.2 }}>
+                    <CustomDropdown
+                      selectedValue={itemUnit}
+                      onValueChange={(val) => setItemUnit(val)}
+                      placeholder="Unit"
+                      items={getAllowedUnits(selectedCategory).map(u => ({ label: u, value: u }))}
+                      style={styles.fdUnitDropdownNew}
+                      disableSort={true}
+                      placeholderTextColor="#A3A3A3"
+                    />
+                  </View>
+
+                  <View style={{ flex: 1.0 }}>
+                    <TouchableOpacity style={styles.fdAddBtnNew} onPress={addFoodToList} activeOpacity={0.8}>
+                      <Ionicons name="add" size={22} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
-                ))
-              )}
-            </View>
-          )}
+                </View>
 
-          {/* Submit */}
-          <View style={styles.submitRow}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isLoading}>
-              {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Submit</Text>}
-            </TouchableOpacity>
-          </View>
-          <View style={{ height: 140 }} />
-        </ScrollView>
+                <View style={styles.fdTableHeader}>
+                  <Text style={[styles.fdTableCol, { flex: 1 }]}>TYPE</Text>
+                  <Text style={[styles.fdTableCol, { flex: 2 }]}>FOOD NAME</Text>
+                  <Text style={[styles.fdTableCol, { flex: 1, textAlign: 'right' }]}>QTY</Text>
+                  <Text style={styles.fdTableCol}> </Text>
+                </View>
+
+                {requestedFoods.length === 0 ? (
+                  <View style={styles.fdTableEmpty}>
+                    <Text style={styles.fdTableEmptyText}>No items added yet</Text>
+                  </View>
+                ) : (
+                  requestedFoods.map((f, idx) => (
+                    <View key={`${f.id}-${idx}`} style={[styles.fdTableRow, idx < requestedFoods.length - 1 && styles.fdTableRowBorder]}>
+                      <Text style={[styles.fdTableCell, { flex: 1 }]} numberOfLines={1}>{getCategoryLabel(f.category)}</Text>
+                      <Text style={[styles.fdTableCell, styles.fdTableCellBold, { flex: 2 }]} numberOfLines={1}>{f.name}</Text>
+                      <Text style={[styles.fdTableCell, styles.fdTableCellQty, { flex: 1, textAlign: 'right' }]}>{f.qty} {f.unit}</Text>
+                      <TouchableOpacity onPress={() => removeFood(f.id)} style={{ paddingLeft: 10 }}>
+                        <Ionicons name="trash-outline" size={15} color="#E74C3C" />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+
+            <View style={styles.submitRow}>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isLoading}>
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Submit</Text>}
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 140 }} />
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </>
@@ -967,14 +964,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: { paddingHorizontal: 22, paddingTop: 30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-  titleIcon: { marginRight: 12 },
   titleIconImage: {
     width: 40,
     height: 40,
     marginRight: 12,
   },
   pageTitle: { fontSize: 28, fontWeight: '800', color: '#00592d', letterSpacing: -0.5 },
-  titleDivider: { height: 1, backgroundColor: '#A3A3A3', opacity: 0.3, marginHorizontal: -22, marginBottom: 25 },
   tabsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25, paddingHorizontal: 15 },
   tabButton: { flexDirection: 'row', width: '45%', height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   tabActive: { backgroundColor: '#D87A38', borderColor: '#C66C2E', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 5, elevation: 4 },
