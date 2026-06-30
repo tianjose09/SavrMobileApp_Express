@@ -16,6 +16,7 @@
     },
     "android": {
       "package": "com.pfb.savrmobile",
+      "primaryColor": "#156133",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android_adaptive_fg.png",
         "monochromeImage": "./assets/images/android_adaptive_fg.png",

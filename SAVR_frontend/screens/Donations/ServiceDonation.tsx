@@ -857,6 +857,9 @@ export default function ServiceDonation({ navigation }: any) {
               : 'time'
           }
           display="default"
+          initialInputMode={
+            datePickerMode === 'starts_at' || datePickerMode === 'ends_at' ? 'keyboard' : 'default'
+          }
           onChange={(event, selectedDate) => {
             const currentMode = datePickerMode;
             setDatePickerMode(null);
