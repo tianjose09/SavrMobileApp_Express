@@ -191,11 +191,11 @@ export default function BeneficiaryRegistration({ navigation }: any) {
       <View style={styles.lineInputWrap}>
         {opts?.prefix ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'rgba(255,255,255,0.95)', height: 28 }}>
-            <Text style={{ color: '#FFF', fontSize: 11.5, paddingBottom: 2 }}>{opts.prefix}</Text>
+            <Text style={{ color: '#FFF', fontSize: 11.5, lineHeight: 14, paddingBottom: 2 }}>{opts.prefix}</Text>
             <TextInput
               value={(form as any)[keyName]}
               onChangeText={(val) => updateForm(keyName, val)}
-              style={[styles.lineInput, { borderBottomWidth: 0, flex: 1, paddingRight: opts.rightIcon ? 28 : 0 }]}
+              style={[styles.lineInput, { borderBottomWidth: 0, flex: 1, paddingLeft: 0, paddingTop: 0, paddingBottom: 2, paddingRight: opts.rightIcon ? 28 : 0 }]}
               placeholder={opts.placeholder || ''}
               placeholderTextColor="rgba(255,255,255,0.45)"
               keyboardType={opts.keyboardType}
@@ -521,7 +521,7 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                 keyboardType: 'numeric',
                 maxLength: 10,
                 isRequired: true,
-                prefix: '+63 ',
+                prefix: '+63',
               })}
 
               <View>

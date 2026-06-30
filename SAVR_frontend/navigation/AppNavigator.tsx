@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Platform, Animated } from 'react-native';
+import { View, Platform, Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -290,14 +290,14 @@ function MainTabs() {
         tabBarActiveTintColor: '#FFF',
         tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
         tabBarStyle: {
-          backgroundColor: '#00592d',
+          backgroundColor: 'transparent',
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
-          height: 70,
-          paddingBottom: 8,
+          height: 70 + insets.bottom,
+          paddingBottom: insets.bottom + 8,
           paddingTop: 10,
           position: 'absolute',
-          bottom: insets.bottom,
+          bottom: 0,
           left: 0,
           right: 0,
           borderTopWidth: 0,
@@ -308,14 +308,16 @@ function MainTabs() {
           shadowRadius: 10,
         },
         tabBarBackground: () => (
-          <View
-            style={{
-              backgroundColor: '#00592d',
-              flex: 1,
-              borderTopLeftRadius: 30,
-              borderTopRightRadius: 30,
-            }}
-          />
+          <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: '#FFFFFF' }}>
+            <View
+              style={{
+                height: 70,
+                backgroundColor: '#00592d',
+                borderTopLeftRadius: 30,
+                borderTopRightRadius: 30,
+              }}
+            />
+          </View>
         ),
         tabBarLabelStyle: {
           fontSize: 11,

@@ -39,6 +39,7 @@ export default function LandingPage({ navigation }: any) {
 
   // Track scroll position for parallax scroll effects
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<any>(null);
 
   // Page entrance animation
   useEffect(() => {
@@ -56,28 +57,44 @@ export default function LandingPage({ navigation }: any) {
     ]).start();
   }, []);
 
-  // Handle tab change with animation
+  // Handle tab change with smooth fade + slide animation
   const handleTabChange = (tabKey: string) => {
     if (tabKey === activeTab) return;
 
-    Animated.timing(contentOpacity, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
-      LayoutAnimation.configureNext({
-        duration: 350,
-        create: { type: 'easeInEaseOut', property: 'opacity' },
-        update: { type: 'spring', springDamping: 0.7 },
-        delete: { type: 'easeInEaseOut', property: 'opacity' }
-      });
+    // Phase 1: Fade out + slide down slightly
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateY, {
+        toValue: 10,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Scroll to top while hidden
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       setActiveTab(tabKey);
 
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      // Reset position for slide-up entrance
+      contentTranslateY.setValue(20);
+
+      // Phase 2: Slide up + fade in with spring feel
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentTranslateY, {
+          toValue: 0,
+          friction: 8,
+          tension: 60,
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
   };
 
@@ -235,8 +252,21 @@ export default function LandingPage({ navigation }: any) {
       </LinearGradient>
 
 
-      {/* Our Initiatives Section */}
-      <View style={styles.initiativesWrapper}>
+      {/* Our Initiatives Section — scroll-driven slide-up */}
+      <Animated.View
+        style={[
+          styles.initiativesWrapper,
+          {
+            transform: [{
+              translateY: scrollY.interpolate({
+                inputRange: [0, 300],
+                outputRange: [60, 0],
+                extrapolate: 'clamp'
+              })
+            }]
+          }
+        ]}
+      >
         <View style={styles.sectionHeader}>
           <View style={styles.sectionIconWrapper}>
             <MaterialCommunityIcons name="star-four-points" size={20} color="#D66F2B" />
@@ -288,7 +318,7 @@ export default function LandingPage({ navigation }: any) {
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 
@@ -305,7 +335,21 @@ export default function LandingPage({ navigation }: any) {
           ways, every contribution helps bring meals, hope, and care to people in need.
         </Text>
 
-        <View style={styles.cardsColumn}>
+        {/* Cards — scroll-driven slide-up */}
+        <Animated.View
+          style={[
+            styles.cardsColumn,
+            {
+              transform: [{
+                translateY: scrollY.interpolate({
+                  inputRange: [0, 300],
+                  outputRange: [60, 0],
+                  extrapolate: 'clamp'
+                })
+              }]
+            }
+          ]}
+        >
           <View style={styles.actionCard}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconBox}>
@@ -348,7 +392,7 @@ export default function LandingPage({ navigation }: any) {
               <Text style={styles.cardBtnText}>Register as Beneficiary</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </View>
   );
@@ -415,6 +459,7 @@ export default function LandingPage({ navigation }: any) {
 
         <View style={styles.container}>
           <Animated.ScrollView
+            ref={scrollViewRef}
             bounces={false}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
@@ -428,7 +473,7 @@ export default function LandingPage({ navigation }: any) {
               transform: [{ translateY: slideAnim }],
             }}
           >
-            <Animated.View style={{ opacity: contentOpacity }}>
+            <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }}>
               {renderContent()}
             </Animated.View>
             <View style={{ height: 95 }} />
@@ -436,7 +481,7 @@ export default function LandingPage({ navigation }: any) {
         </View>
       </SafeAreaView>
 
-      <View style={[styles.bottomNav, { bottom: insets.bottom }]}>
+      <View style={[styles.bottomNav, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
         {[
           { key: 'Home', icon: 'home', label: 'Home', type: Ionicons },
           { key: 'Mission', icon: 'flag-outline', label: 'Mission', type: Ionicons },
@@ -1114,6 +1159,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
+    zIndex: 999,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,

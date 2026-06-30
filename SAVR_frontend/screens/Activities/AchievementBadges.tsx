@@ -16,6 +16,19 @@ export default function AchievementBadges({ navigation }: any) {
   const [totalUnlocked, setTotalUnlocked] = useState(0);
   const [summaryBadge, setSummaryBadge] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdatedLabel, setLastUpdatedLabel] = useState<string>('No badges yet');
+
+  // Format earned_at date to a human-readable label
+  const formatUpdatedLabel = (earnedAt: string | null): string => {
+    if (!earnedAt) return 'No badges yet';
+    const earned = new Date(earnedAt);
+    const now = new Date();
+    const diffMs = now.getTime() - earned.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Updated Today';
+    if (diffDays === 1) return 'Updated Yesterday';
+    return `Updated ${earned.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
 
   const fetchBadges = useCallback(async () => {
     try {
@@ -46,6 +59,13 @@ export default function AchievementBadges({ navigation }: any) {
         // Summary image = the HIGHEST earned badge (most prestigious)
         const highest = earned.length > 0 ? earned[earned.length - 1] : null;
         setSummaryBadge(highest);
+
+        // Most recently earned badge's earned_at for the updated label
+        const mostRecent = earned.reduce((latest: any, b: any) => {
+          if (!latest) return b;
+          return new Date(b.earned_at) > new Date(latest.earned_at) ? b : latest;
+        }, null);
+        setLastUpdatedLabel(formatUpdatedLabel(mostRecent?.earned_at ?? null));
       }
     } catch (error) {
       console.error('Failed to fetch badges', error);
@@ -156,7 +176,7 @@ export default function AchievementBadges({ navigation }: any) {
                 </View>
 
                 <View style={styles.updatedPill}>
-                  <Text style={styles.updatedText}>Updated Today</Text>
+                  <Text style={styles.updatedText}>{lastUpdatedLabel}</Text>
                 </View>
               </View>
 
