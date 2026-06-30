@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, StatusBar, ImageBackground, Animated, Image, Easing, Dimensions, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, StatusBar, ImageBackground, Animated, Image, Easing, Dimensions } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 
 const { width } = Dimensions.get('window');
@@ -13,10 +13,19 @@ const WAVE_SIZE   = Math.max(width * 2, 800);
 const WAVE_RADIUS = WAVE_SIZE * 0.4125; // keeps the squircle shape ratio
 
 export default function LoadingPage({ navigation }: any) {
+  const [maskLoaded, setMaskLoaded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
   const fillAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Safety net: force maskLoaded to true after a short delay in case onLoad doesn't fire (common with cached local images in Expo)
+    const loadTimer = setTimeout(() => {
+      setMaskLoaded(true);
+    }, 150);
+    return () => clearTimeout(loadTimer);
+  }, []);
 
   useEffect(() => {
     // Entrance: fade-in + spring scale
@@ -95,49 +104,45 @@ export default function LoadingPage({ navigation }: any) {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {Platform.OS === 'ios' ? (
-            <MaskedView
-              androidRenderingMode="software"
-              style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
-              maskElement={
+          <MaskedView
+            key={maskLoaded ? 'loaded' : 'loading'}
+            androidRenderingMode="software"
+            style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
+            maskElement={
+              <View style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT, backgroundColor: 'transparent' }}>
                 <Image
                   source={require('../../assets/images/logo/logowhite.png')}
-                  style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
+                  style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT, backgroundColor: 'transparent' }}
                   resizeMode="contain"
+                  onLoad={() => setMaskLoaded(true)}
                 />
-              }
-            >
-              {/* Faint ghost so the logo is visible before the wave arrives */}
-              <View style={[StyleSheet.absoluteFillObject, styles.logoBase]} />
+              </View>
+            }
+          >
+            {/* Faint ghost so the logo is visible before the wave arrives */}
+            <View style={[StyleSheet.absoluteFillObject, styles.logoBase]} />
 
-              {/* Wave container — translates left→right to fill the logo */}
+            {/* Wave container — translates left→right to fill the logo */}
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { transform: [{ translateX: fillTranslateX }] },
+              ]}
+            >
               <Animated.View
                 style={[
-                  StyleSheet.absoluteFillObject,
-                  { transform: [{ translateX: fillTranslateX }] },
+                  styles.liquidWave,
+                  { opacity: 0.65, transform: [{ rotate: rotate1 }] },
                 ]}
-              >
-                <Animated.View
-                  style={[
-                    styles.liquidWave,
-                    { opacity: 0.65, transform: [{ rotate: rotate1 }] },
-                  ]}
-                />
-                <Animated.View
-                  style={[
-                    styles.liquidWave,
-                    { opacity: 1, transform: [{ rotate: rotate2 }] },
-                  ]}
-                />
-              </Animated.View>
-            </MaskedView>
-          ) : (
-            <Image
-              source={require('../../assets/images/logo/logowhite.png')}
-              style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
-              resizeMode="contain"
-            />
-          )}
+              />
+              <Animated.View
+                style={[
+                  styles.liquidWave,
+                  { opacity: 1, transform: [{ rotate: rotate2 }] },
+                ]}
+              />
+            </Animated.View>
+          </MaskedView>
         </Animated.View>
       </View>
     </ImageBackground>

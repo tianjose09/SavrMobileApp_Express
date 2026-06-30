@@ -534,18 +534,19 @@ export default function ServiceDonation({ navigation }: any) {
                 <View style={[styles.row, { marginBottom: 15 }]}>
                   <View style={[styles.inputGroup, { flex: 1, marginRight: 15 }]}>
                     <Text style={styles.label}>To Deliver At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                    <View style={styles.pickerInputWrapper}>
-                      <TextInput
-                        style={styles.pickerTextInput}
-                        placeholder="mm/dd/yyyy"
-                        placeholderTextColor="rgba(255,255,255,0.5)"
-                        value={deliverAtInput}
-                        onChangeText={handleDeliverAtInput}
-                        keyboardType="number-pad"
-                        maxLength={10}
-                      />
+                    <View style={{ position: 'relative', justifyContent: 'center' }}>
+                      <View style={[styles.inputBox, { paddingRight: 35 }]}>
+                        <TextInput
+                          style={styles.inputInner}
+                          placeholder="mm/dd/yyyy"
+                          placeholderTextColor="rgba(255,255,255,0.5)"
+                          value={deliverAtInput}
+                          onChangeText={handleDeliverAtInput}
+                          keyboardType="number-pad"
+                          maxLength={10}
+                        />
+                      </View>
                       <TouchableOpacity
-                        style={styles.pickerIconBtn}
                         onPress={() => {
                           if (Platform.OS === 'ios') {
                             setTempStartsAt(startsAt || new Date());
@@ -554,26 +555,28 @@ export default function ServiceDonation({ navigation }: any) {
                             openAndroidDeliverAt();
                           }
                         }}
+                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 35, justifyContent: 'center', alignItems: 'center' }}
                       >
-                        <Ionicons name="calendar-outline" size={18} color="rgba(255,255,255,0.8)" />
+                        <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.8)" />
                       </TouchableOpacity>
                     </View>
                   </View>
 
                   <View style={[styles.inputGroup, { flex: 1 }]}>
                     <Text style={styles.label}>To Return At<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                    <View style={styles.pickerInputWrapper}>
-                      <TextInput
-                        style={styles.pickerTextInput}
-                        placeholder="mm/dd/yyyy"
-                        placeholderTextColor="rgba(255,255,255,0.5)"
-                        value={returnAtInput}
-                        onChangeText={handleReturnAtInput}
-                        keyboardType="number-pad"
-                        maxLength={10}
-                      />
+                    <View style={{ position: 'relative', justifyContent: 'center' }}>
+                      <View style={[styles.inputBox, { paddingRight: 35 }]}>
+                        <TextInput
+                          style={styles.inputInner}
+                          placeholder="mm/dd/yyyy"
+                          placeholderTextColor="rgba(255,255,255,0.5)"
+                          value={returnAtInput}
+                          onChangeText={handleReturnAtInput}
+                          keyboardType="number-pad"
+                          maxLength={10}
+                        />
+                      </View>
                       <TouchableOpacity
-                        style={styles.pickerIconBtn}
                         onPress={() => {
                           if (Platform.OS === 'ios') {
                             setTempEndsAt(endsAt || new Date());
@@ -582,8 +585,9 @@ export default function ServiceDonation({ navigation }: any) {
                             openAndroidReturnAt();
                           }
                         }}
+                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 35, justifyContent: 'center', alignItems: 'center' }}
                       >
-                        <Ionicons name="calendar-outline" size={18} color="rgba(255,255,255,0.8)" />
+                        <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.8)" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1153,27 +1157,6 @@ const styles = StyleSheet.create({
   },
   dropdownIcon: { marginLeft: 5 },
   absolutePicker: { display: 'none' },
-
-  pickerInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  pickerTextInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    paddingVertical: 0,
-  },
-  pickerIconBtn: {
-    padding: 4,
-  },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, alignItems: 'center' },

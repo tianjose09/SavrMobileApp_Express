@@ -28,6 +28,10 @@
           "apiKey": "AIzaSyB2JXJAl_wstGA0e08ttdr5hDGNq9AR-Vs"
         }
       },
+      "navigationBar": {
+        "backgroundColor": "#FFFFFF",
+        "buttonColor": "dark"
+      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "pan"

@@ -429,7 +429,7 @@ export default function LandingPage({ navigation }: any) {
   ];
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
@@ -483,7 +483,7 @@ export default function LandingPage({ navigation }: any) {
         </View>
       </SafeAreaView>
 
-      <View style={[styles.bottomNav, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
+      <View style={[styles.bottomNav, { bottom: insets.bottom }]}>
         {[
           { key: 'Home', icon: 'home', label: 'Home', type: Ionicons },
           { key: 'Mission', icon: 'flag-outline', label: 'Mission', type: Ionicons },
@@ -509,7 +509,7 @@ export default function LandingPage({ navigation }: any) {
           );
         })}
       </View>
-    </>
+    </View>
   );
 }
 
