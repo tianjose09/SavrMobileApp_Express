@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator, Animated, AppState, Image, ImageBackground, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage';
@@ -10,6 +10,7 @@ import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 
 export default function BeneficiaryDashboard({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('');
   const [splitName, setSplitName] = useState('Beneficiary Name');
   const [initial, setInitial] = useState('B');
@@ -86,11 +87,11 @@ export default function BeneficiaryDashboard({ navigation }: any) {
   }
 
   return (
-    <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
+    <View style={{ flex: 1, backgroundColor: '#00592d' }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }} edges={['bottom']}>
-        <View style={styles.container}>
+      <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
+
+      <View style={[styles.container, { flex: 1 }]}>
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
             <Image
@@ -223,8 +224,8 @@ export default function BeneficiaryDashboard({ navigation }: any) {
             </View>
           </ScrollView>
         </View>
-      </SafeAreaView>
-    </>
+        <View style={{ height: insets.bottom, backgroundColor: '#FFFFFF' }} />
+      </View>
   );
 }
 

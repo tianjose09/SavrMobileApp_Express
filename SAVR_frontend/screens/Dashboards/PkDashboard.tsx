@@ -162,20 +162,20 @@ export default function PkDashboard({ navigation }: any) {
   };
 
   return (
-    <>
-      <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
+    <View style={{ flex: 1, backgroundColor: '#00592d' }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#00592d', position: 'relative' }} edges={['bottom']}>
-        {/* Slide-in notification banner */}
-        <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.notificationContent}>
-            <Ionicons name="notifications" size={24} color="#00592d" />
-            <Text style={styles.notificationText}>{notificationMsg}</Text>
-            <Text style={styles.notificationTime}>Now</Text>
-          </View>
-        </Animated.View>
+      <View style={{ height: insets.top, backgroundColor: '#00592d' }} />
 
-        <View style={styles.container}>
+      {/* Slide-in notification banner */}
+      <Animated.View style={[styles.notificationBanner, { transform: [{ translateY: slideAnim }] }]}>
+        <View style={styles.notificationContent}>
+          <Ionicons name="notifications" size={24} color="#00592d" />
+          <Text style={styles.notificationText}>{notificationMsg}</Text>
+          <Text style={styles.notificationTime}>Now</Text>
+        </View>
+      </Animated.View>
+
+      <View style={[styles.container, { flex: 1 }]}>
           {/* TOP BAR HEADER */}
           <View style={styles.topHeader}>
             <Image
@@ -421,11 +421,11 @@ export default function PkDashboard({ navigation }: any) {
               </View>
 
               <View style={{ height: 120 }} />
-            </View>
-          </ScrollView>
         </View>
-      </SafeAreaView>
-    </>
+      </ScrollView>
+    </View>
+    <View style={{ height: insets.bottom, backgroundColor: '#FFFFFF' }} />
+  </View>
   );
 }
 
