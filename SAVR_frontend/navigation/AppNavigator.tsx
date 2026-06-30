@@ -287,8 +287,8 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: '#FFF',
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
+        tabBarActiveTintColor: '#00592d',
+        tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         tabBarStyle: {
           backgroundColor: 'transparent',
           borderTopLeftRadius: 30,
@@ -312,9 +312,11 @@ function MainTabs() {
             <View
               style={{
                 height: 70,
-                backgroundColor: '#00592d',
+                backgroundColor: '#FFFFFF',
                 borderTopLeftRadius: 30,
                 borderTopRightRadius: 30,
+                borderTopWidth: 1,
+                borderTopColor: '#E8E8E8',
               }}
             />
           </View>
