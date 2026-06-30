@@ -17,7 +17,6 @@ export default function LoadingPage({ navigation }: any) {
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
   const fillAnim = useRef(new Animated.Value(0)).current;
-  const [imageLoaded, setImageLoaded] = React.useState(false);
 
   useEffect(() => {
     // Entrance: fade-in + spring scale
@@ -97,7 +96,6 @@ export default function LoadingPage({ navigation }: any) {
           ]}
         >
           <MaskedView
-            key={imageLoaded ? 'loaded' : 'loading'}
             androidRenderingMode="software"
             style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
             maskElement={
@@ -105,7 +103,6 @@ export default function LoadingPage({ navigation }: any) {
                 source={require('../../assets/images/logo/logowhite.png')}
                 style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
                 resizeMode="contain"
-                onLoad={() => setImageLoaded(true)}
               />
             }
           >
