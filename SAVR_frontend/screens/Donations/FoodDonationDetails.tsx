@@ -42,6 +42,12 @@ const FILIPINO_FOODS = [
 ];
 
 export default function FoodDonationDetails({ navigation, route }: any) {
+  const getToday = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
   const [items, setItems] = useState<FoodItem[]>([
     { id: '1', name: '', quantity: '', unit: 'kg', category: '', expiryDate: null, specialNotes: '', photoUri: null },
   ]);
@@ -478,7 +484,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
             value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
             mode="date"
             display="default"
-            minimumDate={new Date()}
+            minimumDate={getToday()}
             onChange={(event, date) => {
               const currentId = showDatePickerId;
               setShowDatePickerId(null);
@@ -506,7 +512,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
                 <Text style={styles.modalDone}>Done</Text>
               </TouchableOpacity>
             </View>
-            <DateTimePicker value={iosTempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setIosTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+            <DateTimePicker value={iosTempDate} mode="date" display="spinner" minimumDate={getToday()} onChange={(_, d) => { if (d) setIosTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
           </View>
         </View>
       </Modal>

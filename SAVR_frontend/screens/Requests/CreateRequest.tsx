@@ -93,6 +93,12 @@ function getAllowedUnits(category: string | null): string[] {
 }
 
 export default function CreateRequest({ navigation }: any) {
+  const getToday = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
   const [requestType, setRequestType] = useState<'food' | 'financial'>('food');
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -878,7 +884,7 @@ export default function CreateRequest({ navigation }: any) {
                   value={dateObj}
                   mode="date"
                   display="default"
-                  minimumDate={new Date()}
+                  minimumDate={getToday()}
                   onChange={onDateChange}
                 />
               )}
@@ -887,7 +893,7 @@ export default function CreateRequest({ navigation }: any) {
                   value={endDateObj}
                   mode="date"
                   display="default"
-                  minimumDate={new Date()}
+                  minimumDate={getToday()}
                   onChange={onEndDateChange}
                 />
               )}
@@ -909,7 +915,7 @@ export default function CreateRequest({ navigation }: any) {
                         value={dateObj}
                         mode="date"
                         display="spinner"
-                        minimumDate={new Date()}
+                        minimumDate={getToday()}
                         onChange={(e, d) => { if (d) setDateObj(d); }}
                         style={{ width: '100%', alignSelf: 'center' }}
                         textColor="#1a1a1a"
@@ -936,7 +942,7 @@ export default function CreateRequest({ navigation }: any) {
                         value={endDateObj}
                         mode="date"
                         display="spinner"
-                        minimumDate={new Date()}
+                        minimumDate={getToday()}
                         onChange={(e, d) => { if (d) setEndDateObj(d); }}
                         style={{ width: '100%', alignSelf: 'center' }}
                         textColor="#1a1a1a"
