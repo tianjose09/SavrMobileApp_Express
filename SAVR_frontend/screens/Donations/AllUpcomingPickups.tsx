@@ -50,7 +50,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled'];
+        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending'];
         const sorted = (res.data.pickups as Pickup[])
           .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
           .sort((a, b) => {

@@ -6,7 +6,7 @@ import { StorageUtils, StorageKeys } from '../utils/storage';
 // The default React Native Android emulator alias for localhost is 10.0.2.2
 // IMPORTANT: If you are testing on your PHYSICAL PHONE via Expo Go, you MUST change this
 // to your computer's local Wi-Fi IP address (e.g., 'http://192.168.1.100:8000/').
-const BASE_URL = 'http://localhost:8000/';
+const BASE_URL = 'https://savrmobileappexpress-production.up.railway.app/';
 // Local fallback (use when not using ngrok): 'http://192.168.1.3:8000/'
 
 export const api = axios.create({
@@ -47,6 +47,17 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Log detailed connection/request information for diagnostics
+    console.error('[API Error Details]', {
+      url: error.config?.url,
+      method: error.config?.method,
+      baseURL: error.config?.baseURL,
+      code: error.code,
+      message: error.message,
+      responseStatus: error.response?.status,
+      responseData: error.response?.data,
+    });
+
     if (error?.response?.status === 401) {
       error.silent = true;
       // Suppress 401 console errors for background/polling GET requests 
@@ -95,7 +106,8 @@ export const ApiService = {
   // Food Donation
   submitFoodDonation: (formData: FormData) =>
     api.post('api/donation/food', formData, {
-      headers: { 'Content-Type': undefined },
+      headers: { 'Content-Type': 'multipart/form-data' },
+      transformRequest: (data) => data,
     }),
   submitSchedule: (data: any) => api.post('api/donation/schedule', data),
 
@@ -152,7 +164,8 @@ export const ApiService = {
   addRecipe: (data: any) => api.post('api/meals', data),
   uploadRecipeImage: (formData: FormData) =>
     api.post('api/meals/upload-image', formData, {
-      headers: { 'Content-Type': undefined },
+      headers: { 'Content-Type': 'multipart/form-data' },
+      transformRequest: (data) => data,
     }),
   deleteRecipe: (id: string | number) => api.delete(`api/meals/${id}`),
   getIngredientsList: () => api.get('api/ingredients'),

@@ -53,7 +53,7 @@ export default function ChooseDonation({ navigation }: any) {
     try {
       const response = await ApiService.getUpcomingPickups();
       if (response.data.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled'];
+        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending'];
         const sorted = (response.data.pickups || [])
           .filter((p: any) => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
           .sort((a: any, b: any) =>
