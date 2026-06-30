@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, StatusBar, ImageBackground, Animated, Image, Easing, Dimensions } from 'react-native';
+import { View, StyleSheet, StatusBar, ImageBackground, Animated, Image, Easing, Dimensions, Platform } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 
 const { width } = Dimensions.get('window');
@@ -95,41 +95,49 @@ export default function LoadingPage({ navigation }: any) {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          <MaskedView
-            androidRenderingMode="software"
-            style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
-            maskElement={
-              <Image
-                source={require('../../assets/images/logo/logowhite.png')}
-                style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
-                resizeMode="contain"
-              />
-            }
-          >
-            {/* Faint ghost so the logo is visible before the wave arrives */}
-            <View style={[StyleSheet.absoluteFillObject, styles.logoBase]} />
-
-            {/* Wave container — translates left→right to fill the logo */}
-            <Animated.View
-              style={[
-                StyleSheet.absoluteFillObject,
-                { transform: [{ translateX: fillTranslateX }] },
-              ]}
+          {Platform.OS === 'ios' ? (
+            <MaskedView
+              androidRenderingMode="software"
+              style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
+              maskElement={
+                <Image
+                  source={require('../../assets/images/logo/logowhite.png')}
+                  style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
+                  resizeMode="contain"
+                />
+              }
             >
+              {/* Faint ghost so the logo is visible before the wave arrives */}
+              <View style={[StyleSheet.absoluteFillObject, styles.logoBase]} />
+
+              {/* Wave container — translates left→right to fill the logo */}
               <Animated.View
                 style={[
-                  styles.liquidWave,
-                  { opacity: 0.65, transform: [{ rotate: rotate1 }] },
+                  StyleSheet.absoluteFillObject,
+                  { transform: [{ translateX: fillTranslateX }] },
                 ]}
-              />
-              <Animated.View
-                style={[
-                  styles.liquidWave,
-                  { opacity: 1, transform: [{ rotate: rotate2 }] },
-                ]}
-              />
-            </Animated.View>
-          </MaskedView>
+              >
+                <Animated.View
+                  style={[
+                    styles.liquidWave,
+                    { opacity: 0.65, transform: [{ rotate: rotate1 }] },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.liquidWave,
+                    { opacity: 1, transform: [{ rotate: rotate2 }] },
+                  ]}
+                />
+              </Animated.View>
+            </MaskedView>
+          ) : (
+            <Image
+              source={require('../../assets/images/logo/logowhite.png')}
+              style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
+              resizeMode="contain"
+            />
+          )}
         </Animated.View>
       </View>
     </ImageBackground>
