@@ -37,6 +37,21 @@ export default function OrgDashboard({ navigation }: any) {
   const badgesFadeAnim = useRef(new Animated.Value(0)).current;
   const badgesTranslateAnim = useRef(new Animated.Value(22)).current;
 
+  // Scroll tracking for parallax slide-up animation (matching Landing Page)
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const drivesScrollTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -20],
+    extrapolate: 'clamp'
+  });
+
+  const badgesScrollTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -20],
+    extrapolate: 'clamp'
+  });
+
   const runEntryAnimations = () => {
     if (hasAnimated.current) return;
     hasAnimated.current = true;
@@ -214,10 +229,16 @@ export default function OrgDashboard({ navigation }: any) {
             </View>
           </View>
 
-          <ScrollView
+          <Animated.ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             bounces={false}
+            style={{ backgroundColor: '#F9FAFB' }}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true }
+            )}
+            scrollEventThrottle={16}
           >
             {/* PROFILE HEADER SECTION */}
             <View style={styles.profileHeader}>
@@ -328,7 +349,7 @@ export default function OrgDashboard({ navigation }: any) {
 
               {/* ACHIEVEMENT BADGES — only show if earned */}
               {featuredBadges && featuredBadges.length > 0 && (
-                <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesTranslateAnim }] }}>
+                <Animated.View style={{ opacity: badgesFadeAnim, transform: [{ translateY: badgesScrollTranslateY }] }}>
                   <View style={styles.badgesSection}>
                     <View style={styles.badgesHeader}>
                       <Text style={styles.badgesTitle}>Achievement Badges</Text>
@@ -360,7 +381,7 @@ export default function OrgDashboard({ navigation }: any) {
               <Animated.View
                 style={{
                   opacity: drivesFadeAnim,
-                  transform: [{ translateY: drivesTranslateAnim }],
+                  transform: [{ translateY: drivesScrollTranslateY }],
                   marginTop: 32,
                   paddingBottom: 10,
                 }}
@@ -454,7 +475,7 @@ export default function OrgDashboard({ navigation }: any) {
 
 
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
       </View>
   );

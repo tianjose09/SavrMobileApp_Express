@@ -290,14 +290,14 @@ function MainTabs() {
         tabBarActiveTintColor: '#FFF',
         tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
         tabBarStyle: {
-          backgroundColor: Platform.OS === 'android' ? '#FFFFFF' : '#00592d',
+          backgroundColor: '#00592d',
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
-          height: 70 + insets.bottom,
-          paddingBottom: Platform.OS === 'ios' ? 20 : insets.bottom + 8,
+          height: 70,
+          paddingBottom: 8,
           paddingTop: 10,
           position: 'absolute',
-          bottom: 0,
+          bottom: insets.bottom,
           left: 0,
           right: 0,
           borderTopWidth: 0,
@@ -311,7 +311,7 @@ function MainTabs() {
           <View
             style={{
               backgroundColor: '#00592d',
-              height: Platform.OS === 'android' ? 70 : 70 + insets.bottom,
+              flex: 1,
               borderTopLeftRadius: 30,
               borderTopRightRadius: 30,
             }}

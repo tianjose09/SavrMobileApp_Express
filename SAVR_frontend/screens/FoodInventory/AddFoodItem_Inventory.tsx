@@ -273,7 +273,6 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
 
           </View>
 
-          <View style={{ height: 120 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -301,6 +300,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingTop: 15,
     alignItems: 'center',
+    paddingBottom: 100,
   },
   heroTitle: {
     fontSize: 35,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
 
   submitBtn: {
-    backgroundColor: '#DCAB18',
+    backgroundColor: '#0E6A31',
     borderRadius: 22,
     height: 52,
     justifyContent: 'center',

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ImageBackground, Platform, Dimensions, Image
+  View, Text, StyleSheet, TouchableOpacity, ImageBackground, Platform, Dimensions, Image, StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function Registration({ navigation }: any) {
       style={styles.background}
       resizeMode="cover"
     >
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         {/* BACK BUTTON */}
         <TouchableOpacity

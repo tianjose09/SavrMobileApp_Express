@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, ImageBackground, Platform, ScrollView, KeyboardAvoidingView, Dimensions, Modal, Image
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ImageBackground, Platform, ScrollView, KeyboardAvoidingView, Dimensions, Modal, Image, StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -230,6 +230,7 @@ export default function BeneficiaryRegistration({ navigation }: any) {
       resizeMode="cover"
       style={styles.background}
     >
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <TouchableOpacity
           style={styles.backButton}

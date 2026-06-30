@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, ImageBackground, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions, Image
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ImageBackground, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions, Image, StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,6 +132,7 @@ export default function Login({ navigation }: any) {
       style={styles.background}
       resizeMode="cover"
     >
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView

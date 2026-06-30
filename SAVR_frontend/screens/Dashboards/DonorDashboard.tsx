@@ -46,6 +46,21 @@ export default function DonorDashboard({ navigation }: any) {
   const badgesFadeAnim = useRef(new Animated.Value(0)).current;
   const badgesTranslateAnim = useRef(new Animated.Value(22)).current;
 
+  // Scroll tracking for parallax slide-up animation (matching Landing Page)
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const drivesScrollTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -20],
+    extrapolate: 'clamp'
+  });
+
+  const badgesScrollTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -20],
+    extrapolate: 'clamp'
+  });
+
 
   const runEntryAnimations = () => {
     if (hasAnimated.current) return;
@@ -231,10 +246,16 @@ export default function DonorDashboard({ navigation }: any) {
             </View>
           </View>
 
-          <ScrollView
+          <Animated.ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             bounces={false}
+            style={{ backgroundColor: '#F9FAFB' }}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true }
+            )}
+            scrollEventThrottle={16}
           >
             {/* PROFILE HEADER SECTION */}
             <View style={styles.profileHeader}>
@@ -376,7 +397,7 @@ export default function DonorDashboard({ navigation }: any) {
                 <Animated.View
                   style={{
                     opacity: badgesFadeAnim,
-                    transform: [{ translateY: badgesTranslateAnim }],
+                    transform: [{ translateY: badgesScrollTranslateY }],
                   }}
                 >
                   <View style={styles.badgesSection}>
@@ -411,7 +432,7 @@ export default function DonorDashboard({ navigation }: any) {
               <Animated.View
                 style={{
                   opacity: drivesFadeAnim,
-                  transform: [{ translateY: drivesTranslateAnim }],
+                  transform: [{ translateY: drivesScrollTranslateY }],
                   marginTop: 32,
                   paddingBottom: 20,
                 }}
@@ -505,7 +526,7 @@ export default function DonorDashboard({ navigation }: any) {
 
 
             </Animated.View>
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
       </View>
   );

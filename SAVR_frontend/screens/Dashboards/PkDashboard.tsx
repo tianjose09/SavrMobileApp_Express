@@ -26,6 +26,21 @@ export default function PkDashboard({ navigation }: any) {
   const bannerShownRef = React.useRef(false);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
+  // Scroll tracking for parallax slide-up animation (matching Landing Page)
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const staffRequestsScrollTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -20],
+    extrapolate: 'clamp'
+  });
+
+  const activitiesScrollTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -20],
+    extrapolate: 'clamp'
+  });
+
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDashboardData();
@@ -194,7 +209,17 @@ export default function PkDashboard({ navigation }: any) {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          bounces={false}
+          style={{ backgroundColor: '#F9FAFB' }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        >
 
           {/* PROFILE HEADER SECTION */}
           <View style={styles.profileHeader}>
@@ -306,7 +331,14 @@ export default function PkDashboard({ navigation }: any) {
             <View style={styles.divider} />
 
             {/* STAFF MEAL REQUESTS */}
-            <View style={{ marginTop: 25, paddingBottom: 15, paddingHorizontal: 4 }}>
+            <Animated.View
+              style={{
+                marginTop: 25,
+                paddingBottom: 15,
+                paddingHorizontal: 4,
+                transform: [{ translateY: staffRequestsScrollTranslateY }]
+              }}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <FontAwesome5 name="sync-alt" size={12} color="#00592d" />
                 <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '800', color: '#00592d', letterSpacing: 0.5 }}>STAFF MEAL REQUESTS</Text>
@@ -388,41 +420,43 @@ export default function PkDashboard({ navigation }: any) {
                   </View>
                 )}
               </ScrollView>
-            </View>
+            </Animated.View>
 
             <View style={styles.divider} />
 
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Activities</Text>
-              <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
+            <Animated.View style={{ transform: [{ translateY: activitiesScrollTranslateY }] }}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Activities</Text>
+                <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('PartnerKitchenRecentActivities')}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
 
-            {/* Activities List */}
-            <View style={styles.activitiesContainer}>
-              {isLoading && activities.length === 0 ? (
-                <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
-              ) : activities.length === 0 ? (
-                <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-                  <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
-                </View>
-              ) : (
-                activities.slice(0, 2).map((act, i) => (
-                  <View key={i} style={styles.activityRow}>
-                    <View style={styles.activityLeft}>
-                      <Text style={styles.actTitle}>{act.title}</Text>
-                      <Text style={styles.actDesc}>{act.description}</Text>
-                    </View>
-                    <Text style={styles.actTime}>{act.time_ago}</Text>
+              {/* Activities List */}
+              <View style={styles.activitiesContainer}>
+                {isLoading && activities.length === 0 ? (
+                  <ActivityIndicator style={{ padding: 20 }} color="#236B40" />
+                ) : activities.length === 0 ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                    <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
                   </View>
-                ))
-              )}
-            </View>
+                ) : (
+                  activities.slice(0, 2).map((act, i) => (
+                    <View key={i} style={styles.activityRow}>
+                      <View style={styles.activityLeft}>
+                        <Text style={styles.actTitle}>{act.title}</Text>
+                        <Text style={styles.actDesc}>{act.description}</Text>
+                      </View>
+                      <Text style={styles.actTime}>{act.time_ago}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
+            </Animated.View>
 
             <View style={{ height: 60 }} />
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
     </View>
   );

@@ -335,7 +335,7 @@ export default function AddRecipe({ navigation }: any) {
             <View style={[styles.inputBox, isNameFocused && styles.inputBoxFocused]}>
               <TextInput
                 style={styles.inputText}
-                placeholder="Enter recipe name (e.g. Chicken Adobo)"
+                placeholder="Enter recipe name e.g. Chicken Adobo"
                 placeholderTextColor="#B0B0B0"
                 value={recipeName}
                 onChangeText={setRecipeName}
@@ -573,7 +573,6 @@ export default function AddRecipe({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 20 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -612,7 +611,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 8,
-    paddingBottom: 130,
+    paddingBottom: 100,
   },
   // ── SECTION HEADER & TITLES ──
   sectionHeaderRow: {
@@ -654,12 +653,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   inputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2EAE5',
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 50,
-    justifyContent: 'center',
     backgroundColor: '#F8FAF9', // soft light input background inside card
   },
   inputBoxFocused: {
@@ -670,8 +670,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
     paddingVertical: 0,
+    paddingHorizontal: 0,
+    margin: 0,
+    alignSelf: 'stretch',
+    flex: 1,
   },
   textareaBox: {
+    flexDirection: 'column',
     height: 120,
     paddingTop: 12,
     alignItems: 'flex-start',
@@ -1024,7 +1029,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DCAB18',
+    backgroundColor: '#156133',
     borderRadius: 22,
     height: 52,
     shadowColor: '#000',

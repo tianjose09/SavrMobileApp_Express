@@ -436,7 +436,7 @@ export default function LandingPage({ navigation }: any) {
         </View>
       </SafeAreaView>
 
-      <View style={[styles.bottomNav, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
+      <View style={[styles.bottomNav, { bottom: insets.bottom }]}>
         {[
           { key: 'Home', icon: 'home', label: 'Home', type: Ionicons },
           { key: 'Mission', icon: 'flag-outline', label: 'Mission', type: Ionicons },
