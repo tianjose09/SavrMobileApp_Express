@@ -895,7 +895,7 @@ export default function CreateRequest({ navigation }: any) {
                 <DateTimePicker
                   value={dateObj}
                   mode="date"
-                  display="default"
+                  display="spinner"
                   onChange={onDateChange}
                 />
               )}
@@ -903,7 +903,7 @@ export default function CreateRequest({ navigation }: any) {
                 <DateTimePicker
                   value={endDateObj}
                   mode="date"
-                  display="default"
+                  display="spinner"
                   onChange={onEndDateChange}
                 />
               )}

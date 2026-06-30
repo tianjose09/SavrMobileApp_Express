@@ -483,7 +483,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
           <DateTimePicker
             value={items.find(i => i.id === showDatePickerId)?.expiryDate || new Date()}
             mode="date"
-            display="default"
+            display="spinner"
             onChange={(event, date) => {
               const currentId = showDatePickerId;
               setShowDatePickerId(null);

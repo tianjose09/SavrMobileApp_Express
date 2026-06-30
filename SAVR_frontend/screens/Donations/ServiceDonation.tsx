@@ -857,7 +857,7 @@ export default function ServiceDonation({ navigation }: any) {
               ? 'date'
               : 'time'
           }
-          display="default"
+          display="spinner"
           initialInputMode={
             datePickerMode === 'starts_at' || datePickerMode === 'ends_at' ? 'keyboard' : 'default'
           }
