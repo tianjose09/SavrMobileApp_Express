@@ -327,6 +327,9 @@ async function getDisplayName(user) {
     case 'donor': {
       const [rows] = await db.execute('SELECT first_name, last_name FROM donors WHERE user_id = ?', [user.id]);
       if (rows[0]) return `${rows[0].first_name} ${rows[0].last_name}`;
+      const [orgRows] = await db.execute('SELECT org_name FROM donor_organizations WHERE user_id = ?', [user.id]);
+      if (orgRows[0]?.org_name) return orgRows[0].org_name;
+      if (user.name && user.name !== 'user') return user.name;
       break;
     }
     case 'organization': {
@@ -911,11 +914,19 @@ exports.login = async (req, res) => {
     const displayName = await getDisplayName(user);
     const token = issueToken(user.id);
 
+    let role = user.role;
+    if (role === 'donor') {
+      const [orgRows] = await db.execute('SELECT id FROM donor_organizations WHERE user_id = ?', [user.id]);
+      if (orgRows.length > 0) {
+        role = 'organization';
+      }
+    }
+
     return res.json({
       success: true,
       message: 'Login successful.',
       token,
-      user: { id: user.id, email: user.email, role: user.role, email_verified: !!user.email_verified, display_name: displayName },
+      user: { id: user.id, email: user.email, role, email_verified: !!user.email_verified, display_name: displayName },
     });
   } catch (err) {
     console.error('[login error]', err.message);
@@ -995,7 +1006,15 @@ exports.profile = async (req, res) => {
   if (user.role === 'donor') {
     const [rows] = await db.execute('SELECT * FROM donors WHERE user_id = ?', [user.id]);
     const p = rows[0];
-    if (p) userData = { ...userData, first_name: p.first_name, last_name: p.last_name, middle_name: p.middle_name, suffix: p.suffix, date_of_birth: p.dob ? dayjs(p.dob).format('YYYY-MM-DD') : null, gender: p.gender, house_no: p.house, street: p.street, barangay: p.barangay, city_municipality: p.city, province_region: p.province, postal_zip_code: p.zip, contact_number: p.contact };
+    if (p) {
+      userData = { ...userData, first_name: p.first_name, last_name: p.last_name, middle_name: p.middle_name, suffix: p.suffix, date_of_birth: p.dob ? dayjs(p.dob).format('YYYY-MM-DD') : null, gender: p.gender, house_no: p.house, street: p.street, barangay: p.barangay, city_municipality: p.city, province_region: p.province, postal_zip_code: p.zip, contact_number: p.contact };
+    } else {
+      const [orgRows] = await db.execute('SELECT * FROM donor_organizations WHERE user_id = ?', [user.id]);
+      const org = orgRows[0];
+      if (org) {
+        userData = { ...userData, role: 'organization', organization_name: org.org_name, website_url: org.website, industry_sector: org.industry, organization_type: org.type, first_name: org.first_name, last_name: org.last_name, contact_number: org.contact };
+      }
+    }
 
   } else if (user.role === 'organization') {
     const [rows] = await db.execute('SELECT * FROM donor_organizations WHERE user_id = ?', [user.id]);

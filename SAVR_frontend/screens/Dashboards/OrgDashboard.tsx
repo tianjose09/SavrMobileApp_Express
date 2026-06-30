@@ -102,13 +102,28 @@ export default function OrgDashboard({ navigation }: any) {
     setIsLoading(true);
     try {
       const localName =
-        (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || 'NGO Partner';
+        (await StorageUtils.getItem(StorageKeys.DISPLAY_NAME)) || '';
       const picKey = await getProfilePicKey();
       const localPic = await StorageUtils.getItem(picKey);
       if (localPic) setProfilePic(localPic);
 
-      setUserName(localName);
-      setInitial(localName.charAt(0).toUpperCase());
+      // If the cached name looks like an email, try to get the real name from USER_INFO
+      let bestLocalName = localName;
+      if (!bestLocalName || bestLocalName.includes('@')) {
+        try {
+          const userInfoRaw = await StorageUtils.getItem(StorageKeys.USER_INFO);
+          if (userInfoRaw) {
+            const parsed = JSON.parse(userInfoRaw);
+            if (parsed?.display_name && !parsed.display_name.includes('@')) {
+              bestLocalName = parsed.display_name;
+            } else if (parsed?.name && !parsed.name.includes('@')) {
+              bestLocalName = parsed.name;
+            }
+          }
+        } catch (_) {}
+      }
+      setUserName(bestLocalName || 'NGO Partner');
+      setInitial((bestLocalName || 'N').charAt(0).toUpperCase());
 
       try {
         const dashRes = await ApiService.getDashboard();

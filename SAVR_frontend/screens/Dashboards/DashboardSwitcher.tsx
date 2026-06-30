@@ -6,12 +6,13 @@ import OrgDashboard from './OrgDashboard';
 import BeneficiaryDashboard from './BeneficiaryDashboard';
 import PkDashboard from './PkDashboard';
 
+import { ApiService } from '../../services/api';
+
 export default function DashboardSwitcher(props: any) {
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRole = async () => {
-      // Prioritize explicit role, otherwise check user info
       let userRole = await StorageUtils.getItem(StorageKeys.USER_ROLE);
       if (!userRole) {
         const userInfoRaw = await StorageUtils.getItem(StorageKeys.USER_INFO);
@@ -22,7 +23,25 @@ export default function DashboardSwitcher(props: any) {
           } catch (e) { }
         }
       }
-      setRole(userRole?.toLowerCase() || 'donor');
+      const normalizedRole = userRole?.toLowerCase() || 'donor';
+      setRole(normalizedRole);
+
+      // Self-healing check: query profile to see if role has changed or needs update
+      try {
+        const response = await ApiService.getProfile();
+        if (response.data && response.data.success) {
+          const apiUser = response.data.user;
+          const apiRole = apiUser?.role?.toLowerCase();
+          if (apiRole && apiRole !== normalizedRole) {
+            await StorageUtils.setItem(StorageKeys.USER_ROLE, apiRole);
+            await StorageUtils.setItem(StorageKeys.DISPLAY_NAME, response.data.display_name || '');
+            await StorageUtils.setItem(StorageKeys.USER_INFO, JSON.stringify(apiUser));
+            setRole(apiRole);
+          }
+        }
+      } catch (err: any) {
+        console.log('Background dashboard switcher sync skipped:', err?.message || err);
+      }
     };
     fetchRole();
   }, []);
