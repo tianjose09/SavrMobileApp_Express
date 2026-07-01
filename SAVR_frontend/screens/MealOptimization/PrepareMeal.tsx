@@ -84,18 +84,18 @@ export default function PrepareMeal({ route, navigation }: any) {
     }
   };
 
-  // â”€â”€ Done screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——— Done screen —————————————————————————————————————————————
   if (isDone) {
     return (
       <>
         <SafeAreaView style={{ flex: 0, backgroundColor: '#156133' }} edges={['top']} />
         <SafeAreaView style={styles.doneContainer} edges={['bottom']}>
-          <StatusBar barStyle="light-content" backgroundColor="#156133" />
+          <StatusBar barStyle="light-content" backgroundColor="#156133" translucent={false} />
           <View style={styles.doneContent}>
             <View style={styles.doneCheckCircle}>
               <Ionicons name="checkmark" size={56} color="#FFF" />
             </View>
-            <Text style={styles.doneTitle}>Meal Prepared! ðŸŽ‰</Text>
+            <Text style={styles.doneTitle}>Meal Prepared! 🎉</Text>
             <Text style={styles.doneSubtitle}>
               <Text style={{ fontWeight: '800' }}>{meal.name}</Text> has been marked as done.{'\n'}
               Ingredient quantities have been deducted from the inventory.
@@ -124,9 +124,9 @@ export default function PrepareMeal({ route, navigation }: any) {
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#156133' }} edges={['top']} />
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <StatusBar barStyle="light-content" backgroundColor="#156133" />
+        <StatusBar barStyle="light-content" backgroundColor="#156133" translucent={false} />
 
-        {/* â”€â”€ HEADER â”€â”€ */}
+        {/* ——— HEADER ——— */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={26} color="#FFF" />

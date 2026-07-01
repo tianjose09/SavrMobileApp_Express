@@ -536,7 +536,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
     <>
       <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <StatusBar barStyle="light-content" backgroundColor="#00592d" />
+        <StatusBar barStyle="light-content" backgroundColor="#00592d" translucent={false} />
 
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: '#156133',
+    backgroundColor: '#00592d',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
