@@ -320,7 +320,7 @@ function MainTabs() {
           </View>
         ),
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 9.5,
           fontWeight: 'bold',
           marginBottom: Platform.OS === 'ios' ? -8 : -2,
         },
@@ -339,14 +339,7 @@ function MainTabs() {
           <Tab.Screen name="FoodInventory" component={InventoryStackNavigator} options={{ tabBarLabel: 'Inventory' }} />
           <Tab.Screen name="Recipes" component={RecipesStackNavigator} options={{ tabBarLabel: 'Recipes' }} />
           <Tab.Screen name="Ingredients" component={IngredientsStackNavigator} options={{ tabBarLabel: 'Ingr. & Scale' }} />
-          <Tab.Screen
-            name="Summary"
-            component={MealPreparationSummary}
-            options={{
-              tabBarLabel: 'Summary',
-              tabBarItemStyle: { display: 'none' }
-            }}
-          />
+          <Tab.Screen name="Summary" component={MealPreparationSummary} options={{ tabBarLabel: 'Summary' }} />
         </>
       ) : isBeneficiary ? (
         <>

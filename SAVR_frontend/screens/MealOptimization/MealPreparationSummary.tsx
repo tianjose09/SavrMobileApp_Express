@@ -91,9 +91,18 @@ export default function MealPreparationSummary({ navigation }: any) {
             const mealName = afterPrefix.split('\n')[0].split(',')[0].trim();
 
             if (mealName) {
+              // Extract servings (pax) from description line, e.g. "Fried Chicken (8 servings)"
+              let pax = 1;
+              let cleanMealName = mealName;
+              const paxMatch = mealName.match(/^(.*?)\s*\((\d+)\s*servings?\)/i);
+              if (paxMatch) {
+                cleanMealName = paxMatch[1].trim();
+                pax = parseInt(paxMatch[2], 10);
+              }
+
               // Check if it already exists in local storage
               const exists = localMeals.some(m => 
-                m.mealName && m.mealName.toLowerCase() === mealName.toLowerCase()
+                m.mealName && m.mealName.toLowerCase() === cleanMealName.toLowerCase()
               );
 
               if (!exists) {
@@ -110,19 +119,29 @@ export default function MealPreparationSummary({ navigation }: any) {
 
                 // Fallback to default dictionary if parsing returned nothing
                 if (!ingredients) {
-                  ingredients = DEFAULT_INGREDIENTS[mealName.toLowerCase()] || 'Ingredients synced from database';
+                  ingredients = DEFAULT_INGREDIENTS[cleanMealName.toLowerCase()] || 'Ingredients synced from database';
                 }
 
                 // Determine if it is Done vs Preparing by checking if it exists in dbPreparedMeals
                 const isDone = dbPreparedMeals.some((item: any) => 
-                  item.name && item.name.toLowerCase() === mealName.toLowerCase()
+                  item.name && item.name.toLowerCase() === cleanMealName.toLowerCase()
                 );
+
+                // If Done, let's use the actual database inventory quantity if available
+                if (isDone) {
+                  const dbItem = dbPreparedMeals.find((item: any) => 
+                    item.name && item.name.toLowerCase() === cleanMealName.toLowerCase()
+                  );
+                  if (dbItem && dbItem.quantity) {
+                    pax = parseInt(dbItem.quantity, 10) || pax;
+                  }
+                }
 
                 await MealPrepService.addMeal({
                   mealId: act.reference_id || `db_${Date.now()}_${Math.random()}`,
-                  mealName: mealName,
+                  mealName: cleanMealName,
                   ingredients: ingredients,
-                  pax: 1, // default
+                  pax: pax,
                   status: isDone ? 'Done' : 'Preparing',
                 });
                 hasNew = true;
@@ -350,7 +369,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingTop: 18,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   backBtn: {
     width: 40,
@@ -423,7 +442,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
     marginHorizontal: 16,
-    marginBottom: 30,
+    marginBottom: 82,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: '#e8eedf',

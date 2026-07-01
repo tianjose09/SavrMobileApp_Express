@@ -229,7 +229,7 @@ exports.deduct = async (req, res) => {
         );
       }
 
-      const description = `Prepared meal: ${meal_name}${ingredientSummary}`;
+      const description = `Prepared meal: ${meal_name} (${servings} servings)${ingredientSummary}`;
 
       // Activity log and notification are non-critical — log failures but don't block success response
       db.execute(

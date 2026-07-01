@@ -907,6 +907,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 22,
+    paddingBottom: 82,
     alignItems: 'center',
   },
 
