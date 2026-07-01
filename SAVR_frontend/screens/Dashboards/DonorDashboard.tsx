@@ -280,7 +280,7 @@ export default function DonorDashboard({ navigation }: any) {
 
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#E8A835', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Good Day,</Text>
-                  <Text style={styles.profileName}>
+                  <Text style={styles.profileName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
                     {userName}
                   </Text>
                 </View>
