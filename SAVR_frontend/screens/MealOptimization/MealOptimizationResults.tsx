@@ -534,9 +534,9 @@ export default function MealOptimizationResults({ route, navigation }: any) {
 
   return (
     <>
-      <SafeAreaView style={{ flex: 0, backgroundColor: '#FFFFFF' }} edges={['top']} />
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#00592d' }} edges={['top']} />
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="light-content" backgroundColor="#00592d" />
 
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -545,9 +545,6 @@ export default function MealOptimizationResults({ route, navigation }: any) {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Optimization Results</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Summary')} style={styles.headerListBtn}>
-            <Ionicons name="list" size={24} color="#FFF" />
-          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
