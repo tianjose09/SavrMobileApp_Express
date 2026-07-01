@@ -1,16 +1,153 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-  ActivityIndicator, FlatList, Platform, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View
+  ActivityIndicator, FlatList, Platform, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View, Animated, PanResponder, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 
+interface SwipeableItemProps {
+  children: React.ReactNode;
+  onDelete: () => void;
+}
+
+function SwipeableItem({ children, onDelete }: SwipeableItemProps) {
+  const swipeX = useRef(new Animated.Value(0)).current;
+  const deleteBtnWidth = 80;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 8;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        let newX = gestureState.dx;
+        if (newX > 0) newX = 0;
+        if (newX < -deleteBtnWidth - 40) {
+          const extra = -deleteBtnWidth - 40 - newX;
+          newX = -deleteBtnWidth - 40 - (extra * 0.2);
+        }
+        swipeX.setValue(newX);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -deleteBtnWidth / 2) {
+          Animated.spring(swipeX, {
+            toValue: -deleteBtnWidth,
+            useNativeDriver: true,
+            tension: 40,
+            friction: 7,
+          }).start();
+        } else {
+          Animated.spring(swipeX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 40,
+            friction: 7,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  const handleClose = () => {
+    Animated.spring(swipeX, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleDeletePress = () => {
+    handleClose();
+    onDelete();
+  };
+
+  return (
+    <View style={swipeStyles.swipeContainer}>
+      <View style={swipeStyles.actionContainer}>
+        <TouchableOpacity
+          style={swipeStyles.deleteButton}
+          onPress={handleDeletePress}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+          <Text style={swipeStyles.deleteText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+      <Animated.View
+        style={[
+          swipeStyles.contentLayer,
+          { transform: [{ translateX: swipeX }] },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
+const swipeStyles = StyleSheet.create({
+  swipeContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 20,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionContainer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: 80,
+    backgroundColor: '#D0112B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+    zIndex: 1,
+  },
+  deleteButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  contentLayer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    zIndex: 2,
+  },
+});
+
 export default function PartnerKitchenRecentActivities({ navigation }: any) {
   const [activities, setActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const handleDeleteActivity = async (id: number | string) => {
+    try {
+      const response = await ApiService.deleteActivity(id);
+      if (response?.data?.success) {
+        setActivities(prev => prev.filter(act => act.id !== id));
+      }
+    } catch (e) {
+      console.error('Delete activity error', e);
+    }
+  };
 
   useEffect(() => {
     fetchActivities();
@@ -125,53 +262,55 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
     const statusStyle = getStatusStyle(item.status);
 
     return (
-      <View style={styles.activityCard}>
-        <View style={[styles.activityTopRow]}>
-          <View style={[styles.iconContainer, { backgroundColor: typeStyle.bg }]}>
-            <Ionicons
-              name={getIconForType(item.type) as any}
-              size={24}
-              color={typeStyle.icon}
-            />
-          </View>
+      <SwipeableItem onDelete={() => handleDeleteActivity(item.id)}>
+        <View style={styles.activityCard}>
+          <View style={[styles.activityTopRow]}>
+            <View style={[styles.iconContainer, { backgroundColor: typeStyle.bg }]}>
+              <Ionicons
+                name={getIconForType(item.type) as any}
+                size={24}
+                color={typeStyle.icon}
+              />
+            </View>
 
-          <View style={styles.contentContainer}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={1}>
-                {item.title || 'Recent Activity'}
-              </Text>
+            <View style={styles.contentContainer}>
+              <View style={styles.titleRow}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {item.title || 'Recent Activity'}
+                </Text>
 
-              <View
-                style={[
-                  styles.statusPill,
-                  { backgroundColor: statusStyle.bg },
-                ]}
-              >
-                <Text
+                <View
                   style={[
-                    styles.statusText,
-                    { color: statusStyle.text },
+                    styles.statusPill,
+                    { backgroundColor: statusStyle.bg },
                   ]}
                 >
-                  {item.status || 'Update'}
-                </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: statusStyle.text },
+                    ]}
+                  >
+                    {item.status || 'Update'}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.desc}>
+                {item.description || 'No description available.'}
+              </Text>
+
+              <View style={styles.bottomMetaRow}>
+                <Text style={styles.typeText}>{item.type || 'Activity'}</Text>
+                <View style={styles.dot} />
+                <Text style={styles.timeText}>{item.time_ago || 'Just now'}</Text>
               </View>
             </View>
-
-            <Text style={styles.desc}>
-              {item.description || 'No description available.'}
-            </Text>
-
-            <View style={styles.bottomMetaRow}>
-              <Text style={styles.typeText}>{item.type || 'Activity'}</Text>
-              <View style={styles.dot} />
-              <Text style={styles.timeText}>{item.time_ago || 'Just now'}</Text>
-            </View>
           </View>
-        </View>
 
-        {index !== activities.length - 1 && <View style={styles.cardDivider} />}
-      </View>
+          {index !== activities.length - 1 && <View style={styles.cardDivider} />}
+        </View>
+      </SwipeableItem>
     );
   };
 
@@ -395,12 +534,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 16,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
 
   activityTopRow: {

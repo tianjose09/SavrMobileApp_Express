@@ -121,6 +121,7 @@ export const ApiService = {
   deletePickup: (id: number) => api.delete(`api/donation/pickup/${id}`),
   getBadges: () => api.get('api/badges'),
   getActivities: () => api.get('api/activities'),
+  deleteActivity: (id: string | number) => api.delete(`api/activities/${id}`),
 
   submitBeneficiaryRequest: (data: any) => api.post('api/donation/request', data),
   getActiveDrives: () => api.get('api/donation/active-drives'),

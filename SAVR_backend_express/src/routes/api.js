@@ -85,6 +85,7 @@ router.delete('/donation/pickup/:id',                  donationController.delete
 // Badges & Activities
 router.get('/badges',     donationController.getBadges);
 router.get('/activities', donationController.getActivities);
+router.delete('/activities/:id', donationController.deleteActivity);
 
 // Notifications
 router.get('/notifications',                    notificationController.getNotifications);

@@ -2058,3 +2058,18 @@ exports.deleteAccount = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Something went wrong, please try again.' });
   }
 };
+
+exports.deleteActivity = async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.id;
+  try {
+    const [result] = await db.execute(
+      'DELETE FROM activity_logs WHERE id = ? AND user_id = ?',
+      [id, uid]
+    );
+    return res.json({ success: true, message: 'Activity deleted successfully.' });
+  } catch (err) {
+    console.error('[deleteActivity error]', err.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
