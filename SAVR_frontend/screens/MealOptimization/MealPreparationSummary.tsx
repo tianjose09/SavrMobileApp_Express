@@ -8,6 +8,39 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MealPrepService, PrepMealItem, PrepStatus } from '../../services/mealPrepService';
 import { ApiService } from '../../services/api';
 
+const DEFAULT_INGREDIENTS: Record<string, string> = {
+  'lugaw': 'Rice, Water or broth, Garlic, Onion, Ginger, Chicken (optional), Fish sauce or salt, Pepper, Oil',
+  'champorado': 'Rice, Cocoa powder, Sugar, Milk',
+  'arroz caldo': 'Rice, Chicken, Ginger, Garlic, Onion, Fish sauce, Water or broth, Boiled eggs (optional), Spring onions (optional)',
+  'chicken adobo': 'Chicken, Soy sauce, Vinegar, Water, Garlic, Bay leaves, Peppercorn, Oil',
+  'tinolang manok': 'Chicken, Green papaya or sayote, Malunggay or chili leaves, Ginger, Garlic, Onion, Fish sauce, Water',
+  'sinampalukang manok': 'Chicken, Potatoes, Cabbage, Corn (optional), Onion, Peppercorn, Fish sauce or salt, Water',
+  'guisadong gulay': 'Mixed vegetables (cabbage, carrots, beans, etc.), Garlic, Onion, Oil, Soy sauce or fish sauce',
+  'chop suey': 'Mixed vegetables (cabbage, carrots, cauliflower, beans), Chicken or pork (optional), Garlic, Onion, Soy sauce, Oyster sauce (optional), Cornstarch (optional), Oil',
+  'ginisang munggo': 'Mung beans, Garlic, Onion, Tomatoes, Malunggay leaves or spinach, Pork (optional), Fish sauce or salt, Water, Oil',
+  'pork menudo': 'Pork, Potatoes, Carrots, Tomato sauce, Garlic, Onion, Soy sauce, Oil, Raisins (optional)',
+  'chicken afritada': 'Chicken, Potatoes, Carrots, Bell peppers, Tomato sauce, Garlic, Onion, Oil, Salt, Pepper',
+  'ginisang repolyo with sardines': 'Canned sardines (in tomato sauce), Cabbage, Carrots, Garlic, Onion, Oil',
+  'chicken sopas': 'Macaroni, Chicken, Milk, Carrots, Cabbage, Onion, Garlic, Water or broth, Salt, Pepper',
+  'filipino spaghetti': 'Spaghetti pasta, Ground meat, Spaghetti sauce (sweet-style), Hotdogs, Garlic, Onion, Oil, Grated cheese',
+  'fried chicken': 'Chicken, Flour or breading mix, Salt, Pepper, Garlic powder (optional), Oil (for frying)',
+  'fried fish': 'Fish (tilapia, galunggong, etc.), Salt, Pepper, Oil',
+  'potato omelette': 'Potatoes, Eggs, Garlic, Onion, Salt, Pepper, Oil',
+  'tortang talong': 'Eggplant, Eggs, Garlic, Salt, Pepper, Oil',
+  'scrambled eggs': 'Eggs, Oil or butter, Salt, Pepper',
+  'french toast': 'Bread (pandesal or loaf), Eggs, Butter or oil, Salt, Peanut butter (optional)',
+  'tuna sandwich': 'Bread, Canned tuna or spread, Mayonnaise, Cheese (optional)',
+  'banana cue': 'Saba bananas, Brown sugar, Oil',
+  'kamote cue': 'Sweet potatoes, Brown sugar, Oil',
+  'beef caldereta': 'Beef, Tomato puree, Soy sauce, Onion, Garlic, Water',
+  'beef mechado': 'Beef, Potatoes, Carrots, Tomato puree, Onion, Garlic, Water',
+  'beef asado': 'Beef, Potatoes, Tomato puree, Soy sauce, Onion, Garlic, Water',
+  'beef bifstek': 'Beef, Soy sauce, Lemon, Garlic, Onion',
+  'crispy talong': 'Eggplant, Breadcrumbs, Eggs, Oil',
+  'adobong talong': 'Eggplant, Garlic, Soy sauce, Vinegar, Ground pork (optional)',
+  'ginataang talong': 'Eggplant, Coconut milk, Onion'
+};
+
 export default function MealPreparationSummary({ navigation }: any) {
   const [meals, setMeals] = useState<PrepMealItem[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -64,6 +97,22 @@ export default function MealPreparationSummary({ navigation }: any) {
               );
 
               if (!exists) {
+                // Parse actual ingredients from the activity log description
+                let ingredients = '';
+                const divider = 'Ingredients used:\n';
+                if (afterPrefix.includes(divider)) {
+                  const lines = afterPrefix.split(divider)[1].split('\n');
+                  ingredients = lines
+                    .map((l: string) => l.replace(/^[•\-\s\*\+]+/, '').split(':')[0].trim())
+                    .filter(Boolean)
+                    .join(', ');
+                }
+
+                // Fallback to default dictionary if parsing returned nothing
+                if (!ingredients) {
+                  ingredients = DEFAULT_INGREDIENTS[mealName.toLowerCase()] || 'Ingredients synced from database';
+                }
+
                 // Determine if it is Done vs Preparing by checking if it exists in dbPreparedMeals
                 const isDone = dbPreparedMeals.some((item: any) => 
                   item.name && item.name.toLowerCase() === mealName.toLowerCase()
@@ -72,7 +121,7 @@ export default function MealPreparationSummary({ navigation }: any) {
                 await MealPrepService.addMeal({
                   mealId: act.reference_id || `db_${Date.now()}_${Math.random()}`,
                   mealName: mealName,
-                  ingredients: 'Ingredients synced from database history',
+                  ingredients: ingredients,
                   pax: 1, // default
                   status: isDone ? 'Done' : 'Preparing',
                 });

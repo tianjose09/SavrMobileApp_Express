@@ -481,6 +481,12 @@ export default function IngrMealPlanning({ route, navigation }: any) {
             resizeMode="contain"
           />
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={[styles.iconBtn, { marginRight: 12 }]} 
+              onPress={() => navigation.navigate('Summary')}
+            >
+              <Ionicons name="list-outline" size={28} color="#544434" />
+            </TouchableOpacity>
             <NotificationBell navigation={navigation} color="#544434" size={28} style={{ marginRight: 5 }} />
             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation?.openDrawer?.()}>
               <Ionicons name="menu-outline" size={32} color="#544434" />
