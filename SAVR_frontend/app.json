@@ -9,6 +9,11 @@
     "scheme": "savrmobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/backgrounds/registration_bg.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#155833"
+    },
     "ios": {
       "supportsTablet": true,
       "config": {
