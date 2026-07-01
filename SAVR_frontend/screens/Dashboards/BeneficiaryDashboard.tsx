@@ -9,12 +9,7 @@ import { StorageUtils, StorageKeys, getProfilePicKey } from '../../utils/storage
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 
-/** Returns "FirstName LastName" – skips any middle name(s) */
-const getFirstLastName = (fullName: string): string => {
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length <= 2) return fullName.trim();
-  return `${parts[0]} ${parts[parts.length - 1]}`;
-};
+
 
 export default function BeneficiaryDashboard({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -53,7 +48,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
     const localPic = await StorageUtils.getItem(picKey);
     if (localPic) setProfilePic(localPic);
 
-    setUserName(getFirstLastName(localName));
+    setUserName(localName);
     setInitial(localName.charAt(0).toUpperCase());
     setSplitName(localName.split(' ')[0]);
 
@@ -63,7 +58,7 @@ export default function BeneficiaryDashboard({ navigation }: any) {
         const data = dashRes.data;
 
         if (data.display_name) {
-          setUserName(getFirstLastName(data.display_name));
+          setUserName(data.display_name);
           setInitial(data.display_name.charAt(0).toUpperCase());
           setSplitName(data.display_name.split(' ')[0]);
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
