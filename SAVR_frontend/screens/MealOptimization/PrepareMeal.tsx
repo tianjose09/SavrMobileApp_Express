@@ -63,9 +63,8 @@ export default function PrepareMeal({ route, navigation }: any) {
         .filter((ing: any) => ing.id && parseFloat(ing.inputQty) > 0)
         .map((ing: any) => ({ id: ing.id, qty_used: parseFloat(ing.inputQty) }));
 
-      if (deductions.length > 0) {
-        await ApiService.deductInventory({ deductions, meal_name: meal.name, servings: mealPax });
-      }
+      // Always call deductInventory to register the prepared meal and add it to log/dashboard metrics
+      await ApiService.deductInventory({ deductions, meal_name: meal.name, servings: mealPax });
 
       // Mark the staff meal request as done so it disappears from the dashboard
       if (mealRequestId) {

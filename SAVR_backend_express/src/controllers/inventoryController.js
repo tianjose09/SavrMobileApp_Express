@@ -160,20 +160,18 @@ exports.categories = async (req, res) => {
 };
 
 exports.deduct = async (req, res) => {
-  const { deductions, meal_name, servings } = req.body;
-
-  if (!Array.isArray(deductions) || !deductions.length) {
-    return res.status(422).json({ success: false, message: 'Deductions array is required.' });
-  }
+  const { deductions = [], meal_name, servings } = req.body;
 
   try {
-    // Deduct raw ingredients
-    for (const deduction of deductions) {
-      const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
-      const item = rows[0];
-      if (item) {
-        const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
-        await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
+    // Deduct raw ingredients if any are specified
+    if (Array.isArray(deductions) && deductions.length > 0) {
+      for (const deduction of deductions) {
+        const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
+        const item = rows[0];
+        if (item) {
+          const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
+          await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
+        }
       }
     }
 

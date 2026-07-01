@@ -520,6 +520,41 @@ exports.getMealRequests = async (req, res) => {
     }
     const kitchenId = pkRows[0].id;
 
+    // Check if we need to auto-seed mock requests for testing
+    const [existingCountRows] = await db.execute(
+      'SELECT COUNT(*) AS cnt FROM partner_kitchen_meal_requests WHERE partner_kitchen_id = ?',
+      [kitchenId]
+    );
+    if (parseInt(existingCountRows[0].cnt) === 0) {
+      // Seed request 1: Sopas
+      const [r1] = await db.execute(
+        `INSERT INTO partner_kitchen_meal_requests 
+         (partner_kitchen_id, requested_by, drive_title, urgency, start_date, end_date, status, note, created_at, updated_at) 
+         VALUES (?, 'St. Mary Orphanage', 'Feeding Drive for Kids', 'High', NOW(), NOW() + INTERVAL '3 days', 'Pending', 'Please prepare chicken sopas or lugaw for 50 kids.', NOW(), NOW())`,
+        [kitchenId]
+      );
+      await db.execute(
+        `INSERT INTO partner_kitchen_meal_request_items 
+         (meal_request_id, food_name, quantity, unit, status, created_at, updated_at) 
+         VALUES (?, 'Chicken Sopas', 50, 'serving', 'Pending', NOW(), NOW())`,
+        [r1.insertId]
+      );
+
+      // Seed request 2: Munggo Guisado
+      const [r2] = await db.execute(
+        `INSERT INTO partner_kitchen_meal_requests 
+         (partner_kitchen_id, requested_by, drive_title, urgency, start_date, end_date, status, note, created_at, updated_at) 
+         VALUES (?, 'Barangay 12 Community Center', 'Disaster Relief Meals', 'Urgent', NOW(), NOW() + INTERVAL '1 day', 'Pending', 'Urgent hot meals needed for evacuated families.', NOW(), NOW())`,
+        [kitchenId]
+      );
+      await db.execute(
+        `INSERT INTO partner_kitchen_meal_request_items 
+         (meal_request_id, food_name, quantity, unit, status, created_at, updated_at) 
+         VALUES (?, 'Munggo Guisado', 100, 'serving', 'Pending', NOW(), NOW())`,
+        [r2.insertId]
+      );
+    }
+
     const params = [kitchenId];
     let statusClause = '';
     if (status) {
