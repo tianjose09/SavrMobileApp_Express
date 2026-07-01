@@ -154,9 +154,9 @@ export default function OrgDashboard({ navigation }: any) {
           const earnedBadges = badgesRes.data.earned || [];
           setFeaturedBadges(earnedBadges.slice(0, 3));
           const allBadges = badgesRes.data.all || [];
-          const inProgress = badgesRes.data.in_progress || [];
-          const nextFood = inProgress.find((b: any) => b.goal_type === 'food_count')
-            || allBadges.find((b: any) => b.goal_type === 'food_count' && b.status !== 'earned');
+          const nextFood = allBadges
+            .filter((b: any) => b.goal_type === 'food_count' && b.status !== 'earned')
+            .sort((a: any, b: any) => (parseFloat(a.goal_value) || 0) - (parseFloat(b.goal_value) || 0))[0];
           setNextFoodBadge(nextFood || null);
         }
       } catch (e) {
