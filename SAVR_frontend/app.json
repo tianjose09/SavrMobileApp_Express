@@ -10,8 +10,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/backgrounds/registration_bg.png",
-      "resizeMode": "cover",
+      "image": "./assets/images/logo/logowhite.png",
+      "resizeMode": "contain",
       "backgroundColor": "#155833"
     },
     "ios": {
