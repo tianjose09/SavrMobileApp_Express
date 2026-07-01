@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
-  Alert, FlatList, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View
+  Alert, FlatList, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,15 +13,30 @@ export default function MealPreparationSummary({ navigation }: any) {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       loadMeals();
     }, [])
   );
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadMeals();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const loadMeals = async () => {
     const data = await MealPrepService.getMeals();
     setMeals(data);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMeals();
+    setRefreshing(false);
   };
 
 
@@ -197,19 +212,21 @@ export default function MealPreparationSummary({ navigation }: any) {
       )}
 
       <View style={styles.listContainer}>
-        {meals.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No meals being prepared right now.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={meals}
-            keyExtractor={item => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-          />
-        )}
+        <FlatList
+          data={meals}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={[styles.listContent, meals.length === 0 && { flex: 1, justifyContent: 'center' }]}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No meals being prepared right now.</Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#156133"]} />
+          }
+        />
       </View>
     </SafeAreaView>
   );
