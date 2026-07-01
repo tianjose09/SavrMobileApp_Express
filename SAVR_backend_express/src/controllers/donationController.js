@@ -949,7 +949,7 @@ exports.getBadges = async (req, res) => {
 const ACTIVITY_STATUS = {
   financial: 'Completed',
   service:   'Submitted',
-  inventory: 'Processed',
+  inventory: 'Done',
 };
 
 function liveServiceStatus(dbStatus) {

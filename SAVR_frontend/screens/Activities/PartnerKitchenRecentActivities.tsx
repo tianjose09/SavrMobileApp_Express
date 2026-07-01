@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
+import { MealPrepService } from '../../services/mealPrepService';
 
 interface SwipeableItemProps {
   children: React.ReactNode;
@@ -155,9 +156,22 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
 
   const fetchActivities = async () => {
     try {
+      const localMeals = await MealPrepService.getMeals();
       const response = await ApiService.getActivities();
       if (response?.data?.success) {
-        setActivities(response.data.activities || []);
+        const mapped = (response.data.activities || []).map((act: any) => {
+          if (act.type === 'inventory') {
+            const match = localMeals.find(m =>
+              m.mealName && act.description && act.description.toLowerCase().includes(m.mealName.toLowerCase())
+            );
+            return {
+              ...act,
+              status: match ? match.status : 'Done',
+            };
+          }
+          return act;
+        });
+        setActivities(mapped);
       } else {
         throw new Error('API unavailable, triggering local fallback');
       }
@@ -220,7 +234,9 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
       lower.includes('completed') ||
       lower.includes('success') ||
       lower.includes('approved') ||
-      lower.includes('delivered')
+      lower.includes('delivered') ||
+      lower.includes('done') ||
+      lower.includes('processed')
     ) {
       return {
         bg: '#E6F4EA',
@@ -232,7 +248,8 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
       lower.includes('pending') ||
       lower.includes('processing') ||
       lower.includes('ongoing') ||
-      lower.includes('in progress')
+      lower.includes('in progress') ||
+      lower.includes('preparing')
     ) {
       return {
         bg: '#FFF4DB',

@@ -55,7 +55,7 @@ export default function PrepareMeal({ route, navigation }: any) {
     return () => clearInterval(interval);
   }, []);
 
-  // â”€â”€ Handle Done â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——— Handle Done ───────────────────────────────────────────────────────────
   const handleDone = async () => {
     setIsSubmitting(true);
     try {
@@ -65,6 +65,8 @@ export default function PrepareMeal({ route, navigation }: any) {
 
       // Always call deductInventory to register the prepared meal and add it to log/dashboard metrics
       await ApiService.deductInventory({ deductions, meal_name: meal.name, servings: mealPax });
+
+
 
       // Mark the staff meal request as done so it disappears from the dashboard
       if (mealRequestId) {

@@ -308,8 +308,28 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     if (!address.trim()) return;
     setIsGeocoding(true);
     try {
-      const results = await Location.geocodeAsync(address);
-      if (results.length > 0) {
+      let results: any[] = [];
+      try {
+        results = await Location.geocodeAsync(address);
+      } catch (nativeErr) {
+        console.log('Native geocoding failed, trying Nominatim fallback:', nativeErr);
+      }
+
+      if (!results || results.length === 0) {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=ph`,
+          { headers: { 'User-Agent': 'SavrMobileApp' } }
+        );
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          results = [{
+            latitude: parseFloat(data[0].lat),
+            longitude: parseFloat(data[0].lon),
+          }];
+        }
+      }
+
+      if (results && results.length > 0) {
         const { latitude, longitude } = results[0];
         const newRegion = { latitude, longitude, latitudeDelta: 0.0422, longitudeDelta: 0.0221 };
         isProgrammaticMove.current = true;
@@ -318,7 +338,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       } else {
         Alert.alert('Address Not Found', 'Could not locate that address. Try adding more detail (city, country).');
       }
-    } catch {
+    } catch (err) {
+      console.error('Geocoding error:', err);
       Alert.alert('Error', 'Failed to locate the address. Check your connection and try again.');
     } finally {
       setIsGeocoding(false);
@@ -328,14 +349,45 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const reverseGeocode = async (latitude: number, longitude: number) => {
     setIsReverseGeocoding(true);
     try {
-      const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      let place = null;
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (results && results.length > 0) {
+          place = results[0];
+        }
+      } catch (nativeErr) {
+        console.log('Native reverse geocoding failed, trying Nominatim fallback:', nativeErr);
+      }
+
+      if (!place) {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          { headers: { 'User-Agent': 'SavrMobileApp' } }
+        );
+        const data = await response.json();
+        if (data && data.address) {
+          const addr = data.address;
+          place = {
+            streetNumber: addr.house_number || '',
+            street: addr.road || addr.suburb || '',
+            district: addr.suburb || addr.neighbourhood || addr.quarter || '',
+            city: addr.city || addr.town || addr.municipality || '',
+            subregion: addr.county || '',
+            region: addr.state || '',
+            country: addr.country || '',
+            postalCode: addr.postcode || '',
+          };
+        }
+      }
+
       if (place) {
         const parts = [place.streetNumber, place.street, place.district, place.city, place.region, place.country]
           .filter(Boolean);
         setPickupAddress(parts.join(', '));
       }
-    } catch {}
-    finally {
+    } catch (err) {
+      console.error('Reverse geocoding error:', err);
+    } finally {
       setIsReverseGeocoding(false);
     }
   };
@@ -350,7 +402,39 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         const { latitude, longitude } = loc.coords;
         setLocation(prev => ({ ...prev, latitude, longitude }));
 
-        const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        let place = null;
+        try {
+          const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+          if (results && results.length > 0) {
+            place = results[0];
+          }
+        } catch (nativeErr) {
+          console.log('Native reverse geocoding on mount failed, trying Nominatim fallback:', nativeErr);
+        }
+
+        if (!place) {
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+              { headers: { 'User-Agent': 'SavrMobileApp' } }
+            );
+            const data = await response.json();
+            if (data && data.address) {
+              const addr = data.address;
+              place = {
+                streetNumber: addr.house_number || '',
+                street: addr.road || addr.suburb || '',
+                district: addr.suburb || addr.neighbourhood || addr.quarter || '',
+                city: addr.city || addr.town || addr.municipality || '',
+                subregion: addr.county || '',
+                region: addr.state || '',
+                country: addr.country || '',
+                postalCode: addr.postcode || '',
+              };
+            }
+          } catch {}
+        }
+
         if (place) {
           const parts = [place.streetNumber, place.street, place.city, place.region, place.country]
             .filter(Boolean);

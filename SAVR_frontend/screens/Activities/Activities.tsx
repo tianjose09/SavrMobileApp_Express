@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
+import { MealPrepService } from '../../services/mealPrepService';
 
 interface SwipeableItemProps {
   children: React.ReactNode;
@@ -158,9 +159,22 @@ export default function Activities({ navigation }: any) {
 
   const fetchActivities = async () => {
     try {
+      const localMeals = await MealPrepService.getMeals();
       const response = await ApiService.getActivities();
       if (response?.data?.success) {
-        setActivities(response.data.activities || []);
+        const mapped = (response.data.activities || []).map((act: any) => {
+          if (act.type === 'inventory') {
+            const match = localMeals.find(m =>
+              m.mealName && act.description && act.description.toLowerCase().includes(m.mealName.toLowerCase())
+            );
+            return {
+              ...act,
+              status: match ? match.status : 'Done',
+            };
+          }
+          return act;
+        });
+        setActivities(mapped);
       } else {
         setActivities([]);
       }
@@ -227,7 +241,8 @@ export default function Activities({ navigation }: any) {
       lower.includes('delivered') ||
       lower.includes('scheduled') ||
       lower.includes('submitted') ||
-      lower.includes('processed')
+      lower.includes('processed') ||
+      lower.includes('done')
     ) {
       return {
         bg: '#E6F4EA',
@@ -239,7 +254,8 @@ export default function Activities({ navigation }: any) {
       lower.includes('pending') ||
       lower.includes('processing') ||
       lower.includes('ongoing') ||
-      lower.includes('in progress')
+      lower.includes('in progress') ||
+      lower.includes('preparing')
     ) {
       return {
         bg: '#FFF4DB',
