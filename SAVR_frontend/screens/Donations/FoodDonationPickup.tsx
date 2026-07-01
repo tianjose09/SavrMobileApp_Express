@@ -124,10 +124,29 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     }
   };
 
-  // Auto-format time as user types (inserts colon)
-  const handleTimeFromChange = (text: string) => {
+  const formatTimeDigits = (text: string): string => {
     const digits = text.replace(/[^0-9]/g, '');
-    const formatted = digits.length <= 2 ? digits : digits.slice(0, 2) + ':' + digits.slice(2, 4);
+    if (digits.length <= 1) return digits;
+    if (digits.length === 2) {
+      const firstVal = parseInt(digits[0], 10);
+      if (firstVal >= 2) {
+        return digits[0] + ':' + digits[1];
+      }
+      return digits;
+    }
+    if (digits.length === 3) {
+      const firstVal = parseInt(digits[0], 10);
+      if (firstVal >= 2) {
+        return digits[0] + ':' + digits.slice(1, 3);
+      }
+      return digits.slice(0, 1) + ':' + digits.slice(1, 3);
+    }
+    return digits.slice(0, 2) + ':' + digits.slice(2, 4);
+  };
+
+  // Auto-format time as user types (inserts colon, supports 1-digit hours like 3:15)
+  const handleTimeFromChange = (text: string) => {
+    const formatted = formatTimeDigits(text);
     
     if (scheduleType === 'pickup') {
       setTimeFromInput(formatted);
@@ -139,8 +158,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   };
 
   const handleTimeToChange = (text: string) => {
-    const digits = text.replace(/[^0-9]/g, '');
-    const formatted = digits.length <= 2 ? digits : digits.slice(0, 2) + ':' + digits.slice(2, 4);
+    const formatted = formatTimeDigits(text);
     
     if (scheduleType === 'pickup') {
       setTimeToInput(formatted);
