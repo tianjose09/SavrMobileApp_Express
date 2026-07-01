@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   ActivityIndicator, FlatList, Platform, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View, Animated, PanResponder, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 import { MealPrepService } from '../../services/mealPrepService';
@@ -150,9 +151,11 @@ export default function PartnerKitchenRecentActivities({ navigation }: any) {
     }
   };
 
-  useEffect(() => {
-    fetchActivities();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchActivities();
+    }, [])
+  );
 
   const fetchActivities = async () => {
     try {

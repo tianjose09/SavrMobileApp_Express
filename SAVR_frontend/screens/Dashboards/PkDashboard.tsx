@@ -8,6 +8,7 @@ import { ApiService } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import NotificationBell from '../../components/NotificationBell';
+import { MealPrepService } from '../../services/mealPrepService';
 
 export default function PkDashboard({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -81,6 +82,57 @@ export default function PkDashboard({ navigation }: any) {
     });
   };
 
+  const getStatusStyle = (status: string) => {
+    const lower = (status || '').toLowerCase();
+
+    if (
+      lower.includes('completed') ||
+      lower.includes('success') ||
+      lower.includes('approved') ||
+      lower.includes('accepted') ||
+      lower.includes('delivered') ||
+      lower.includes('scheduled') ||
+      lower.includes('submitted') ||
+      lower.includes('processed') ||
+      lower.includes('done')
+    ) {
+      return {
+        bg: '#E6F4EA',
+        text: '#00592d',
+      };
+    }
+
+    if (
+      lower.includes('pending') ||
+      lower.includes('processing') ||
+      lower.includes('ongoing') ||
+      lower.includes('in progress') ||
+      lower.includes('preparing')
+    ) {
+      return {
+        bg: '#FFF4DB',
+        text: '#A67C00',
+      };
+    }
+
+    if (
+      lower.includes('cancelled') ||
+      lower.includes('rejected') ||
+      lower.includes('failed') ||
+      lower.includes('missed')
+    ) {
+      return {
+        bg: '#FDECEC',
+        text: '#C62828',
+      };
+    }
+
+    return {
+      bg: '#EEF2F7',
+      text: '#667085',
+    };
+  };
+
   const fetchDashboardData = async () => {
     const localName = await StorageUtils.getItem(StorageKeys.DISPLAY_NAME) || 'Loaves and Fishes';
     const picKey = await getProfilePicKey();
@@ -101,7 +153,24 @@ export default function PkDashboard({ navigation }: any) {
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
         setMealsServed(data.total_meals_served || 0);
-        setActivities(data.recent_activities || []);
+        try {
+          const localMeals = await MealPrepService.getMeals();
+          const mapped = (data.recent_activities || []).map((act: any) => {
+            if (act.type === 'inventory') {
+              const match = localMeals.find(m =>
+                m.mealName && act.description && act.description.toLowerCase().includes(m.mealName.toLowerCase())
+              );
+              return {
+                ...act,
+                status: match ? match.status : 'Done',
+              };
+            }
+            return act;
+          });
+          setActivities(mapped);
+        } catch {
+          setActivities(data.recent_activities || []);
+        }
       }
 
       try {
@@ -441,15 +510,27 @@ export default function PkDashboard({ navigation }: any) {
                     <Text style={{ fontSize: 14, color: '#888', fontWeight: '600' }}>No recent activities yet.</Text>
                   </View>
                 ) : (
-                  activities.slice(0, 2).map((act, i) => (
-                    <View key={i} style={styles.activityRow}>
-                      <View style={styles.activityLeft}>
-                        <Text style={styles.actTitle}>{act.title}</Text>
-                        <Text style={styles.actDesc}>{act.description}</Text>
+                  activities.slice(0, 2).map((act, i) => {
+                    const statusStyle = act.status ? getStatusStyle(act.status) : null;
+                    return (
+                      <View key={i} style={styles.activityRow}>
+                        <View style={styles.activityLeft}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            <Text style={[styles.actTitle, { marginBottom: 0 }]}>{act.title}</Text>
+                            {act.status && statusStyle && (
+                              <View style={[styles.statusPill, { backgroundColor: statusStyle.bg, marginLeft: 8 }]}>
+                                <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                                  {act.status}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.actDesc} numberOfLines={2}>{act.description}</Text>
+                        </View>
+                        <Text style={styles.actTime}>{act.time_ago}</Text>
                       </View>
-                      <Text style={styles.actTime}>{act.time_ago}</Text>
-                    </View>
-                  ))
+                    );
+                  })
                 )}
               </View>
             </View>
@@ -662,6 +743,17 @@ const styles = StyleSheet.create({
 
   activitiesContainer: {
     paddingHorizontal: 5,
+  },
+  statusPill: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   activityRow: {
     flexDirection: 'row',
