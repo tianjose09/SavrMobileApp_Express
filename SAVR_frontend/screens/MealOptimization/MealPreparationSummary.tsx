@@ -29,8 +29,69 @@ export default function MealPreparationSummary({ navigation }: any) {
   }, [navigation]);
 
   const loadMeals = async () => {
-    const data = await MealPrepService.getMeals();
-    setMeals(data);
+    try {
+      let localMeals = await MealPrepService.getMeals();
+      
+      // 1. Fetch prepared meals (Done) from database inventory
+      const prepResponse = await ApiService.getPreparedMeals();
+      const dbPreparedMeals = (prepResponse?.data?.success && Array.isArray(prepResponse.data.items))
+        ? prepResponse.data.items
+        : [];
+
+      // 2. Fetch recent activity logs to find in-progress/preparing meals
+      const actResponse = await ApiService.getActivities();
+      const dbActivities = (actResponse?.data?.success && Array.isArray(actResponse.data.activities))
+        ? actResponse.data.activities
+        : [];
+
+      let hasNew = false;
+
+      // Sync activities representing prepared meals
+      for (const act of dbActivities) {
+        if (act.type === 'inventory') {
+          // Extract meal name from description, e.g. "Prepared meal: Chicken Adobo"
+          const matchTitle = act.description || '';
+          const prefix = 'Prepared meal: ';
+          if (matchTitle.startsWith(prefix)) {
+            const afterPrefix = matchTitle.slice(prefix.length);
+            // Meal name is everything before first newline
+            const mealName = afterPrefix.split('\n')[0].split(',')[0].trim();
+
+            if (mealName) {
+              // Check if it already exists in local storage
+              const exists = localMeals.some(m => 
+                m.mealName && m.mealName.toLowerCase() === mealName.toLowerCase()
+              );
+
+              if (!exists) {
+                // Determine if it is Done vs Preparing by checking if it exists in dbPreparedMeals
+                const isDone = dbPreparedMeals.some((item: any) => 
+                  item.name && item.name.toLowerCase() === mealName.toLowerCase()
+                );
+
+                await MealPrepService.addMeal({
+                  mealId: act.reference_id || `db_${Date.now()}_${Math.random()}`,
+                  mealName: mealName,
+                  ingredients: 'Ingredients synced from database history',
+                  pax: 1, // default
+                  status: isDone ? 'Done' : 'Preparing',
+                });
+                hasNew = true;
+              }
+            }
+          }
+        }
+      }
+
+      if (hasNew) {
+        localMeals = await MealPrepService.getMeals();
+      }
+      setMeals(localMeals);
+    } catch (e) {
+      console.error('Failed to sync prepared meals', e);
+      const localMeals = await MealPrepService.getMeals();
+      setMeals(localMeals);
+    }
   };
 
   const onRefresh = async () => {
