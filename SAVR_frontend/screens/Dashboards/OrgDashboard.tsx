@@ -124,7 +124,8 @@ export default function OrgDashboard({ navigation }: any) {
           }
         } catch (_) {}
       }
-      setUserName(bestLocalName || 'NGO Partner');
+      const cleanSpaces = (str: string) => (str || '').trim().replace(/\s+/g, ' ');
+      setUserName(cleanSpaces(bestLocalName || 'NGO Partner'));
       setInitial((bestLocalName || 'N').charAt(0).toUpperCase());
 
       try {
@@ -133,7 +134,7 @@ export default function OrgDashboard({ navigation }: any) {
           const data = dashRes.data;
 
           if (data.display_name) {
-            setUserName(data.display_name);
+            setUserName(cleanSpaces(data.display_name));
             setInitial(data.display_name.charAt(0).toUpperCase());
             StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
           }

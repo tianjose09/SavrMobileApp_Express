@@ -323,36 +323,45 @@ function issueToken(userId) {
 }
 
 async function getDisplayName(user) {
+  const cleanSpace = (str) => (str || '').trim().replace(/\s+/g, ' ');
   switch (user.role) {
     case 'donor': {
-      const [rows] = await db.execute('SELECT first_name, last_name FROM donors WHERE user_id = ?', [user.id]);
-      if (rows[0]) return `${rows[0].first_name} ${rows[0].last_name}`;
+      const [rows] = await db.execute('SELECT first_name, middle_name, last_name FROM donors WHERE user_id = ?', [user.id]);
+      if (rows[0]) {
+        const { first_name, middle_name, last_name } = rows[0];
+        const parts = [first_name, middle_name, last_name].filter(Boolean);
+        return cleanSpace(parts.join(' '));
+      }
       const [orgRows] = await db.execute('SELECT org_name FROM donor_organizations WHERE user_id = ?', [user.id]);
-      if (orgRows[0]?.org_name) return orgRows[0].org_name;
-      if (user.name && user.name !== 'user') return user.name;
+      if (orgRows[0]?.org_name) return cleanSpace(orgRows[0].org_name);
+      if (user.name && user.name !== 'user') return cleanSpace(user.name);
       break;
     }
     case 'organization': {
       const [rows] = await db.execute('SELECT org_name FROM donor_organizations WHERE user_id = ?', [user.id]);
-      if (rows[0]) return rows[0].org_name;
+      if (rows[0]) return cleanSpace(rows[0].org_name);
       break;
     }
     case 'partner_kitchen': {
       const [rows] = await db.execute('SELECT kitchen_name, contact_person FROM partner_kitchen WHERE user_id = ?', [user.id]);
-      if (rows[0]?.kitchen_name) return rows[0].kitchen_name;
-      if (rows[0]?.contact_person) return rows[0].contact_person;
-      if (user.name && user.name !== 'user') return user.name;
+      if (rows[0]?.kitchen_name) return cleanSpace(rows[0].kitchen_name);
+      if (rows[0]?.contact_person) return cleanSpace(rows[0].contact_person);
+      if (user.name && user.name !== 'user') return cleanSpace(user.name);
       break;
     }
     case 'beneficiary': {
       const [orgRows] = await db.execute('SELECT org_name FROM beneficiary_organizations WHERE user_id = ?', [user.id]);
-      if (orgRows[0]) return orgRows[0].org_name;
-      const [profRows] = await db.execute('SELECT first_name, last_name FROM beneficiaries WHERE user_id = ?', [user.id]);
-      if (profRows[0]) return `${profRows[0].first_name} ${profRows[0].last_name}`;
+      if (orgRows[0]) return cleanSpace(orgRows[0].org_name);
+      const [profRows] = await db.execute('SELECT first_name, middle_name, last_name FROM beneficiaries WHERE user_id = ?', [user.id]);
+      if (profRows[0]) {
+        const { first_name, middle_name, last_name } = profRows[0];
+        const parts = [first_name, middle_name, last_name].filter(Boolean);
+        return cleanSpace(parts.join(' '));
+      }
       break;
     }
   }
-  return user.email;
+  return cleanSpace(user.email);
 }
 
 async function storeVerificationCode(email, code) {

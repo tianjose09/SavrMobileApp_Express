@@ -124,7 +124,9 @@ export default function DonorDashboard({ navigation }: any) {
       const localPic = await StorageUtils.getItem(picKey);
       if (localPic) setProfilePic(localPic);
 
-      setUserName(localName);
+      const cleanSpaces = (str: string) => (str || '').trim().replace(/\s+/g, ' ');
+
+      setUserName(cleanSpaces(localName));
       setSplitName(localName.split(' ')[0]);
       setInitial(localName.charAt(0).toUpperCase());
 
@@ -134,7 +136,7 @@ export default function DonorDashboard({ navigation }: any) {
         const data = dashRes.data;
 
         if (data.display_name) {
-          setUserName(data.display_name);
+          setUserName(cleanSpaces(data.display_name));
           setSplitName(data.display_name.split(' ')[0]);
           setInitial(data.display_name.charAt(0).toUpperCase());
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
