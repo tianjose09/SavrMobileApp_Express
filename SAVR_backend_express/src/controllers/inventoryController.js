@@ -192,46 +192,7 @@ exports.deduct = async (req, res) => {
         ? `\n\nIngredients used:\n${ingredientLines.join('\n')}`
         : '';
 
-      // Determine category based on meal name
-      const mealLower = (meal_name || '').toLowerCase();
-      const GRAINS_MEALS = ['lugaw', 'arroz caldo', 'champorado', 'sopas'];
-      const VEGGIE_MEALS = ['munggo guisado', 'veggie stir-fry', 'sotanghon soup'];
-      let prepCategory = 'Meat';
-      if (GRAINS_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Grains & Cereals';
-      else if (VEGGIE_MEALS.some(m => mealLower.includes(m))) prepCategory = 'Vegetables';
-
-      // Upsert the prepared meal into food_inventory.
-      // Fetch ALL rows with this food_name, merge quantities into the first,
-      // and delete any duplicates — so only one row ever exists per meal.
-      const prepQty = parseFloat(servings) || 1;
-      const [allRows] = await db.execute(
-        "SELECT id, quantity FROM food_inventory WHERE LOWER(food_name) = LOWER(?) ORDER BY id ASC",
-        [meal_name]
-      );
-
-      if (allRows.length > 0) {
-        const keepRow = allRows[0];
-        const totalExisting = allRows.reduce((sum, r) => sum + parseFloat(r.quantity || 0), 0);
-        const newQty = totalExisting + prepQty;
-
-        await db.execute(
-          "UPDATE food_inventory SET category = ?, meal_type = 'Prep Meal', quantity = ?, updated_at = NOW() WHERE id = ?",
-          [prepCategory, newQty, keepRow.id]
-        );
-
-        if (allRows.length > 1) {
-          const duplicateIds = allRows.slice(1).map(r => r.id);
-          await db.execute(
-            `DELETE FROM food_inventory WHERE id IN (${duplicateIds.map(() => '?').join(',')})`,
-            duplicateIds
-          );
-        }
-      } else {
-        await db.execute(
-          "INSERT INTO food_inventory (food_name, category, quantity, unit, expiration_date, meal_type, created_at, updated_at) VALUES (?, ?, ?, 'meal', NULL, 'Prep Meal', NOW(), NOW())",
-          [meal_name, prepCategory, prepQty]
-        );
-      }
+      // The prepared meal will be added to food_inventory only when the user manually sets the status to 'Done' on the Summary screen.
 
       const description = `Prepared meal: ${meal_name} (${servings} servings)${ingredientSummary}`;
 
@@ -244,8 +205,8 @@ exports.deduct = async (req, res) => {
       createNotification(
         req.user.id,
         'food',
-        `Meal Done: ${meal_name}`,
-        `You have successfully prepared ${meal_name}.${ingredientSummary}`,
+        `Meal Preparing: ${meal_name}`,
+        `You have started preparing ${meal_name}.${ingredientSummary}`,
         true
       ).catch(err => console.error('[deduct] notification failed:', err.message));
     }
