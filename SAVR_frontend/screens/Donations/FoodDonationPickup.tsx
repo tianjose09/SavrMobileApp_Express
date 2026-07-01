@@ -381,7 +381,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
       }
 
       if (place) {
-        const parts = [place.streetNumber, place.street, place.district, place.city, place.region, place.country]
+        const namePart = (place.name && place.name !== place.street) ? place.name : '';
+        const streetNum = place.streetNumber || namePart;
+        const parts = [streetNum, place.street, place.district, place.city, place.region, place.country]
           .filter(Boolean);
         setPickupAddress(parts.join(', '));
       }
@@ -436,7 +438,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         }
 
         if (place) {
-          const parts = [place.streetNumber, place.street, place.city, place.region, place.country]
+          const namePart = (place.name && place.name !== place.street) ? place.name : '';
+          const streetNum = place.streetNumber || namePart;
+          const parts = [streetNum, place.street, place.city, place.region, place.country]
             .filter(Boolean);
           setPickupAddress(parts.join(', '));
         }

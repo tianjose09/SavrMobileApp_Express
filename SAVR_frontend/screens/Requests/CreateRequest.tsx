@@ -306,7 +306,9 @@ export default function CreateRequest({ navigation }: any) {
       }
 
       if (place) {
-        const parts = [place.streetNumber, place.street, place.district, place.city, place.region, place.country]
+        const namePart = (place.name && place.name !== place.street) ? place.name : '';
+        const streetNum = place.streetNumber || namePart;
+        const parts = [streetNum, place.street, place.district, place.city, place.region, place.country]
           .filter(Boolean);
         const fullAddr = parts.join(', ');
         updateForm('street', fullAddr);
@@ -365,7 +367,9 @@ export default function CreateRequest({ navigation }: any) {
         }
 
         if (place) {
-          const parts = [place.streetNumber, place.street, place.city, place.region, place.country]
+          const namePart = (place.name && place.name !== place.street) ? place.name : '';
+          const streetNum = place.streetNumber || namePart;
+          const parts = [streetNum, place.street, place.city, place.region, place.country]
             .filter(Boolean);
           const fullAddr = parts.join(', ');
           updateBothForms('street', fullAddr);
