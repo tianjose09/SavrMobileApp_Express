@@ -432,7 +432,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator
-        initialRouteName="LandingPage"
+        initialRouteName="LoadingPage"
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="LoadingPage" component={LoadingPage} />
