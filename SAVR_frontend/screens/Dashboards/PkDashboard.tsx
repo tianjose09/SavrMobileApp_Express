@@ -774,6 +774,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
+    minHeight: 190,
     justifyContent: 'space-between',
   },
   driveTopRow: {
