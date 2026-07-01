@@ -773,8 +773,7 @@ const styles = StyleSheet.create({
   driveCardContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 130,
-    height: 270,
+    paddingBottom: 16,
     justifyContent: 'space-between',
   },
   driveTopRow: {
