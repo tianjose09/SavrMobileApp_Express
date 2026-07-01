@@ -169,8 +169,12 @@ exports.deduct = async (req, res) => {
         const [rows] = await db.execute('SELECT * FROM food_inventory WHERE id = ?', [deduction.id]);
         const item = rows[0];
         if (item) {
-          const newQty = Math.max(0, parseFloat(item.quantity) - parseFloat(deduction.qty_used));
-          await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
+          const newQty = parseFloat(item.quantity) - parseFloat(deduction.qty_used);
+          if (newQty <= 0) {
+            await db.execute('DELETE FROM food_inventory WHERE id = ?', [item.id]);
+          } else {
+            await db.execute('UPDATE food_inventory SET quantity = ?, updated_at = NOW() WHERE id = ?', [newQty, item.id]);
+          }
         }
       }
     }
@@ -250,5 +254,19 @@ exports.deduct = async (req, res) => {
   } catch (err) {
     console.error('[deduct]', err.message);
     return res.status(500).json({ success: false, message: 'Failed to complete meal preparation. Please try again.' });
+  }
+};
+
+exports.destroy = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await db.execute('DELETE FROM food_inventory WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Ingredient not found.' });
+    }
+    return res.json({ success: true, message: 'Ingredient deleted successfully.' });
+  } catch (err) {
+    console.error('[destroy]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to delete ingredient.' });
   }
 };

@@ -158,6 +158,7 @@ export const ApiService = {
   getInventoryCategories: () => api.get('api/inventory/categories'),
   addInventory: (data: any) => api.post('api/inventory/store', data),
   deductInventory: (data: any) => api.post('api/inventory/deduct', data),
+  deleteInventory: (id: string | number) => api.delete(`api/inventory/${id}`),
 
   // Optimization & Meal Planning Engine
   optimizeMeals: (payload: any) => api.post('api/meals/optimize', payload),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, StatusBar, Platform, ActivityIndicator
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, StatusBar, Platform, ActivityIndicator, Alert, PanResponder, Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -28,6 +28,78 @@ const getCategoryLabel = (cat: string | null) => {
   if (!cat) return '';
   return CATEGORY_DISPLAY_MAP[cat] || cat;
 };
+
+interface SwipeableRowProps {
+  children: React.ReactNode;
+  onDelete: () => void;
+}
+
+function SwipeableRow({ children, onDelete }: SwipeableRowProps) {
+  const translateX = React.useRef(new Animated.Value(0)).current;
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          translateX.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -80) {
+          Animated.timing(translateX, {
+            toValue: -500,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            onDelete();
+            translateX.setValue(0);
+          });
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <View style={{ position: 'relative', overflow: 'hidden' }}>
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          right: 0,
+          left: 0,
+          backgroundColor: '#E43E3E',
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          paddingRight: 20,
+        }}
+      >
+        <Text style={{ color: '#FFF', fontWeight: 'bold', marginRight: 8 }}>Delete</Text>
+        <Ionicons name="trash-outline" size={20} color="#FFF" />
+      </View>
+
+      <Animated.View
+        style={{
+          transform: [{ translateX }],
+          backgroundColor: '#FFF',
+        }}
+        {...panResponder.panHandlers}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
 
 export default function FoodInventory({ route, navigation }: any) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +134,34 @@ export default function FoodInventory({ route, navigation }: any) {
             fetchInventory();
         }, [])
     );
+
+    const handleDeleteItem = (item: any) => {
+        Alert.alert(
+            'Delete Ingredient',
+            `Are you sure you want to delete "${item.name}" from your inventory?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const res = await ApiService.deleteInventory(item.id);
+                            if (res.data && res.data.success) {
+                                Alert.alert('Success', 'Ingredient deleted successfully!');
+                                fetchInventory();
+                            } else {
+                                Alert.alert('Error', 'Failed to delete ingredient. Please try again.');
+                            }
+                        } catch (err: any) {
+                            console.error(err);
+                            Alert.alert('Error', 'Failed to delete ingredient. Please try again.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     const BASE_CATEGORIES_WITH_SUFFIX = [
       'Canned Goods: Non-Perishable',
@@ -236,12 +336,14 @@ export default function FoodInventory({ route, navigation }: any) {
                         filteredItems.map((item, index) => {
                             const isRed = item.expiry === '2026-01-30';
                             return (
-                                <View key={`${item.id}-${index}`} style={styles.tRow}>
-                                    <Text style={[styles.tdText, { flex: 2.2 }]} numberOfLines={1}>{item.name}</Text>
-                                    <Text style={[styles.tdBold, { flex: 1.5, textAlign: 'center' }]} numberOfLines={1}>{item.qty}</Text>
-                                    <Text style={[styles.tdText, { flex: 2.5, textAlign: 'center' }, isRed && styles.textRed]} numberOfLines={1}>{item.expiry}</Text>
-                                    <Text style={[styles.tdText, { flex: 3.5, textAlign: 'center' }]} numberOfLines={1}>{getCategoryLabel(item.category)}</Text>
-                                </View>
+                                <SwipeableRow key={`${item.id}-${index}`} onDelete={() => handleDeleteItem(item)}>
+                                    <View style={styles.tRow}>
+                                        <Text style={[styles.tdText, { flex: 2.2 }]} numberOfLines={1}>{item.name}</Text>
+                                        <Text style={[styles.tdBold, { flex: 1.5, textAlign: 'center' }]} numberOfLines={1}>{item.qty}</Text>
+                                        <Text style={[styles.tdText, { flex: 2.5, textAlign: 'center' }, isRed && styles.textRed]} numberOfLines={1}>{item.expiry}</Text>
+                                        <Text style={[styles.tdText, { flex: 3.5, textAlign: 'center' }]} numberOfLines={1}>{getCategoryLabel(item.category)}</Text>
+                                    </View>
+                                </SwipeableRow>
                             );
                         })
                     )}

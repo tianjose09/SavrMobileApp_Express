@@ -105,6 +105,7 @@ router.get('/inventory/prepared',   inventoryController.preparedMeals);
 router.get('/inventory/categories', inventoryController.categories);
 router.post('/inventory/store',     inventoryController.store);
 router.post('/inventory/deduct',    inventoryController.deduct);
+router.delete('/inventory/:id',     inventoryController.destroy);
 
 // Beneficiary meal names dropdown
 router.get('/beneficiary/meals',    mealController.getBeneficiaryMeals);
