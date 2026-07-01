@@ -143,6 +143,7 @@ export default function MealPreparationSummary({ navigation }: any) {
                   ingredients: ingredients,
                   pax: pax,
                   status: isDone ? 'Done' : 'Preparing',
+                  timestamp: act.created_at ? new Date(act.created_at).getTime() : Date.now(),
                 });
                 hasNew = true;
               }
@@ -154,11 +155,13 @@ export default function MealPreparationSummary({ navigation }: any) {
       if (hasNew) {
         localMeals = await MealPrepService.getMeals();
       }
-      setMeals(localMeals);
+      const sortedMeals = localMeals.sort((a, b) => b.timestamp - a.timestamp);
+      setMeals(sortedMeals);
     } catch (e) {
       console.error('Failed to sync prepared meals', e);
       const localMeals = await MealPrepService.getMeals();
-      setMeals(localMeals);
+      const sortedMeals = localMeals.sort((a, b) => b.timestamp - a.timestamp);
+      setMeals(sortedMeals);
     }
   };
 

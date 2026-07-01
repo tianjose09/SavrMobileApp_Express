@@ -26,13 +26,13 @@ export const MealPrepService = {
     }
   },
 
-  async addMeal(meal: Omit<PrepMealItem, 'id' | 'timestamp'>): Promise<PrepMealItem> {
+  async addMeal(meal: Omit<PrepMealItem, 'id' | 'timestamp'> & { timestamp?: number }): Promise<PrepMealItem> {
     try {
       const meals = await this.getMeals();
       const newMeal: PrepMealItem = {
         ...meal,
         id: `${Date.now()}_${meal.mealId}`,
-        timestamp: Date.now(),
+        timestamp: meal.timestamp || Date.now(),
       };
       meals.unshift(newMeal);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(meals));
