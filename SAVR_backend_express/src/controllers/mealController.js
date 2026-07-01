@@ -1,5 +1,6 @@
 const db = require('../db');
 const dayjs = require('dayjs');
+const { createNotification } = require('./notificationController');
 
 // Remove unwanted tags from specific system meals.
 // WHERE checks prevent re-running once tags are already cleared.
@@ -540,6 +541,15 @@ exports.getMealRequests = async (req, res) => {
         [r1.insertId]
       );
 
+      // Create critical notification for request 1
+      await createNotification(
+        req.user.id,
+        'service',
+        'New Meal Request Assigned',
+        'St. Mary Orphanage requested 50 servings of Chicken Sopas.',
+        true
+      );
+
       // Seed request 2: Munggo Guisado
       const [r2] = await db.execute(
         `INSERT INTO partner_kitchen_meal_requests 
@@ -552,6 +562,15 @@ exports.getMealRequests = async (req, res) => {
          (meal_request_id, food_name, quantity, unit, status, created_at, updated_at) 
          VALUES (?, 'Munggo Guisado', 100, 'serving', 'Pending', NOW(), NOW())`,
         [r2.insertId]
+      );
+
+      // Create critical notification for request 2
+      await createNotification(
+        req.user.id,
+        'service',
+        'New Meal Request Assigned',
+        'Barangay 12 Community Center requested 100 servings of Munggo Guisado.',
+        true
       );
     }
 

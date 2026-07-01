@@ -4,21 +4,15 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { api } from './api';
 
-// Push notifications are not supported in Expo Go from SDK 53+
-const isExpoGo = Constants.appOwnership === 'expo';
-
-if (!isExpoGo) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-}
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export async function registerForPushNotifications() {
-  if (isExpoGo) return; // not supported in Expo Go (SDK 53+)
   if (!Device.isDevice) return;
 
   try {
@@ -49,7 +43,6 @@ export async function registerForPushNotifications() {
 }
 
 export async function clearPushToken() {
-  if (isExpoGo) return;
   try {
     await api.post('/push-token/clear');
   } catch (e) {
