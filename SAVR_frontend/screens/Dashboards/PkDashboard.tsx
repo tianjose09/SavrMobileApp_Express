@@ -419,7 +419,22 @@ export default function PkDashboard({ navigation }: any) {
                     ? ['#E29C20', '#E29C20']
                     : ['#D87A38', '#D87A38'];
 
-                  const mealItems: any[] = Array.isArray(reqItem.items) ? reqItem.items : [];
+                  const rawMealItems: any[] = Array.isArray(reqItem.items) ? reqItem.items : [];
+                  const mergedItemsMap: Record<string, any> = {};
+                  rawMealItems.forEach((item: any) => {
+                    if (!item.food_name) return;
+                    const key = item.food_name.trim().toLowerCase();
+                    if (mergedItemsMap[key]) {
+                      mergedItemsMap[key].quantity = parseFloat(mergedItemsMap[key].quantity || 0) + parseFloat(item.quantity || 0);
+                    } else {
+                      mergedItemsMap[key] = {
+                        ...item,
+                        food_name: item.food_name.trim(),
+                        quantity: parseFloat(item.quantity || 0)
+                      };
+                    }
+                  });
+                  const mealItems = Object.values(mergedItemsMap);
                   const mainMeal = mealItems[0] || { food_name: 'Meal', quantity: 0, unit: 'servings' };
 
                   return (
