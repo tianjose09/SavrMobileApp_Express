@@ -39,6 +39,10 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const onRefresh = () => {
     setRefreshing(true);
     setPickupAddress('');
+    setIsAddressConfirmed(false);
+    setIsAddressFocused(false);
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
     setPickupDate(null);
     setPickupTimeFrom(null);
     setPickupTimeTo(null);
@@ -300,12 +304,25 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<{ label: string; lat: number; lon: number }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isAddressConfirmed, setIsAddressConfirmed] = useState(false);
+  const [isAddressFocused, setIsAddressFocused] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView>(null);
   const isProgrammaticMove = useRef(false);
   const isMapDragged = useRef(false);
 
   const { foodItems } = route.params || { foodItems: [] };
+
+  useEffect(() => {
+    ApiService.getUpcomingPickups().then(res => {
+      const pickups: any[] = res.data?.pickups || [];
+      const unique = [...new Set(
+        pickups.map((p: any) => p.pickup_address).filter((a: any) => typeof a === 'string' && a.trim())
+      )] as string[];
+      setSavedAddresses(unique);
+    }).catch(() => {});
+  }, []);
 
   const geocodeAddress = async (address: string) => {
     if (!address.trim()) return;
@@ -383,12 +400,24 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
   const selectAddressSuggestion = (suggestion: { label: string; lat: number; lon: number }) => {
     setPickupAddress(suggestion.label);
+    setIsAddressConfirmed(true);
+    setIsAddressFocused(false);
     setShowSuggestions(false);
     setAddressSuggestions([]);
-    const newRegion = { latitude: suggestion.lat, longitude: suggestion.lon, latitudeDelta: 0.008, longitudeDelta: 0.008 };
-    isProgrammaticMove.current = true;
-    setLocation(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 800);
+    if (suggestion.lat && suggestion.lon) {
+      const newRegion = { latitude: suggestion.lat, longitude: suggestion.lon, latitudeDelta: 0.008, longitudeDelta: 0.008 };
+      isProgrammaticMove.current = true;
+      setLocation(newRegion);
+      mapRef.current?.animateToRegion(newRegion, 800);
+    }
+  };
+
+  const selectSavedAddress = async (addr: string) => {
+    setPickupAddress(addr);
+    setIsAddressConfirmed(true);
+    setIsAddressFocused(false);
+    setShowSuggestions(false);
+    await geocodeAddress(addr);
   };
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
@@ -747,37 +776,90 @@ export default function FoodDonationPickup({ route, navigation }: any) {
 
           {scheduleType === 'pickup' ? (
             <View style={{ position: 'relative', zIndex: 999 }}>
-              <View style={styles.addressInputRow}>
-                <TextInput
-                  style={[styles.addressInput, { flex: 1 }]}
-                  placeholder="Enter pickup address"
-                  placeholderTextColor="rgba(0,89,45,0.45)"
-                  value={pickupAddress}
-                  onChangeText={(text) => {
-                    setPickupAddress(text);
-                    searchAddressSuggestions(text);
-                  }}
-                  onSubmitEditing={() => {
-                    setShowSuggestions(false);
-                    geocodeAddress(pickupAddress);
-                  }}
-                  returnKeyType="search"
-                />
-              </View>
-              {showSuggestions && addressSuggestions.length > 0 && (
-                <View style={styles.addrSuggestionsContainer}>
-                  {addressSuggestions.map((sug, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={[styles.addrSuggestionRow, idx < addressSuggestions.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }]}
-                      onPress={() => selectAddressSuggestion(sug)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="location-outline" size={14} color="#00592d" style={{ marginRight: 8, marginTop: 1 }} />
-                      <Text style={styles.addrSuggestionText} numberOfLines={2}>{sug.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+              {isAddressConfirmed ? (
+                // Show confirmed address as a readable card
+                <View style={styles.selectedAddressCard}>
+                  <Ionicons name="location" size={18} color="#00592d" style={{ marginRight: 10, marginTop: 2, flexShrink: 0 }} />
+                  <Text style={styles.selectedAddressText}>{pickupAddress}</Text>
+                  <TouchableOpacity
+                    onPress={() => { setIsAddressConfirmed(false); setPickupAddress(''); }}
+                    style={{ marginLeft: 10, flexShrink: 0 }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="close-circle" size={22} color="#999" />
+                  </TouchableOpacity>
                 </View>
+              ) : (
+                <>
+                  <View style={styles.addressInputRow}>
+                    <TextInput
+                      style={[styles.addressInput, { flex: 1 }]}
+                      placeholder="Search pickup address..."
+                      placeholderTextColor="rgba(0,89,45,0.45)"
+                      value={pickupAddress}
+                      onChangeText={(text) => {
+                        setPickupAddress(text);
+                        searchAddressSuggestions(text);
+                      }}
+                      onFocus={() => setIsAddressFocused(true)}
+                      onBlur={() => setTimeout(() => setIsAddressFocused(false), 250)}
+                      onSubmitEditing={() => {
+                        setShowSuggestions(false);
+                        geocodeAddress(pickupAddress);
+                      }}
+                      returnKeyType="search"
+                    />
+                  </View>
+
+                  {/* Dropdown: saved addresses (on focus, no text) OR Nominatim results (while typing) */}
+                  {(isAddressFocused && !pickupAddress.trim() && savedAddresses.length > 0) || (showSuggestions && addressSuggestions.length > 0) ? (
+                    <View style={styles.addrSuggestionsContainer}>
+                      {/* Previous addresses header */}
+                      {isAddressFocused && !pickupAddress.trim() && savedAddresses.length > 0 && (
+                        <>
+                          <View style={styles.addrSuggestionHeader}>
+                            <Ionicons name="time-outline" size={12} color="#888" style={{ marginRight: 5 }} />
+                            <Text style={styles.addrSuggestionHeaderText}>Previously Used</Text>
+                          </View>
+                          {savedAddresses.map((addr, idx) => (
+                            <TouchableOpacity
+                              key={`saved-${idx}`}
+                              style={[styles.addrSuggestionRow, idx < savedAddresses.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }]}
+                              onPress={() => selectSavedAddress(addr)}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons name="location-outline" size={14} color="#00592d" style={{ marginRight: 8, marginTop: 1 }} />
+                              <Text style={styles.addrSuggestionText} numberOfLines={2}>{addr}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Nominatim search results */}
+                      {showSuggestions && addressSuggestions.length > 0 && (
+                        <>
+                          {isAddressFocused && !pickupAddress.trim() && savedAddresses.length > 0 && (
+                            <View style={styles.addrSuggestionHeader}>
+                              <Ionicons name="search-outline" size={12} color="#888" style={{ marginRight: 5 }} />
+                              <Text style={styles.addrSuggestionHeaderText}>Search Results</Text>
+                            </View>
+                          )}
+                          {addressSuggestions.map((sug, idx) => (
+                            <TouchableOpacity
+                              key={`nom-${idx}`}
+                              style={[styles.addrSuggestionRow, idx < addressSuggestions.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }]}
+                              onPress={() => selectAddressSuggestion(sug)}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons name="location-outline" size={14} color="#00592d" style={{ marginRight: 8, marginTop: 1 }} />
+                              <Text style={styles.addrSuggestionText} numberOfLines={2}>{sug.label}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </>
+                      )}
+                    </View>
+                  ) : null}
+                </>
               )}
             </View>
           ) : (
@@ -1199,9 +1281,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  selectedAddressCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#EEF6F1',
+    borderWidth: 1,
+    borderColor: '#8CA697',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  selectedAddressText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#00592d',
+    lineHeight: 20,
+    fontWeight: '500',
+  },
   addrSuggestionsContainer: {
     position: 'absolute',
-    top: 50,
+    top: 52,
     left: 0,
     right: 0,
     backgroundColor: '#FFF',
@@ -1215,6 +1314,23 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 999,
     overflow: 'hidden',
+    maxHeight: 280,
+  },
+  addrSuggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: '#F7F9F8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF0EE',
+  },
+  addrSuggestionHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   addrSuggestionRow: {
     flexDirection: 'row',
