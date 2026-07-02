@@ -42,6 +42,7 @@ type Pickup = {
   time_slot: string;
   pickup_address: string | null;
   delivery_note: string | null;
+  tracking_link: string | null;
   created_at: string;
 };
 
@@ -49,8 +50,8 @@ export default function AllUpcomingPickups({ navigation }: any) {
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [deliveryModal, setDeliveryModal] = useState<{ visible: boolean; pickup: Pickup | null; note: string }>({
-    visible: false, pickup: null, note: '',
+  const [deliveryModal, setDeliveryModal] = useState<{ visible: boolean; pickup: Pickup | null; note: string; trackingLink: string }>({
+    visible: false, pickup: null, note: '', trackingLink: '',
   });
 
   const fetchPickups = useCallback(async () => {
@@ -82,7 +83,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
   }, [navigation, fetchPickups]);
 
   const openDeliveryModal = (pickup: Pickup) => {
-    setDeliveryModal({ visible: true, pickup, note: '' });
+    setDeliveryModal({ visible: true, pickup, note: '', trackingLink: '' });
   };
 
   const silentRefresh = async () => {
@@ -102,15 +103,16 @@ export default function AllUpcomingPickups({ navigation }: any) {
     const pickup = deliveryModal.pickup;
     if (!pickup) return;
     const noteValue = deliveryModal.note.trim();
-    setDeliveryModal({ visible: false, pickup: null, note: '' });
+    const trackingLinkValue = deliveryModal.trackingLink.trim();
+    setDeliveryModal({ visible: false, pickup: null, note: '', trackingLink: '' });
     setActionLoading(pickup.id);
     try {
       // @ts-ignore
-      const res = await ApiService.confirmDelivery(pickup.id, noteValue || undefined);
+      const res = await ApiService.confirmDelivery(pickup.id, noteValue || undefined, trackingLinkValue || undefined);
       if (res?.data?.success) {
         setPickups(prev => prev.map(p =>
           p.id === pickup.id
-            ? { ...p, status: 'in_transit', delivery_note: noteValue || null }
+            ? { ...p, status: 'in_transit', delivery_note: noteValue || null, tracking_link: trackingLinkValue || null }
             : p
         ));
         Alert.alert('Staff Notified', 'The staff has been informed that you are on the way to the warehouse.');
@@ -349,10 +351,10 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
                             {pickup.status.toLowerCase() === 'in_transit' ? (
                               <>
-                                {pickup.delivery_note ? (
+                                {pickup.tracking_link ? (
                                   <View style={[styles.deliveryNoteWrap, { marginBottom: 12 }]}>
                                     <Ionicons name="link-outline" size={13} color="#555" style={{ marginRight: 5 }} />
-                                    <Text style={styles.deliveryNoteText} numberOfLines={2}>{pickup.delivery_note}</Text>
+                                    <Text style={styles.deliveryNoteText} numberOfLines={2}>{pickup.tracking_link}</Text>
                                   </View>
                                 ) : null}
                                 <View style={{
@@ -434,10 +436,10 @@ export default function AllUpcomingPickups({ navigation }: any) {
               <Text style={styles.modalNoteLabel}>Tracking / Delivery Link <Text style={{ color: '#999', fontWeight: '400' }}>(optional)</Text></Text>
               <TextInput
                 style={styles.modalNoteInput}
-                placeholder="Enter tracking info..."
+                placeholder="Enter tracking link or info..."
                 placeholderTextColor="#AAAAAA"
-                value={deliveryModal.note}
-                onChangeText={(text) => setDeliveryModal(prev => ({ ...prev, note: text }))}
+                value={deliveryModal.trackingLink}
+                onChangeText={(text) => setDeliveryModal(prev => ({ ...prev, trackingLink: text }))}
                 multiline
                 numberOfLines={3}
                 autoCapitalize="none"

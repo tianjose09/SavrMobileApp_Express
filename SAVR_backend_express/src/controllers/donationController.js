@@ -18,6 +18,7 @@ db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS reference_n
 db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS transfer_datetime TIMESTAMP DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS financial_received_at TIMESTAMP DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE food_donation_records ADD COLUMN IF NOT EXISTS delivery_note TEXT DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE food_donation_records ADD COLUMN IF NOT EXISTS tracking_link TEXT DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS beneficiary_confirmed TINYINT(1) DEFAULT 0`).catch(() => {});
 db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS beneficiary_confirmed_at DATETIME DEFAULT NULL`).catch(() => {});
 
@@ -891,6 +892,7 @@ exports.getUpcomingPickups = async (req, res) => {
         })(),
         pickup_address: p.pickup_address,
         delivery_note: p.delivery_note || null,
+        tracking_link: p.tracking_link || null,
         created_at: dayjs(p.created_at).format('MM/DD/YYYY'),
       })),
     });
@@ -944,7 +946,7 @@ exports.deletePickup = async (req, res) => {
 exports.confirmDelivery = async (req, res) => {
   const { id } = req.params;
   const uid = req.user.id;
-  const { note } = req.body;
+  const { note, tracking_link } = req.body;
 
   try {
     const [rows] = await db.execute(
@@ -957,8 +959,8 @@ exports.confirmDelivery = async (req, res) => {
     }
 
     await db.execute(
-      "UPDATE food_donation_records SET status = 'in_transit', delivery_note = ?, updated_at = NOW() WHERE id = ?",
-      [note || null, id]
+      "UPDATE food_donation_records SET status = 'in_transit', delivery_note = ?, tracking_link = ?, updated_at = NOW() WHERE id = ?",
+      [note || null, tracking_link || null, id]
     );
 
     const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
@@ -970,10 +972,10 @@ exports.confirmDelivery = async (req, res) => {
       hour: '2-digit', minute: '2-digit', hour12: true,
     });
 
-    const noteText = note ? ` Tracking link: ${note}` : '';
+    const trackingText = tracking_link ? ` Tracking link: ${tracking_link}` : '';
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
     const title = 'Donor On The Way';
-    const description = `${donorName} is on the way to the warehouse. (${phTime})${noteText}`;
+    const description = `${donorName} is on the way to the warehouse. (${phTime})${trackingText}`;
     for (const staff of staffRows) {
       await createNotification(staff.id, 'food', title, description, false);
     }
