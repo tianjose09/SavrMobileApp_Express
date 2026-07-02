@@ -265,6 +265,7 @@ exports.optimizeMeals = async (req, res) => {
     const expiryScore = Math.max(0, 1 - minDays / 90);
 
     let finalScore;
+    let coverageScore = 0;
     if (isAnyAvailable) {
       // Coverage: avg(min(available / needed, 1.0)) across all required recipe ingredients
       const requiredIngs = mealIngredients.filter(ing => !ing.is_optional);
@@ -276,9 +277,8 @@ exports.optimizeMeals = async (req, res) => {
           const available = toBaseUnit(m.selData.inputQty, m.selData.unit);
           totalCoverage += needed > 0 ? Math.min(available / needed, 1.0) : 1.0;
         }
-        // unmatched required ingredients contribute 0 to coverage
       }
-      const coverageScore = requiredIngs.length > 0 ? totalCoverage / requiredIngs.length : 0;
+      coverageScore = requiredIngs.length > 0 ? totalCoverage / requiredIngs.length : 0;
       finalScore = 0.5 * expiryScore + 0.3 * coverageScore + 0.2 * paxScore;
     } else {
       finalScore = WEIGHT_PAX * paxScore + WEIGHT_EXPIRY * expiryScore;
@@ -289,45 +289,77 @@ exports.optimizeMeals = async (req, res) => {
       maxServings,
       paxScore,
       expiryScore,
+      coverageScore,
       finalScore,
       missing: missingIngredients,
       matched: matchedIngredients.map(m => m.ingredient.ingredient_name),
     });
   }
 
-  // Full matches (no missing ingredients) always rank above partial/suggested meals.
-  // Within each group, rank by finalScore descending.
-  plans.sort((a, b) => {
-    const aFull = a.missing.length === 0 ? 1 : 0;
-    const bFull = b.missing.length === 0 ? 1 : 0;
-    if (bFull !== aFull) return bFull - aFull;
-    return b.finalScore - a.finalScore;
-  });
+  let results;
 
-  const results = plans.map((plan, rank) => {
-    const rankNum = rank + 1;
-    const isTop = rankNum === 1;
-    const rankDisplay = isTop ? '#1 Best' : `#${rankNum}`;
+  if (isAnyAvailable) {
+    // Pick one winner per category — same meal may appear in multiple ranks
+    const categories = [
+      { key: 'expiryScore',   rank: 1, rankDisplay: '#1 Expiry',       status: 'Best for Expiry' },
+      { key: 'coverageScore', rank: 2, rankDisplay: '#2 Availability', status: 'Best Availability' },
+      { key: 'paxScore',      rank: 3, rankDisplay: '#3 Servings',     status: 'Most Servings' },
+    ];
 
-    let tags = [];
-    try { tags = typeof plan.meal.tags === 'string' ? JSON.parse(plan.meal.tags) : (plan.meal.tags || []); } catch {}
-    if (isTop) tags = ['Recommended', ...tags];
+    results = categories
+      .map(({ key, rank, rankDisplay, status }) => {
+        const winner = plans.slice().sort((a, b) => b[key] - a[key])[0];
+        if (!winner) return null;
+        let tags = [];
+        try { tags = typeof winner.meal.tags === 'string' ? JSON.parse(winner.meal.tags) : (winner.meal.tags || []); } catch {}
+        return {
+          id: `rank_${rank}`,
+          name: winner.meal.name,
+          rankDisplay,
+          isTop: rank === 1,
+          isFullMatch: winner.missing.length === 0,
+          tags: [...new Set(tags)],
+          servings: String(winner.maxServings),
+          status,
+          ingredients_used: winner.matched.join(', '),
+          comment_title: '',
+          comment_desc: '',
+          missing_items: winner.missing.length ? winner.missing.join(', ') : null,
+        };
+      })
+      .filter(Boolean);
+  } else {
+    // Recipe mode: full matches first, then sort by finalScore
+    plans.sort((a, b) => {
+      const aFull = a.missing.length === 0 ? 1 : 0;
+      const bFull = b.missing.length === 0 ? 1 : 0;
+      if (bFull !== aFull) return bFull - aFull;
+      return b.finalScore - a.finalScore;
+    });
 
-    return {
-      id: `rank_${rankNum}`,
-      name: plan.meal.name,
-      rankDisplay,
-      isTop,
-      isFullMatch: plan.missing.length === 0,
-      tags: [...new Set(tags)],
-      servings: String(plan.maxServings),
-      status: isTop ? 'Optimal Output' : '',
-      ingredients_used: plan.matched.join(', '),
-      comment_title: isTop ? 'Why this meal ranks first:' : '',
-      comment_desc: plan.meal.comment_desc || '',
-      missing_items: plan.missing.length ? plan.missing.join(', ') : null,
-    };
-  });
+    results = plans.map((plan, rank) => {
+      const rankNum = rank + 1;
+      const isTop = rankNum === 1;
+      const rankDisplay = isTop ? '#1 Best' : `#${rankNum}`;
+      let tags = [];
+      try { tags = typeof plan.meal.tags === 'string' ? JSON.parse(plan.meal.tags) : (plan.meal.tags || []); } catch {}
+      if (isTop) tags = ['Recommended', ...tags];
+      return {
+        id: `rank_${rankNum}`,
+        name: plan.meal.name,
+        rankDisplay,
+        isTop,
+        isFullMatch: plan.missing.length === 0,
+        tags: [...new Set(tags)],
+        servings: String(plan.maxServings),
+        status: isTop ? 'Optimal Output' : '',
+        ingredients_used: plan.matched.join(', '),
+        comment_title: isTop ? 'Why this meal ranks first:' : '',
+        comment_desc: plan.meal.comment_desc || '',
+        missing_items: plan.missing.length ? plan.missing.join(', ') : null,
+      };
+    });
+  }
 
   return res.json({ success: true, meals: results });
 };

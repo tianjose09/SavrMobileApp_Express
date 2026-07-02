@@ -118,8 +118,13 @@ export default function MealOptimizationResults({ route, navigation }: any) {
 
       if (res.data && res.data.success) {
         const all = res.data.meals || [];
-        setFullMatchMeals(all.filter((m: any) => m.isFullMatch));
-        setSuggestedMeals(all.filter((m: any) => !m.isFullMatch));
+        if (optimizeMode === 'any_available') {
+          setFullMatchMeals(all);
+          setSuggestedMeals([]);
+        } else {
+          setFullMatchMeals(all.filter((m: any) => m.isFullMatch));
+          setSuggestedMeals(all.filter((m: any) => !m.isFullMatch));
+        }
       } else {
         throw new Error('Fallback logic');
       }
@@ -565,8 +570,8 @@ export default function MealOptimizationResults({ route, navigation }: any) {
               <Text style={styles.statLabel}>Ingredients{`\n`}Selected</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{isLoading ? '–' : fullMatchMeals.length}</Text>
-              <Text style={styles.statLabel}>Feasible{`\n`}Meals</Text>
+              <Text style={styles.statValue}>{isLoading ? '–' : (optimizeMode === 'any_available' ? fullMatchMeals.length : fullMatchMeals.length)}</Text>
+              <Text style={styles.statLabel}>{optimizeMode === 'any_available' ? `Top\nPicks` : `Feasible\nMeals`}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{parsedPax}</Text>
@@ -597,7 +602,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
                   </View>
                 ) : (
                   fullMatchMeals.map((meal) => (
-                    <MealCard key={meal.id} meal={meal} selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} mealRequestId={mealRequestId} />
+                    <MealCard key={meal.id} meal={meal} selectedIngredients={selectedIngredients} navigation={navigation} targetPax={parsedPax} mealRequestId={mealRequestId} isAnyAvailable={optimizeMode === 'any_available'} />
                   ))
                 )}
 
@@ -636,13 +641,14 @@ export default function MealOptimizationResults({ route, navigation }: any) {
 }
 
 // â”€â”€ Reusable Meal Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation, targetPax = 0, mealRequestId }: {
+function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation, targetPax = 0, mealRequestId, isAnyAvailable = false }: {
   meal: any;
   isSuggested?: boolean;
   selectedIngredients?: any[];
   navigation?: any;
   targetPax?: number;
   mealRequestId?: number;
+  isAnyAvailable?: boolean;
 }) {
   // Filter only the selected ingredients that appear in THIS meal's recipe
   const ingText = (meal.ingredients_used || '').toLowerCase();
@@ -688,17 +694,18 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
     }
   };
 
+  const useGoldStyle = (meal.isTop || isAnyAvailable) && !isSuggested;
   return (
     <View style={[
       styles.mealCard,
-      meal.isTop && !isSuggested && { borderColor: '#dcb04d', backgroundColor: '#fffdf7' },
+      useGoldStyle && { borderColor: '#dcb04d', backgroundColor: '#fffdf7' },
       isSuggested && styles.mealCardSuggested,
     ]}>
       {/* Meal name row – name wraps freely, rank pill stays on the right */}
       <View style={styles.mealNameRow}>
         <Text style={[styles.mealName, isSuggested && { color: '#8a7040' }, { flex: 1 }]}>{meal.name}</Text>
-        <View style={[meal.isTop && !isSuggested ? styles.rankPill : styles.rankPill2, { position: 'relative', top: 0, right: 0, marginLeft: 8, flexShrink: 0 }]}>
-          <Text style={meal.isTop && !isSuggested ? styles.rankPillText : styles.rankPillText2}>
+        <View style={[useGoldStyle ? styles.rankPill : styles.rankPill2, { position: 'relative', top: 0, right: 0, marginLeft: 8, flexShrink: 0 }]}>
+          <Text style={useGoldStyle ? styles.rankPillText : styles.rankPillText2}>
             {meal.rankDisplay}
           </Text>
         </View>
