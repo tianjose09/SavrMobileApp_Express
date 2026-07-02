@@ -966,20 +966,19 @@ export default function TrackMyRequest({ route, navigation }: any) {
             </View>
 
             {/* Proof of transfer */}
-            {disbursementModal.proofUri ? (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={[styles.disbursementProofLabel, { marginBottom: 8 }]}>Proof of Transfer</Text>
-                <Image
-                  source={{ uri: disbursementModal.proofUri }}
-                  style={[styles.proofImage, { height: 200 }]}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : (
-              <Text style={[styles.disbursementNoteText, { color: '#999', textAlign: 'center', marginBottom: 16 }]}>
-                No proof of transfer uploaded yet.
-              </Text>
-            )}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={[styles.disbursementProofLabel, { marginBottom: 8 }]}>Proof of Transfer</Text>
+              <Image
+                source={{ uri: disbursementModal.proofUri || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=600&auto=format&fit=crop' }}
+                style={[styles.proofImage, { height: 200 }]}
+                resizeMode="contain"
+              />
+              {!disbursementModal.proofUri && (
+                <Text style={{ fontSize: 11, color: '#888', textAlign: 'center', marginTop: 4 }}>
+                  (Showing placeholder. No official proof uploaded by staff yet.)
+                </Text>
+              )}
+            </View>
 
             {/* Buttons */}
             <View style={styles.modalButtons}>
