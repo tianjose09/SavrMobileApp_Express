@@ -624,6 +624,61 @@ export default function TrackMyRequest({ route, navigation }: any) {
           </View>
         )}
 
+        {/* I Received This – Approved financial requests */}
+        {!isFood && effectiveStatus === 'Approved' && !req.financial_received_at && (() => {
+          // Get most recent unconfirmed disbursement if any, otherwise open empty modal
+          let disbursements: any[] = [];
+          try {
+            const raw = req.dispatched_items;
+            disbursements = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+            if (!Array.isArray(disbursements)) disbursements = [];
+          } catch { disbursements = []; }
+
+          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed);
+          const hasAnyDisbursement = disbursements.length > 0;
+
+          return (
+            <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
+              <View style={[styles.batchRow, { justifyContent: 'space-between', borderBottomWidth: 0, paddingBottom: 0, alignItems: 'center' }]}>
+                <Text style={{ fontSize: 12, color: '#555', flex: 1, marginRight: 10 }}>
+                  {hasAnyDisbursement ? 'Tap to confirm you received the transfer.' : 'Awaiting disbursement from staff.'}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.receivedBtn, !hasAnyDisbursement && { backgroundColor: '#B0BEC5' }]}
+                  activeOpacity={0.8}
+                  disabled={!hasAnyDisbursement}
+                  onPress={() => {
+                    const d = lastUnconfirmed || disbursements[disbursements.length - 1];
+                    setFinancialReceiptModal({
+                      visible: true,
+                      requestId: req.id,
+                      disbursementId: d?.id ?? (disbursements.length - 1),
+                      amount: parseFloat(d?.amount || '0'),
+                      referenceNo: d?.reference_no || d?.reference_number || null,
+                      proofPhoto: d?.proof_photo || d?.proof_of_transfer || null,
+                      date: d?.transfer_datetime || d?.date || null,
+                    });
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.receivedBtnText}>I Received This</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Already confirmed message for financial requests */}
+        {!isFood && req.financial_received_at && (
+          <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
+            <View style={[styles.batchRow, { justifyContent: 'flex-end', borderBottomWidth: 0, paddingBottom: 0 }]}>
+              <View style={styles.batchConfirmedBadge}>
+                <Text style={styles.batchConfirmedText}>Received</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Per-batch row – In Transit only; multiple batches already expanded to separate cards */}
         {effectiveStatus === 'In Transit' && activeBatch && (
           <View style={styles.batchSection}>
