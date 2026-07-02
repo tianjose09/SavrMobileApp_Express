@@ -368,7 +368,7 @@ export default function CreateRequest({ navigation }: any) {
                 postalCode: addr.postcode || '',
               };
             }
-          } catch {}
+          } catch { }
         }
 
         if (place) {
