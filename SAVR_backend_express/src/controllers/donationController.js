@@ -18,6 +18,8 @@ db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS reference_n
 db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS transfer_datetime TIMESTAMP DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS financial_received_at TIMESTAMP DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE food_donation_records ADD COLUMN IF NOT EXISTS delivery_note TEXT DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS beneficiary_confirmed TINYINT(1) DEFAULT 0`).catch(() => {});
+db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS beneficiary_confirmed_at DATETIME DEFAULT NULL`).catch(() => {});
 
 async function logActivity(userId, type, title, description, icon = 'financialiconyellow', referenceId = null) {
   await db.execute(
@@ -1323,7 +1325,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
     const placeholders = requestIds.map(() => '?').join(',');
     const [deliveryRows] = await db.execute(`
       SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
-             del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime
+             del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
+             del.beneficiary_confirmed, del.beneficiary_confirmed_at
       FROM donation_deliveries del
       JOIN donation_drives dd ON dd.id = del.donation_drive_id
       WHERE dd.beneficiary_request_id IN (${placeholders})
@@ -1339,6 +1342,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
       for (const fi of financialItems) {
         disbursementsByRequest[rid].push({
+          id: row.delivery_id,
           delivery_id: row.delivery_id,
           amount: parseFloat(fi.qty || fi.amount || '0'),
           date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
@@ -1346,6 +1350,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
           proof_of_transfer: row.proof_of_transfer || null,
           reference_number: row.reference_number || null,
           transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
+          confirmed: !!row.beneficiary_confirmed,
+          confirmed_at: row.beneficiary_confirmed_at ? new Date(row.beneficiary_confirmed_at).toISOString() : null,
         });
       }
     }
@@ -1779,45 +1785,31 @@ exports.confirmDisbursement = async (req, res) => {
     }
 
     const request = rows[0];
-    let disbursements = [];
-    try {
-      disbursements = typeof request.dispatched_items === 'string' 
-        ? JSON.parse(request.dispatched_items) 
-        : (request.dispatched_items || []);
-    } catch {}
 
-    if (!Array.isArray(disbursements)) {
-      disbursements = [];
-    }
+    // Look up the delivery in donation_deliveries via donation_drives
+    const [deliveryRows] = await db.execute(`
+      SELECT del.id FROM donation_deliveries del
+      JOIN donation_drives dd ON dd.id = del.donation_drive_id
+      WHERE del.id = ? AND dd.beneficiary_request_id = ?
+    `, [disbursementId, id]);
 
-    let found = false;
-    disbursements = disbursements.map(d => {
-      if (String(d.id) === String(disbursementId)) {
-        d.confirmed = true;
-        d.confirmed_at = new Date().toISOString();
-        found = true;
-      }
-      return d;
-    });
-
-    if (!found) {
+    if (!deliveryRows.length) {
       return res.status(404).json({ success: false, message: 'Disbursement not found.' });
     }
 
     await db.execute(
-      "UPDATE beneficiary_requests SET dispatched_items = ?, updated_at = NOW() WHERE id = ?",
-      [JSON.stringify(disbursements), id]
+      "UPDATE donation_deliveries SET beneficiary_confirmed = 1, beneficiary_confirmed_at = NOW() WHERE id = ?",
+      [disbursementId]
     );
 
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
     const title = 'Financial Disbursement Received';
     const description = `Beneficiary has confirmed receipt of disbursement for request "${request.request_name}".`;
     for (const staff of staffRows) {
-      const { createNotification } = require('./notificationController');
       await createNotification(staff.id, 'service', title, description, false);
     }
 
-    return res.json({ success: true, message: 'Disbursement receipt confirmed.', disbursements });
+    return res.json({ success: true, message: 'Disbursement receipt confirmed.' });
   } catch (err) {
     console.error('[confirmDisbursement]', err.message);
     return res.status(500).json({ success: false, message: 'Failed to confirm receipt.', error: err.message });

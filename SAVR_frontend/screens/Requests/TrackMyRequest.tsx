@@ -533,7 +533,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                             'Are you sure you have received this transfer?',
                             [
                               { text: 'Not Yet', style: 'cancel' },
-                              { text: 'Yes, I Received This', onPress: () => handleSubmitFinancialReceipt(req.id, d.id ?? i) },
+                              { text: 'Yes, Received', onPress: () => handleSubmitFinancialReceipt(req.id, d.id ?? i) },
                             ]
                           )
                         }
@@ -631,13 +631,17 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   activeOpacity={0.8}
                   onPress={() => {
                     const d = lastUnconfirmed || disbursements[disbursements.length - 1];
-                    const disbId = d?.id !== undefined ? d.id : (disbursements.length > 0 ? disbursements.length - 1 : 0);
+                    const disbId = d?.id;
+                    if (!disbId) {
+                      Alert.alert('Error', 'No disbursement found to confirm. Please refresh and try again.');
+                      return;
+                    }
                     Alert.alert(
                       'Confirm Receipt',
                       'Are you sure you have received this transfer?',
                       [
                         { text: 'Not Yet', style: 'cancel' },
-                        { text: 'Yes, I Received This', onPress: () => handleSubmitFinancialReceipt(req.id, disbId) },
+                        { text: 'Yes, Received', onPress: () => handleSubmitFinancialReceipt(req.id, disbId) },
                       ]
                     );
                   }}
