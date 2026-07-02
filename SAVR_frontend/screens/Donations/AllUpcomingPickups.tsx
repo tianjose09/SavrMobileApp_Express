@@ -125,33 +125,38 @@ export default function AllUpcomingPickups({ navigation }: any) {
   };
 
   const handleDeletePickup = (pickup: Pickup) => {
-    if (pickup.status.toLowerCase() !== 'pending') {
-      Alert.alert(
-        'Cannot Delete',
-        'Only pending pickups can be deleted. For scheduled or approved pickups, please contact support.'
-      );
-      return;
-    }
+    const isScheduledOrApproved = ['scheduled', 'approved'].includes(pickup.status.toLowerCase());
 
     Alert.alert(
-      'Cancel Pickup',
-      'Are you sure you want to cancel/delete this pickup request?',
+      isScheduledOrApproved ? 'Decline Scheduled Pickup' : 'Cancel Pickup',
+      isScheduledOrApproved 
+        ? 'Are you sure you want to decline this scheduled pickup? Staff will be notified.'
+        : 'Are you sure you want to cancel/delete this pickup request?',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Yes, Delete',
+          text: isScheduledOrApproved ? 'Yes, Decline' : 'Yes, Delete',
           style: 'destructive',
           onPress: async () => {
+            setActionLoading(pickup.id);
             try {
-              const res = await ApiService.deletePickup(pickup.id);
+              let res;
+              if (isScheduledOrApproved) {
+                // @ts-ignore
+                res = await ApiService.declinePickup(pickup.id);
+              } else {
+                res = await ApiService.deletePickup(pickup.id);
+              }
               if (res?.data?.success) {
-                Alert.alert('Success', 'Pickup deleted successfully.');
+                Alert.alert('Success', isScheduledOrApproved ? 'Pickup declined successfully.' : 'Pickup deleted successfully.');
                 fetchPickups();
               } else {
-                Alert.alert('Error', res?.data?.message || 'Failed to delete pickup.');
+                Alert.alert('Error', res?.data?.message || 'Failed to cancel pickup.');
               }
             } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || 'An error occurred while deleting the pickup.');
+              Alert.alert('Error', err?.response?.data?.message || 'An error occurred while cancelling pickup.');
+            } finally {
+              setActionLoading(null);
             }
           }
         }
@@ -209,14 +214,15 @@ export default function AllUpcomingPickups({ navigation }: any) {
             ) : (
               pickups.map((pickup, idx) => {
                 const renderRightActions = () => {
+                  const isDeclinable = ['scheduled', 'approved'].includes(pickup.status.toLowerCase());
                   return (
                     <TouchableOpacity
-                      style={styles.swipeDeleteAction}
+                      style={[styles.swipeDeleteAction, isDeclinable && { backgroundColor: '#D97706' }]}
                       onPress={() => handleDeletePickup(pickup)}
                       activeOpacity={0.85}
                     >
-                      <Ionicons name="trash" size={22} color="#FFF" />
-                      <Text style={styles.swipeDeleteText}>Delete</Text>
+                      <Ionicons name={isDeclinable ? "close-circle" : "trash"} size={22} color="#FFF" />
+                      <Text style={styles.swipeDeleteText}>{isDeclinable ? 'Decline' : 'Delete'}</Text>
                     </TouchableOpacity>
                   );
                 };

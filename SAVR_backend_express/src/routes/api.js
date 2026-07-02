@@ -81,6 +81,7 @@ router.get('/donation/stats',                          donationController.getDon
 router.get('/donation/upcoming',                       donationController.getUpcomingPickups);
 router.put('/donation/pickup/:id',                     donationController.updatePickup);
 router.delete('/donation/pickup/:id',                  donationController.deletePickup);
+router.put('/donation/pickup/:id/decline',             donationController.declinePickup);
 router.put('/donation/pickup/:id/delivered',           donationController.confirmDelivery);
 router.post('/donation/pickup/:id/arrived',             donationController.markArrived);
 

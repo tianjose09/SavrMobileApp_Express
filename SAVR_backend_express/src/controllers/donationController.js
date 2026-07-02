@@ -655,6 +655,16 @@ exports.submitFood = async (req, res) => {
   const modeLabel = schedule_type === 'delivery' ? 'drop-off' : 'pickup';
   await logActivity(req.user.id, 'food', 'Food Donation Submitted', `${foodItems.length} item(s) submitted and pending admin confirmation`, 'truckicon', donationId);
   await createNotification(req.user.id, 'food', 'Food Donation Submitted', `Your food donation of ${foodItems.length} item(s) has been submitted and scheduled for ${modeLabel}. Thank you!`);
+  if (schedule_type === 'delivery') {
+    const formattedDate = preferred_date ? dayjs(preferred_date).format('MMMM DD, YYYY') : 'the specified date';
+    await createNotification(
+      req.user.id,
+      'food',
+      'Delivery Due Date Reminder',
+      `Reminder: Please deliver your food donation to the food bank/kitchen on your scheduled date: ${formattedDate}.`,
+      true
+    );
+  }
   await recalculateBadges(req.user.id);
 
   return res.status(201).json({ success: true, message: 'Food donation and schedule confirmed.', donation_id: donationId });
@@ -685,6 +695,16 @@ exports.submitSchedule = async (req, res) => {
   const [updated] = await db.execute('SELECT * FROM food_donation_records WHERE id = ?', [donation_id]);
 
   await logActivity(req.user.id, 'food', `${schedule_type.charAt(0).toUpperCase() + schedule_type.slice(1)} Scheduled`, `Scheduled for ${preferred_date} at ${time_slot}`, 'truckicon');
+  if (schedule_type === 'delivery') {
+    const formattedDate = preferred_date ? dayjs(preferred_date).format('MMMM DD, YYYY') : 'the specified date';
+    await createNotification(
+      req.user.id,
+      'food',
+      'Delivery Due Date Reminder',
+      `Reminder: Please deliver your food donation to the food bank/kitchen on your scheduled date: ${formattedDate}.`,
+      true
+    );
+  }
   await recalculateBadges(req.user.id);
 
   return res.json({ success: true, message: `${schedule_type.charAt(0).toUpperCase() + schedule_type.slice(1)} scheduled.`, donation: updated[0] });
@@ -983,6 +1003,56 @@ exports.markArrived = async (req, res) => {
   } catch (err) {
     console.error('[markArrived]', err.message);
     return res.status(500).json({ success: false, message: 'Failed to report arrival.', error: err.message });
+  }
+};
+
+exports.declinePickup = async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM food_donation_records WHERE id = ? AND user_id = ?",
+      [id, uid]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Pickup not found.' });
+    }
+
+    await db.execute(
+      "UPDATE food_donation_records SET status = 'cancelled', notified_status = 'cancelled', updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    await db.execute(
+      "DELETE FROM truck_stops WHERE reference_id::text = ? AND source = 'food_donation'",
+      [id]
+    );
+
+    const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
+    const donorName = userRows[0]?.name || 'A donor';
+
+    await logActivity(
+      uid,
+      'food',
+      'Food Donation Cancelled',
+      `Pickup declined by donor ${donorName}`,
+      'truckicon',
+      id
+    );
+
+    const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+    const title = 'Scheduled Pickup Declined';
+    const description = `${donorName} has declined the scheduled pickup for donation #${id}.`;
+    for (const staff of staffRows) {
+      await createNotification(staff.id, 'food', title, description, true);
+    }
+
+    return res.json({ success: true, message: 'Pickup declined successfully.' });
+  } catch (err) {
+    console.error('[declinePickup]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to decline pickup.', error: err.message });
   }
 };
 

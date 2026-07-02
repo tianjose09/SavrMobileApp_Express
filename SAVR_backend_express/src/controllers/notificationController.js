@@ -402,7 +402,7 @@ async function autoNotifyDonor(userId) {
     };
 
     const [foodRows] = await db.execute(
-      'SELECT id, user_id, status, notified_status FROM food_donation_records WHERE user_id = ?',
+      'SELECT id, user_id, status, mode, preferred_date, notified_status FROM food_donation_records WHERE user_id = ?',
       [userId]
     );
     for (const r of foodRows) {
@@ -428,7 +428,13 @@ async function autoNotifyDonor(userId) {
         );
         if (recentFoodRows.length > 0) continue;
 
-        await createNotification(r.user_id, 'food', foodTitles[s] || `Food Donation ${r.status}`, foodMessages[s] || `Your food donation status has been updated to "${r.status}".`, true);
+        let msg = foodMessages[s] || `Your food donation status has been updated to "${r.status}".`;
+        if (s === 'approved' && r.mode === 'delivery' && r.preferred_date) {
+          const dateStr = dayjs(r.preferred_date).format('MMMM DD, YYYY');
+          msg = `Your food donation has been approved! Reminder: Please deliver this to the food bank/kitchen on your scheduled date: ${dateStr}.`;
+        }
+
+        await createNotification(r.user_id, 'food', foodTitles[s] || `Food Donation ${r.status}`, msg, true);
         // No separate activity log entries for status changes — the original
         // 'Food Donation Submitted' entry already shows the live status via reference_id.
       } catch (e) {

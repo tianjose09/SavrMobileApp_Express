@@ -119,6 +119,7 @@ export const ApiService = {
   getUpcomingPickups: () => api.get('api/donation/upcoming'),
   updatePickup: (id: number, data: any) => api.put(`api/donation/pickup/${id}`, data),
   deletePickup: (id: number) => api.delete(`api/donation/pickup/${id}`),
+  declinePickup: (id: number) => api.put(`api/donation/pickup/${id}/decline`),
   confirmDelivery: (id: number) => api.put(`api/donation/pickup/${id}/delivered`),
   reportArrival: (id: number) => api.post(`api/donation/pickup/${id}/arrived`),
   getBadges: () => api.get('api/badges'),
