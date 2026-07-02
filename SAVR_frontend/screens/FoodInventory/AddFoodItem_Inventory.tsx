@@ -39,31 +39,35 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
   React.useEffect(() => {
     const loadIngredients = async () => {
       const uniqueNames = new Set<string>();
-      try {
-        const res = await ApiService.getIngredientsList();
-        const dataArr = res.data?.data || res.data?.ingredients || [];
-        if (Array.isArray(dataArr)) {
-          dataArr.forEach((name: string) => {
-            if (name) uniqueNames.add(name);
-          });
-        }
-      } catch (e) {
-        console.log('Backend ingredients API not available:', e);
-      }
 
-      try {
-        const res = await fetch('https://www.themealdb.com/api/json/v1/1/list.php?i=list');
-        const data = await res.json();
-        const items = data.meals || [];
-        items.forEach((m: any) => {
-          if (m.strIngredient) uniqueNames.add(m.strIngredient);
-        });
-      } catch (e) {
-        console.log('TheMealDB API not available:', e);
-      }
-
+      // 1. Load Filipino foods instantly
       FILIPINO_FOODS.forEach(item => uniqueNames.add(item));
       setDbIngredients(Array.from(uniqueNames).sort());
+
+      // 2. Fetch backend database list in background
+      ApiService.getIngredientsList()
+        .then(res => {
+          const dataArr = res.data?.data || res.data?.ingredients || [];
+          if (Array.isArray(dataArr)) {
+            dataArr.forEach((name: string) => {
+              if (name) uniqueNames.add(name);
+            });
+            setDbIngredients(Array.from(uniqueNames).sort());
+          }
+        })
+        .catch(e => console.log('Backend ingredients API not available:', e));
+
+      // 3. Fetch TheMealDB in background
+      fetch('https://www.themealdb.com/api/json/v1/1/list.php?i=list')
+        .then(res => res.json())
+        .then(data => {
+          const items = data.meals || [];
+          items.forEach((m: any) => {
+            if (m.strIngredient) uniqueNames.add(m.strIngredient);
+          });
+          setDbIngredients(Array.from(uniqueNames).sort());
+        })
+        .catch(e => console.log('TheMealDB API not available:', e));
     };
     loadIngredients();
   }, []);
@@ -277,7 +281,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
               </View>
             </View>
 
-            <View style={styles.inputGroupOuter}>
+            <View style={[styles.inputGroupOuter, { zIndex: 9 }]}>
               <Text style={styles.label}>Category <Text style={{ color: '#DCAB18' }}>*</Text></Text>
               <CustomDropdown
                 selectedValue={category}
@@ -306,7 +310,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
               />
             </View>
 
-            <View style={styles.row}>
+            <View style={[styles.row, { zIndex: 8 }]}>
               <View style={[styles.inputGroupOuter, { flex: 1, marginRight: 15 }]}>
                 <Text style={styles.label}>Quantity <Text style={{ color: '#DCAB18' }}>*</Text></Text>
                 <TextInput
@@ -337,7 +341,7 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
               </View>
             </View>
 
-            <View style={styles.inputGroupOuter}>
+            <View style={[styles.inputGroupOuter, { zIndex: 7 }]}>
               <Text style={styles.label}>Expiration Date <Text style={{ color: '#DCAB18' }}>*</Text></Text>
               <View style={{ position: 'relative', justifyContent: 'center' }}>
                 <TextInput
