@@ -132,6 +132,10 @@ export default function DonorDashboard({ navigation }: any) {
 
       const dashRes = await ApiService.getDashboard();
 
+      let foodCount = 0;
+      let financialCount = 0;
+      let serviceCount = 0;
+
       if (dashRes?.data?.success) {
         const data = dashRes.data;
 
@@ -142,10 +146,14 @@ export default function DonorDashboard({ navigation }: any) {
           StorageUtils.setItem(StorageKeys.DISPLAY_NAME, data.display_name);
         }
 
+        foodCount = data.total_food || 0;
+        financialCount = data.total_financial_count || 0;
+        serviceCount = data.total_service || 0;
+
         setDonationAmount(data.total_donations || 0);
-        setTotalFoodDonations(data.total_food || 0);
-        setTotalFinancialCount(data.total_financial_count || 0);
-        setTotalServiceDonations(data.total_service || 0);
+        setTotalFoodDonations(foodCount);
+        setTotalFinancialCount(financialCount);
+        setTotalServiceDonations(serviceCount);
       }
 
       const badgesRes = await ApiService.getBadges();
@@ -154,15 +162,30 @@ export default function DonorDashboard({ navigation }: any) {
         const allBadges = badgesRes.data.all || [];
 
         const earnedWithStatus = earnedBadges.map((b: any) => ({ ...b, isEarned: true }));
-        const unearned = allBadges
+        
+        let unearned = allBadges
           .filter((b: any) => !earnedBadges.some((eb: any) => eb.id === b.id))
-          .map((b: any) => ({ ...b, isEarned: false }))
-          .sort((a: any, b: any) => {
-            const ratioA = (parseFloat(a.progress) || 0) / (parseFloat(a.goal_value) || 1);
-            const ratioB = (parseFloat(b.progress) || 0) / (parseFloat(b.goal_value) || 1);
-            if (ratioA !== ratioB) return ratioB - ratioA;
-            return (parseFloat(a.goal_value) || 0) - (parseFloat(b.goal_value) || 0);
+          .map((b: any) => ({ ...b, isEarned: false }));
+
+        const hasFood = foodCount > 0;
+        const hasFinancial = financialCount > 0;
+        const hasService = serviceCount > 0;
+
+        if (hasFood || hasFinancial || hasService) {
+          unearned = unearned.filter((b: any) => {
+            if (b.goal_type === 'food_count') return hasFood;
+            if (b.goal_type === 'financial_total') return hasFinancial;
+            if (b.goal_type === 'service_count') return hasService;
+            return true;
           });
+        }
+
+        unearned.sort((a: any, b: any) => {
+          const ratioA = (parseFloat(a.progress) || 0) / (parseFloat(a.goal_value) || 1);
+          const ratioB = (parseFloat(b.progress) || 0) / (parseFloat(b.goal_value) || 1);
+          if (ratioA !== ratioB) return ratioB - ratioA;
+          return (parseFloat(a.goal_value) || 0) - (parseFloat(b.goal_value) || 0);
+        });
 
         const featured = [...earnedWithStatus, ...unearned].slice(0, 3);
         setFeaturedBadges(featured);
