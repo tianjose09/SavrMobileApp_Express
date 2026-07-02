@@ -289,6 +289,19 @@ export default function AllUpcomingPickups({ navigation }: any) {
                           <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
                         </View>
 
+                        {pickup.mode !== 'delivery' && ['scheduled', 'approved'].includes(pickup.status.toLowerCase()) && (
+                          <View style={styles.declineActionWrapper}>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, styles.declineBtn]}
+                              onPress={() => handleDeletePickup(pickup)}
+                              disabled={actionLoading !== null}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.declineBtnText}>Decline Pickup</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
                         {pickup.mode === 'delivery' && (
                           <>
                             <View style={styles.deliveryReminder}>
@@ -537,6 +550,18 @@ const styles = StyleSheet.create({
   },
   confirmText: {
     color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  declineActionWrapper: {
+    marginTop: 14,
+  },
+  declineBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#C62828',
+  },
+  declineBtnText: {
+    color: '#C62828',
     fontSize: 13,
     fontWeight: '700',
   },
