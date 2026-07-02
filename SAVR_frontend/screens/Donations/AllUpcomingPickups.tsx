@@ -346,16 +346,27 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
                             {pickup.status.toLowerCase() === 'in_transit' ? (
                               <>
-                                <View style={styles.inTransitBadge}>
-                                  <Ionicons name="car-outline" size={15} color="#1565C0" style={{ marginRight: 6 }} />
-                                  <Text style={styles.inTransitText}>In Transit</Text>
-                                </View>
                                 {pickup.delivery_note ? (
-                                  <View style={styles.deliveryNoteWrap}>
+                                  <View style={[styles.deliveryNoteWrap, { marginBottom: 12 }]}>
                                     <Ionicons name="link-outline" size={13} color="#555" style={{ marginRight: 5 }} />
                                     <Text style={styles.deliveryNoteText} numberOfLines={2}>{pickup.delivery_note}</Text>
                                   </View>
                                 ) : null}
+                                <View style={{
+                                  backgroundColor: '#E3F2FD',
+                                  borderColor: '#90CAF9',
+                                  borderWidth: 1.5,
+                                  borderRadius: 24,
+                                  paddingVertical: 12,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexDirection: 'row',
+                                  gap: 8,
+                                  marginTop: 8,
+                                }}>
+                                  <Ionicons name="car-outline" size={18} color="#1565C0" />
+                                  <Text style={{ color: '#1565C0', fontSize: 14, fontWeight: '700' }}>In Transit</Text>
+                                </View>
                               </>
                             ) : (
                               <View style={styles.deliveryActions}>
