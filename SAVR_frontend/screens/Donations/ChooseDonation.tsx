@@ -132,9 +132,9 @@ export default function ChooseDonation({ navigation }: any) {
 
             <View style={styles.divider} />
 
-            {/* Upcoming Pickups */}
+            {/* Upcoming Pickups & Delivery */}
             <View style={styles.pickupsHeaderInfoRow}>
-              <Text style={styles.pickupsTitle}>Upcoming Pickups</Text>
+              <Text style={styles.pickupsTitle}>Upcoming Pickups & Delivery</Text>
               <TouchableOpacity
                 style={styles.viewAllBtn}
                 onPress={() => navigation.navigate('AllUpcomingPickups')}
@@ -146,15 +146,35 @@ export default function ChooseDonation({ navigation }: any) {
             {loading ? (
               <ActivityIndicator size="small" color="#00592d" style={{ marginVertical: 20 }} />
             ) : displayedPickups.length === 0 ? (
-              <Text style={styles.noPickupsText}>You have no upcoming pickups scheduled.</Text>
+              <Text style={styles.noPickupsText}>You have no upcoming pickups or deliveries scheduled.</Text>
             ) : (
               displayedPickups.map(item => (
                 <View key={item.id} style={styles.pickupRow}>
-                  <Text style={styles.pickupDateTime}>
-                    {item.preferred_date || 'TBD'} | {formatTimeSlotTo12Hour(item.time_slot)}
-                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={[styles.pickupDateTime, { marginBottom: 0 }]}>
+                      {item.preferred_date || 'TBD'} | {formatTimeSlotTo12Hour(item.time_slot)}
+                    </Text>
+                    {item.mode && (
+                      <View style={[
+                        styles.miniModeBadge,
+                        { 
+                          backgroundColor: item.mode === 'delivery' ? '#EFF6FF' : '#F0FDF4',
+                          borderColor: item.mode === 'delivery' ? '#BFDBFE' : '#BBF7D0'
+                        }
+                      ]}>
+                        <Text style={[
+                          styles.miniModeText,
+                          { color: item.mode === 'delivery' ? '#1D4ED8' : '#15803D' }
+                        ]}>
+                          {item.mode === 'delivery' ? 'Delivery' : 'Pickup'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.pickupAddress} numberOfLines={1}>
-                    Address: {item.pickup_address || 'TBD'}
+                    {item.mode === 'delivery' 
+                      ? 'Self-delivering to food bank/kitchen'
+                      : `Pickup Address: ${item.pickup_address || 'TBD'}`}
                   </Text>
                 </View>
               ))
@@ -233,4 +253,15 @@ const styles = StyleSheet.create({
   },
   pickupDateTime: { fontSize: 12, fontWeight: '800', color: '#222', marginBottom: 4 },
   pickupAddress: { fontSize: 10, color: '#666' },
+  miniModeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  miniModeText: {
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
 });
