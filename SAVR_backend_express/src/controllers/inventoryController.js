@@ -79,6 +79,7 @@ exports.index = async (req, res) => {
       id: item.id,
       name: item.food_name,
       category: item.category,
+      meal_type: item.meal_type || null,
       quantity: item.quantity,
       unit: item.unit,
       qty: `${item.quantity} ${item.unit}`,
