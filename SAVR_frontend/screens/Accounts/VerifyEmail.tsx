@@ -250,11 +250,6 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     borderWidth: 1.2,
     borderColor: 'rgba(255,255,255,0.35)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    elevation: 10,
     overflow: 'hidden',
   },
   titleRow: {
@@ -319,11 +314,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
   },
   btnDisabled: {
     backgroundColor: 'rgba(201, 106, 46, 0.5)',
