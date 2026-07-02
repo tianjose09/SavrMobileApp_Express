@@ -631,15 +631,15 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   activeOpacity={0.8}
                   onPress={() => {
                     const d = lastUnconfirmed || disbursements[disbursements.length - 1];
-                    setFinancialReceiptModal({
-                      visible: true,
-                      requestId: req.id,
-                      disbursementId: d?.id !== undefined ? d.id : (disbursements.length > 0 ? disbursements.length - 1 : 0),
-                      amount: parseFloat(d?.amount || req.amount || '0'),
-                      referenceNo: d?.reference_no || d?.reference_number || null,
-                      proofPhoto: d?.proof_photo || d?.proof_of_transfer || null,
-                      date: d?.transfer_datetime || d?.date || null,
-                    });
+                    const disbId = d?.id !== undefined ? d.id : (disbursements.length > 0 ? disbursements.length - 1 : 0);
+                    Alert.alert(
+                      'Confirm Receipt',
+                      'Are you sure you have received this transfer?',
+                      [
+                        { text: 'Not Yet', style: 'cancel' },
+                        { text: 'Yes, I Received This', onPress: () => handleSubmitFinancialReceipt(req.id, disbId) },
+                      ]
+                    );
                   }}
                 >
                   <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
