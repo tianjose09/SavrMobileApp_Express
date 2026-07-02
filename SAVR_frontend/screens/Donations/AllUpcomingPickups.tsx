@@ -244,13 +244,13 @@ export default function AllUpcomingPickups({ navigation }: any) {
                             <View style={[
                               styles.modeBadge,
                               { 
-                                backgroundColor: pickup.mode === 'delivery' ? '#F5F3FF' : '#F0FDF4',
-                                borderColor: pickup.mode === 'delivery' ? '#DDD6FE' : '#BBF7D0'
+                                backgroundColor: pickup.mode === 'delivery' ? '#FEF3C7' : '#F0FDF4',
+                                borderColor: pickup.mode === 'delivery' ? '#FDE68A' : '#BBF7D0'
                               }
                             ]}>
                               <Text style={[
                                 styles.modeText,
-                                { color: pickup.mode === 'delivery' ? '#6D28D9' : '#15803D' }
+                                { color: pickup.mode === 'delivery' ? '#B45309' : '#15803D' }
                               ]}>
                                 {pickup.mode === 'delivery' ? 'Delivery' : 'Pickup'}
                               </Text>
