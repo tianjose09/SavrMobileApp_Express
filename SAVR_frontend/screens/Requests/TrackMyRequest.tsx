@@ -946,7 +946,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
                 <Ionicons name="cash-outline" size={28} color="#00592d" />
               </View>
-              <Text style={styles.modalTitle}>Confirm Receipt</Text>
+              <Text style={styles.modalTitle}>Transfer Details</Text>
             </View>
 
             {/* Note */}
