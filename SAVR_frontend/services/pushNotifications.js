@@ -4,16 +4,22 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { api } from './api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Remote push notifications are not supported in Expo Go (SDK 53+).
+// Guard all notification setup so the app doesn't error in Expo Go.
+const isExpoGo = Constants.appOwnership === 'expo';
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export async function registerForPushNotifications() {
-  if (!Device.isDevice) return;
+  if (isExpoGo || !Device.isDevice) return;
 
   try {
     let { status } = await Notifications.getPermissionsAsync();
@@ -37,7 +43,6 @@ export async function registerForPushNotifications() {
 
     await api.post('/push-token', { token });
   } catch (e) {
-    // Non-fatal — app works without push tokens
     console.warn('[pushNotifications] registration skipped:', e?.message);
   }
 }
