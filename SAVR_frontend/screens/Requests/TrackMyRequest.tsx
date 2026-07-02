@@ -941,57 +941,91 @@ export default function TrackMyRequest({ route, navigation }: any) {
         onRequestClose={() => setDisbursementModal(m => ({ ...m, visible: false }))}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { paddingBottom: 24 }]}>
-            <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                <Ionicons name="cash-outline" size={28} color="#00592d" />
-              </View>
-              <Text style={styles.modalTitle}>Transfer Details</Text>
+          <View style={[styles.modalCard, { paddingBottom: 24, paddingHorizontal: 20 }]}>
+            {/* Header Row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <Ionicons name="wallet-outline" size={24} color="#E8A835" />
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#111' }}>
+                Confirm Financial Aid Received
+              </Text>
             </View>
 
             {/* Note */}
-            <View style={[styles.disbursementNoteBox, { marginBottom: 16 }]}>
-              <Ionicons name="checkmark-circle" size={16} color="#00592d" style={{ marginRight: 6, marginTop: 2, flexShrink: 0 }} />
-              <Text style={styles.disbursementNoteText}>
-                {'Your requested amount of '}
-                <Text style={{ fontWeight: '700', color: '#222' }}>
-                  {disbursementModal.amount > 0 ? `₱${disbursementModal.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}
-                </Text>
-                {' was successfully sent to your account number '}
-                <Text style={{ fontWeight: '700', color: '#222' }}>{disbursementModal.accountNo || '—'}</Text>
-                {disbursementModal.refNo ? (
-                  <Text>
-                    {'. Reference Number: '}
-                    <Text style={{ fontWeight: '700', color: '#222' }}>{disbursementModal.refNo}</Text>
-                    {'.'}
-                  </Text>
-                ) : '.'}
+            <View style={{
+              backgroundColor: '#F4FBF7',
+              borderColor: '#D1E7DD',
+              borderWidth: 1,
+              borderRadius: 10,
+              padding: 12,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 13, lineHeight: 18, color: '#155724', fontWeight: '500' }}>
+                Your requested amount is already accredited to "{disbursementModal.accountNo || '—'}". See uploaded proof of transaction. Please confirm.
               </Text>
             </View>
 
-            {/* Proof of transfer */}
-            {disbursementModal.proofUri ? (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={[styles.disbursementProofLabel, { marginBottom: 8 }]}>Proof of Transfer</Text>
-                <Image
-                  source={{ uri: disbursementModal.proofUri }}
-                  style={[styles.proofImage, { height: 200 }]}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : (
-              <Text style={[styles.disbursementNoteText, { color: '#999', textAlign: 'center', marginBottom: 16 }]}>
-                No proof of transfer uploaded yet.
+            {/* Amount Granted Row */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingVertical: 10,
+              borderBottomWidth: 1,
+              borderBottomColor: '#EEEEEE',
+              marginBottom: 16
+            }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#777777' }}>Amount Granted</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#155724' }}>
+                ₱ {disbursementModal.amount > 0 ? disbursementModal.amount.toLocaleString('en-PH') : '—'}
               </Text>
-            )}
+            </View>
 
-            {/* Buttons */}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setDisbursementModal(m => ({ ...m, visible: false }))}>
-                <Text style={styles.modalCancelText}>Not Yet</Text>
+            {/* Payout Receipt Header */}
+            <Text style={{ fontSize: 11, fontWeight: '800', color: '#888', letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' }}>
+              PAYOUT RECEIPT
+            </Text>
+
+            {/* Proof of transfer */}
+            <View style={{ marginBottom: 16 }}>
+              <Image
+                source={{ uri: disbursementModal.proofUri || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=600&auto=format&fit=crop' }}
+                style={[styles.proofImage, { height: 180, borderRadius: 12 }]}
+                resizeMode="cover"
+              />
+              {!disbursementModal.proofUri && (
+                <Text style={{ fontSize: 11, color: '#888', textAlign: 'center', marginTop: 4 }}>
+                  (Showing placeholder. No official proof uploaded by staff yet.)
+                </Text>
+              )}
+            </View>
+
+            {/* Instructions info */}
+            <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 16, lineHeight: 18, paddingHorizontal: 4 }}>
+              Please confirm that you have received this financial aid. This will mark your request as completed and cannot be undone.
+            </Text>
+
+            {/* Buttons Row */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 24,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  flex: 1
+                }}
+                onPress={() => setDisbursementModal(m => ({ ...m, visible: false }))}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#555' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalConfirmBtn}
+                style={{
+                  backgroundColor: '#2E7D32',
+                  borderRadius: 24,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  flex: 1.5
+                }}
                 onPress={() => {
                   setDisbursementModal(m => ({ ...m, visible: false }));
                   if (disbursementModal.requestId) {
@@ -999,7 +1033,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   }
                 }}
               >
-                <Text style={styles.modalConfirmText}>Yes, I Received This</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFF' }}>Yes, I Received It</Text>
               </TouchableOpacity>
             </View>
           </View>
