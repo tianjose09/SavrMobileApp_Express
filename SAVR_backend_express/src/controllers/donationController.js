@@ -1816,21 +1816,52 @@ exports.confirmDisbursement = async (req, res) => {
 
     const request = rows[0];
 
-    // Look up the delivery in donation_deliveries via donation_drives
-    const [deliveryRows] = await db.execute(`
-      SELECT del.id FROM donation_deliveries del
-      JOIN donation_drives dd ON dd.id = del.donation_drive_id
-      WHERE del.id = ? AND dd.beneficiary_request_id = ?
-    `, [disbursementId, id]);
+    // Try donation_deliveries first (delivery-based disbursements)
+    let confirmedViaDelivery = false;
+    try {
+      const [deliveryRows] = await db.execute(`
+        SELECT del.id FROM donation_deliveries del
+        JOIN donation_drives dd ON dd.id = del.donation_drive_id
+        WHERE del.id = ? AND dd.beneficiary_request_id = ?
+      `, [disbursementId, id]);
 
-    if (!deliveryRows.length) {
-      return res.status(404).json({ success: false, message: 'Disbursement not found.' });
+      if (deliveryRows.length) {
+        await db.execute(
+          "UPDATE donation_deliveries SET beneficiary_confirmed = 1, beneficiary_confirmed_at = NOW() WHERE id = ?",
+          [disbursementId]
+        );
+        confirmedViaDelivery = true;
+      }
+    } catch {}
+
+    // Fall back to dispatched_items JSON column (staff-recorded disbursements)
+    if (!confirmedViaDelivery) {
+      let disbursements = [];
+      try {
+        disbursements = typeof request.dispatched_items === 'string'
+          ? JSON.parse(request.dispatched_items)
+          : (request.dispatched_items || []);
+        if (!Array.isArray(disbursements)) disbursements = [];
+      } catch {}
+
+      let found = false;
+      disbursements = disbursements.map(d => {
+        if (String(d.id) === String(disbursementId)) {
+          found = true;
+          return { ...d, confirmed: true, confirmed_at: new Date().toISOString() };
+        }
+        return d;
+      });
+
+      if (!found) {
+        return res.status(404).json({ success: false, message: 'Disbursement not found.' });
+      }
+
+      await db.execute(
+        "UPDATE beneficiary_requests SET dispatched_items = ?, updated_at = NOW() WHERE id = ?",
+        [JSON.stringify(disbursements), id]
+      );
     }
-
-    await db.execute(
-      "UPDATE donation_deliveries SET beneficiary_confirmed = 1, beneficiary_confirmed_at = NOW() WHERE id = ?",
-      [disbursementId]
-    );
 
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
     const title = 'Financial Disbursement Received';
