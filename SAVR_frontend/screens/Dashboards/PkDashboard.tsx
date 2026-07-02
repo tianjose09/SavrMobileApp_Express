@@ -24,6 +24,7 @@ export default function PkDashboard({ navigation }: any) {
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [staffRequests, setStaffRequests] = useState<any[]>([]);
+  const [expandedRequests, setExpandedRequests] = useState<Record<string | number, boolean>>({});
   const bannerShownRef = React.useRef(false);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
 
@@ -458,17 +459,34 @@ export default function PkDashboard({ navigation }: any) {
 
                           <View style={styles.driveItemsBox}>
                             <Text style={styles.driveItemsLabel}>MEALS TO PREPARE</Text>
-                            {mealItems.slice(0, 2).map((item: any, i: number) => (
-                              <View key={i} style={styles.driveItemRow}>
-                                <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name}</Text>
-                                <Text style={styles.driveItemQty}>{Math.round(item.quantity)} {item.unit}</Text>
-                              </View>
-                            ))}
-                            {mealItems.length > 2 && (
-                              <View style={styles.driveItemRow}>
-                                <Text style={styles.driveItemName}>+ {mealItems.length - 2} more items</Text>
-                              </View>
-                            )}
+                            {(() => {
+                              const isExpanded = !!expandedRequests[reqItem.id || idx];
+                              const displayedItems = isExpanded ? mealItems : mealItems.slice(0, 2);
+                              return (
+                                <>
+                                  {displayedItems.map((item: any, i: number) => (
+                                    <View key={i} style={styles.driveItemRow}>
+                                      <Text style={styles.driveItemName} numberOfLines={1}>{item.food_name}</Text>
+                                      <Text style={styles.driveItemQty}>{Math.round(item.quantity)} {item.unit}</Text>
+                                    </View>
+                                  ))}
+                                  {mealItems.length > 2 && (
+                                    <TouchableOpacity
+                                      style={styles.driveItemRow}
+                                      activeOpacity={0.7}
+                                      onPress={() => setExpandedRequests(prev => ({
+                                        ...prev,
+                                        [reqItem.id || idx]: !isExpanded
+                                      }))}
+                                    >
+                                      <Text style={[styles.driveItemName, { textDecorationLine: 'underline', fontWeight: '800', color: '#FFF' }]}>
+                                        {isExpanded ? 'Show less' : `+ ${mealItems.length - 2} more items`}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </View>
 
                           <TouchableOpacity
@@ -866,7 +884,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 14,
-    height: 270,
+    minHeight: 270,
     justifyContent: 'space-between',
   },
   driveTopRow: {
