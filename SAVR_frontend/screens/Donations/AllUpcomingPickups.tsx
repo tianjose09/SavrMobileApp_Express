@@ -368,7 +368,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                   <Text style={{ color: '#2E7D32', fontSize: 14, fontWeight: '700' }}>In Transit</Text>
                                 </View>
                               </>
-                            ) : (
+                            ) : ['approved', 'accepted'].includes(pickup.status.toLowerCase()) ? (
                               <View style={styles.deliveryActions}>
                                 <TouchableOpacity
                                   style={[styles.actionBtn, styles.confirmBtn, { flex: 1 }]}
@@ -380,6 +380,22 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                     ? <ActivityIndicator size="small" color="#FFF" />
                                     : <Text style={styles.confirmText}>Deliver Now</Text>}
                                 </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <View style={{
+                                backgroundColor: '#FFF8E7',
+                                borderColor: '#FDE68A',
+                                borderWidth: 1.5,
+                                borderRadius: 24,
+                                paddingVertical: 12,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'row',
+                                gap: 8,
+                                marginTop: 8,
+                              }}>
+                                <Ionicons name="time-outline" size={18} color="#92400E" />
+                                <Text style={{ color: '#92400E', fontSize: 14, fontWeight: '700' }}>Awaiting Staff Approval</Text>
                               </View>
                             )}
                           </>
