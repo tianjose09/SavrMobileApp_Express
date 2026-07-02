@@ -1312,6 +1312,7 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 };
 
 exports.getBeneficiaryRequests = async (req, res) => {
+  try {
   const [requests] = await db.execute(
     "SELECT * FROM beneficiary_requests WHERE user_id = ? AND status != 'Deleted' ORDER BY created_at DESC",
     [req.user.id]
@@ -1322,38 +1323,56 @@ exports.getBeneficiaryRequests = async (req, res) => {
   // Bulk-fetch financial disbursements from donation_deliveries
   const disbursementsByRequest = {};
   if (requestIds.length > 0) {
-    const placeholders = requestIds.map(() => '?').join(',');
-    const [deliveryRows] = await db.execute(`
-      SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
-             del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
-             del.beneficiary_confirmed, del.beneficiary_confirmed_at
-      FROM donation_deliveries del
-      JOIN donation_drives dd ON dd.id = del.donation_drive_id
-      WHERE dd.beneficiary_request_id IN (${placeholders})
-      ORDER BY del.created_at ASC
-    `, requestIds);
-
-    for (const row of deliveryRows) {
-      const rid = row.beneficiary_request_id;
-      let items = [];
-      try { items = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : (row.delivery_items || []); } catch {}
-      const financialItems = items.filter((item) => item.type === 'financial');
-      if (financialItems.length === 0) continue;
-      if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
-      for (const fi of financialItems) {
-        disbursementsByRequest[rid].push({
-          id: row.delivery_id,
-          delivery_id: row.delivery_id,
-          amount: parseFloat(fi.qty || fi.amount || '0'),
-          date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
-          status: row.status,
-          proof_of_transfer: row.proof_of_transfer || null,
-          reference_number: row.reference_number || null,
-          transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
-          confirmed: !!row.beneficiary_confirmed,
-          confirmed_at: row.beneficiary_confirmed_at ? new Date(row.beneficiary_confirmed_at).toISOString() : null,
-        });
+    try {
+      const placeholders = requestIds.map(() => '?').join(',');
+      let deliveryRows = [];
+      try {
+        // Try with confirmed columns (available after migration)
+        [deliveryRows] = await db.execute(`
+          SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
+                 del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
+                 del.beneficiary_confirmed, del.beneficiary_confirmed_at
+          FROM donation_deliveries del
+          JOIN donation_drives dd ON dd.id = del.donation_drive_id
+          WHERE dd.beneficiary_request_id IN (${placeholders})
+          ORDER BY del.created_at ASC
+        `, requestIds);
+      } catch {
+        // Fallback: columns not migrated yet — fetch without confirmed fields
+        [deliveryRows] = await db.execute(`
+          SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
+                 del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime
+          FROM donation_deliveries del
+          JOIN donation_drives dd ON dd.id = del.donation_drive_id
+          WHERE dd.beneficiary_request_id IN (${placeholders})
+          ORDER BY del.created_at ASC
+        `, requestIds);
       }
+
+      for (const row of deliveryRows) {
+        const rid = row.beneficiary_request_id;
+        let items = [];
+        try { items = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : (row.delivery_items || []); } catch {}
+        const financialItems = items.filter((item) => item.type === 'financial');
+        if (financialItems.length === 0) continue;
+        if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
+        for (const fi of financialItems) {
+          disbursementsByRequest[rid].push({
+            id: row.delivery_id,
+            delivery_id: row.delivery_id,
+            amount: parseFloat(fi.qty || fi.amount || '0'),
+            date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
+            status: row.status,
+            proof_of_transfer: row.proof_of_transfer || null,
+            reference_number: row.reference_number || null,
+            transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
+            confirmed: !!row.beneficiary_confirmed,
+            confirmed_at: row.beneficiary_confirmed_at ? new Date(row.beneficiary_confirmed_at).toISOString() : null,
+          });
+        }
+      }
+    } catch (disbErr) {
+      console.error('[getMyRequests] disbursement fetch error:', disbErr.message);
     }
   }
 
@@ -1456,6 +1475,10 @@ exports.getBeneficiaryRequests = async (req, res) => {
   });
 
   return res.json({ success: true, requests: mapped });
+  } catch (err) {
+    console.error('[getBeneficiaryRequests]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to fetch requests.' });
+  }
 };
 
 exports.receiveBeneficiaryStop = async (req, res) => {
