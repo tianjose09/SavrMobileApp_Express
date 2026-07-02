@@ -161,6 +161,16 @@ export default function TrackMyRequest({ route, navigation }: any) {
     noteText: string;
   }>({ visible: false, requestId: null, noteText: '' });
 
+  const [disbursementModal, setDisbursementModal] = useState<{
+    visible: boolean;
+    requestId: number | null;
+    disbursementId: number | string | null;
+    accountNo: string | null;
+    refNo: string | null;
+    amount: number;
+    proofUri: string | null;
+  }>({ visible: false, requestId: null, disbursementId: null, accountNo: null, refNo: null, amount: 0, proofUri: null });
+
 
 
   useEffect(() => {
@@ -612,7 +622,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           </View>
         )}
 
-        {/* I Received This – only shown when there's an unconfirmed disbursement with a valid ID */}
+        {/* I Received This – always shown for Approved financial requests not yet confirmed */}
         {!isFood && effectiveStatus === 'Approved' && !req.financial_received_at && (() => {
           let disbursements: any[] = [];
           try {
@@ -621,8 +631,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
             if (!Array.isArray(disbursements)) disbursements = [];
           } catch { disbursements = []; }
 
-          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed && d.id);
-          if (!lastUnconfirmed) return null;
+          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed) || disbursements[disbursements.length - 1] || null;
 
           return (
             <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
@@ -631,14 +640,15 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   style={styles.receivedBtn}
                   activeOpacity={0.8}
                   onPress={() => {
-                    Alert.alert(
-                      'Confirm Receipt',
-                      'Are you sure you have received this transfer?',
-                      [
-                        { text: 'Not Yet', style: 'cancel' },
-                        { text: 'Yes, Received', onPress: () => handleSubmitFinancialReceipt(req.id, lastUnconfirmed.id) },
-                      ]
-                    );
+                    setDisbursementModal({
+                      visible: true,
+                      requestId: req.id,
+                      disbursementId: lastUnconfirmed?.id ?? null,
+                      accountNo: req.account_number || null,
+                      refNo: lastUnconfirmed?.reference_no || lastUnconfirmed?.reference_number || null,
+                      amount: parseFloat(lastUnconfirmed?.amount || req.amount || '0'),
+                      proofUri: lastUnconfirmed?.proof_photo || lastUnconfirmed?.proof_of_transfer || null,
+                    });
                   }}
                 >
                   <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
@@ -917,6 +927,81 @@ export default function TrackMyRequest({ route, navigation }: any) {
         </View>
       </Modal>
 
+
+      {/* Financial Disbursement Detail Modal */}
+      <Modal
+        visible={disbursementModal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDisbursementModal(m => ({ ...m, visible: false }))}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { paddingBottom: 24 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Ionicons name="cash-outline" size={28} color="#00592d" />
+              </View>
+              <Text style={styles.modalTitle}>Transfer Details</Text>
+            </View>
+
+            {/* Note */}
+            <View style={[styles.disbursementNoteBox, { marginBottom: 16 }]}>
+              <Ionicons name="checkmark-circle" size={16} color="#00592d" style={{ marginRight: 6, marginTop: 2, flexShrink: 0 }} />
+              <Text style={styles.disbursementNoteText}>
+                {'Your requested amount of '}
+                <Text style={{ fontWeight: '700', color: '#222' }}>
+                  {disbursementModal.amount > 0 ? `₱${disbursementModal.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}
+                </Text>
+                {' was successfully sent to your account number '}
+                <Text style={{ fontWeight: '700', color: '#222' }}>{disbursementModal.accountNo || '—'}</Text>
+                {disbursementModal.refNo ? (
+                  <Text>
+                    {'. Reference Number: '}
+                    <Text style={{ fontWeight: '700', color: '#222' }}>{disbursementModal.refNo}</Text>
+                    {'.'}
+                  </Text>
+                ) : '.'}
+              </Text>
+            </View>
+
+            {/* Proof of transfer */}
+            {disbursementModal.proofUri ? (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={[styles.disbursementProofLabel, { marginBottom: 8 }]}>Proof of Transfer</Text>
+                <Image
+                  source={{ uri: disbursementModal.proofUri }}
+                  style={[styles.proofImage, { height: 200 }]}
+                  resizeMode="contain"
+                />
+              </View>
+            ) : (
+              <Text style={[styles.disbursementNoteText, { color: '#999', textAlign: 'center', marginBottom: 16 }]}>
+                No proof of transfer uploaded yet.
+              </Text>
+            )}
+
+            {/* Buttons */}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setDisbursementModal(m => ({ ...m, visible: false }))}>
+                <Text style={styles.modalCancelText}>Close</Text>
+              </TouchableOpacity>
+              {disbursementModal.disbursementId && (
+                <TouchableOpacity
+                  style={styles.modalConfirmBtn}
+                  onPress={() => {
+                    setDisbursementModal(m => ({ ...m, visible: false }));
+                    if (disbursementModal.requestId && disbursementModal.disbursementId) {
+                      handleSubmitFinancialReceipt(disbursementModal.requestId, disbursementModal.disbursementId);
+                    }
+                  }}
+                >
+                  <Text style={styles.modalConfirmText}>Yes, I Received This</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Receipt Modal */}
       <Modal visible={receiptModal.visible} transparent animationType="fade" onRequestClose={() => setReceiptModal(m => ({ ...m, visible: false }))}>        <View style={styles.modalOverlay}>
