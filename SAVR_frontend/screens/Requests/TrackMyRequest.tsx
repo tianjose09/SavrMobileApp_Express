@@ -436,7 +436,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           {!isFood && req.account_name && renderSummaryRow('Account Name', req.account_name)}
           {!isFood && req.account_number && renderSummaryRow('Account No.', req.account_number)}
 
-          {/* Financial disbursements – shows each partial payment sent by staff */}
+          {/* Financial disbursements – shows each payment sent by staff with proof */}
           {!isFood && (() => {
             let disbursements: any[] = [];
             try {
@@ -447,25 +447,109 @@ export default function TrackMyRequest({ route, navigation }: any) {
             const totalSent: number = parseFloat(req.dispatched_quantity || '0');
             if (totalSent <= 0 && disbursements.length === 0) return null;
             return (
-              <View style={styles.reportTableRow}>
-                <Text style={styles.reportTableCellLabel}>Amount Sent</Text>
-                <View style={{ flex: 1.8 }}>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: disbursements.length > 0 ? 8 : 0 }}>
-                    <View style={styles.badgeReceived}>
-                      <Text style={styles.badgeReceivedText}>SENT: ₱{totalSent.toLocaleString()}</Text>
-                    </View>
-                    {req.amount && totalSent < parseFloat(req.amount) && (
-                      <View style={styles.badgeRequested}>
-                        <Text style={styles.badgeRequestedText}>REMAINING: ₱{(parseFloat(req.amount) - totalSent).toLocaleString()}</Text>
+              <View>
+                <View style={styles.reportTableRow}>
+                  <Text style={styles.reportTableCellLabel}>Amount Sent</Text>
+                  <View style={{ flex: 1.8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: disbursements.length > 0 ? 8 : 0 }}>
+                      <View style={styles.badgeReceived}>
+                        <Text style={styles.badgeReceivedText}>SENT: ₱{totalSent.toLocaleString()}</Text>
                       </View>
-                    )}
+                      {req.amount && totalSent < parseFloat(req.amount) && (
+                        <View style={styles.badgeRequested}>
+                          <Text style={styles.badgeRequestedText}>REMAINING: ₱{(parseFloat(req.amount) - totalSent).toLocaleString()}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                  {disbursements.map((d: any, i: number) => (
-                    <Text key={i} style={{ fontSize: 11, color: '#555', marginTop: 3 }}>
-                      ₱{parseFloat(d.amount || '0').toLocaleString()}{d.date ? '  ·  ' + new Date(d.date).toLocaleDateString('en-PH') : ''}{d.notes ? '  ·  ' + d.notes : ''}
-                    </Text>
-                  ))}
                 </View>
+
+                {/* Per-disbursement detail: reference, datetime, proof photo */}
+                {disbursements.map((d: any, i: number) => (
+                  <View key={i} style={styles.disbursementCard}>
+                    <Text style={styles.disbursementTitle}>Transfer #{i + 1}  ·  ₱{parseFloat(d.amount || '0').toLocaleString()}</Text>
+
+                    {d.reference_number ? (
+                      <View style={styles.disbursementRow}>
+                        <Ionicons name="receipt-outline" size={14} color="#555" />
+                        <Text style={styles.disbursementMeta}>Ref No: <Text style={{ fontWeight: '700', color: '#222' }}>{d.reference_number}</Text></Text>
+                      </View>
+                    ) : null}
+
+                    {d.transfer_datetime ? (
+                      <View style={styles.disbursementRow}>
+                        <Ionicons name="time-outline" size={14} color="#555" />
+                        <Text style={styles.disbursementMeta}>
+                          {new Date(d.transfer_datetime).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {' · '}
+                          {new Date(d.transfer_datetime).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    ) : d.date ? (
+                      <View style={styles.disbursementRow}>
+                        <Ionicons name="time-outline" size={14} color="#555" />
+                        <Text style={styles.disbursementMeta}>{new Date(d.date).toLocaleDateString('en-PH')}</Text>
+                      </View>
+                    ) : null}
+
+                    {d.proof_of_transfer ? (
+                      <View style={{ marginTop: 10 }}>
+                        <Text style={[styles.disbursementMeta, { marginBottom: 6 }]}>Proof of Transfer:</Text>
+                        <Image
+                          source={{ uri: d.proof_of_transfer }}
+                          style={styles.proofImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+
+                {/* I Received This button — shown when Approved and not yet confirmed */}
+                {['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && !req.financial_received_at && (
+                  <TouchableOpacity
+                    style={styles.receivedBtn}
+                    activeOpacity={0.82}
+                    onPress={() => {
+                      Alert.alert(
+                        'Confirm Receipt',
+                        'Are you sure you have received the financial assistance? This action cannot be undone.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Yes, I Received This',
+                            onPress: async () => {
+                              try {
+                                const res = await ApiService.confirmFinancialReceived(req.id);
+                                if (res?.data?.success) {
+                                  Alert.alert('Confirmed!', 'Thank you for confirming. Your request has been marked as completed.');
+                                  fetchRequests();
+                                } else {
+                                  Alert.alert('Error', res?.data?.message || 'Failed to confirm.');
+                                }
+                              } catch (err: any) {
+                                Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
+                              }
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.receivedBtnText}>I Received This</Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Already confirmed message */}
+                {req.financial_received_at && (
+                  <View style={styles.receivedConfirmed}>
+                    <Ionicons name="checkmark-circle" size={16} color="#00592d" />
+                    <Text style={styles.receivedConfirmedText}>
+                      You confirmed receipt on {new Date(req.financial_received_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                )}
               </View>
             );
           })()}
@@ -1317,6 +1401,53 @@ const styles = StyleSheet.create({
   },
   explanationTextPartial: {
     color: '#8C4D11',
+  },
+
+  disbursementCard: {
+    backgroundColor: '#F7F9F7',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#D4E8D8',
+  },
+  disbursementTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#00592d',
+    marginBottom: 8,
+  },
+  disbursementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  disbursementMeta: {
+    fontSize: 12,
+    color: '#555',
+    flexShrink: 1,
+  },
+  proofImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    backgroundColor: '#EEE',
+  },
+  receivedConfirmed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 10,
+    padding: 10,
+  },
+  receivedConfirmedText: {
+    fontSize: 12,
+    color: '#00592d',
+    fontWeight: '600',
+    flexShrink: 1,
   },
 });
 

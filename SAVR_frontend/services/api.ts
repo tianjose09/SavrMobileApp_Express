@@ -131,6 +131,7 @@ export const ApiService = {
   getMyRequests: () => api.get('api/donation/my-requests'),
   autoCancelExpiredRequests: () => api.post('api/donation/my-requests/auto-cancel-expired'),
   cancelBeneficiaryRequest: (id: number) => api.post(`api/donation/my-requests/${id}/cancel`),
+  confirmFinancialReceived: (id: number) => api.post(`api/donation/my-requests/${id}/financial-received`),
   receiveBeneficiaryStop: (id: number, stopId: number) =>
     api.post(`api/donation/requests/${id}/stops/${stopId}/received`),
   completeBeneficiaryRequest: (
