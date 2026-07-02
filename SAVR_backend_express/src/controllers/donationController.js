@@ -1426,8 +1426,15 @@ exports.getBeneficiaryRequests = async (req, res) => {
     try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
     let receivedItems = [];
     try { receivedItems = typeof r.received_items === 'string' ? JSON.parse(r.received_items) : (r.received_items || []); } catch {}
-    // Use donation_deliveries financial data (authoritative) over dispatched_items
-    const disbursements = disbursementsByRequest[r.id] || [];
+    // Merge donation_deliveries disbursements with dispatched_items column (recorded by staff)
+    const deliveryDisbursements = disbursementsByRequest[r.id] || [];
+    let recordedDisbursements = [];
+    try {
+      const raw = typeof r.dispatched_items === 'string' ? JSON.parse(r.dispatched_items) : (r.dispatched_items || []);
+      recordedDisbursements = Array.isArray(raw) ? raw : [];
+    } catch {}
+    // Use delivery-based if available; otherwise fall back to recorded disbursements from dispatched_items
+    const disbursements = deliveryDisbursements.length > 0 ? deliveryDisbursements : recordedDisbursements;
 
     const deliveryBatches = (batchesByRequest[r.id] || []).map((b, idx) => ({
       batch_number: idx + 1,

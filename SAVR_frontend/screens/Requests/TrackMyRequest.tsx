@@ -612,7 +612,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           </View>
         )}
 
-        {/* I Received This – Approved financial requests */}
+        {/* I Received This – only shown when there's an unconfirmed disbursement with a valid ID */}
         {!isFood && effectiveStatus === 'Approved' && !req.financial_received_at && (() => {
           let disbursements: any[] = [];
           try {
@@ -621,7 +621,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
             if (!Array.isArray(disbursements)) disbursements = [];
           } catch { disbursements = []; }
 
-          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed);
+          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed && d.id);
+          if (!lastUnconfirmed) return null;
 
           return (
             <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
@@ -630,18 +631,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   style={styles.receivedBtn}
                   activeOpacity={0.8}
                   onPress={() => {
-                    const d = lastUnconfirmed || disbursements[disbursements.length - 1];
-                    const disbId = d?.id;
-                    if (!disbId) {
-                      Alert.alert('Error', 'No disbursement found to confirm. Please refresh and try again.');
-                      return;
-                    }
                     Alert.alert(
                       'Confirm Receipt',
                       'Are you sure you have received this transfer?',
                       [
                         { text: 'Not Yet', style: 'cancel' },
-                        { text: 'Yes, Received', onPress: () => handleSubmitFinancialReceipt(req.id, disbId) },
+                        { text: 'Yes, Received', onPress: () => handleSubmitFinancialReceipt(req.id, lastUnconfirmed.id) },
                       ]
                     );
                   }}
