@@ -857,13 +857,16 @@ exports.getUpcomingPickups = async (req, res) => {
     const [pickups] = await db.execute(
       `SELECT fdr.* FROM food_donation_records fdr
        WHERE fdr.user_id = ?
-         AND fdr.status IN ('pending','scheduled','approved','in_transit')
-         AND NOT EXISTS (
-           SELECT 1 FROM truck_stops ts
-           WHERE ts.reference_id::text = fdr.id::text
-             AND ts.source = 'food_donation'
-             AND ts.stop_type = 'PICKUP'
-             AND ts.status = 'completed'
+         AND fdr.status IN ('pending','scheduled','approved','accepted','confirmed','in_transit')
+         AND (
+           fdr.mode = 'delivery'
+           OR NOT EXISTS (
+             SELECT 1 FROM truck_stops ts
+             WHERE ts.reference_id::text = fdr.id::text
+               AND ts.source = 'food_donation'
+               AND ts.stop_type = 'PICKUP'
+               AND ts.status = 'completed'
+           )
          )
        ORDER BY fdr.created_at DESC`,
       [uid]
@@ -1123,7 +1126,9 @@ function liveServiceStatus(dbStatus) {
 
 function liveFoodStatus(dbStatus) {
   const s = (dbStatus || '').toLowerCase();
-  if (s === 'approved') return 'Approved';
+  if (s === 'approved' || s === 'accepted' || s === 'confirmed') return 'Approved';
+  if (s === 'in_transit') return 'In Transit';
+  if (s === 'scheduled') return 'Scheduled';
   if (s === 'received' || s === 'completed') return 'Completed';
   if (s === 'rejected') return 'Denied';
   if (s === 'cancelled') return 'Cancelled';

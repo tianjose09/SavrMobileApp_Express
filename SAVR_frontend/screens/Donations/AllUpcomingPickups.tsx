@@ -58,7 +58,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending', 'in_transit'];
+        const APPROVED_STATUSES = ['approved', 'accepted', 'confirmed', 'scheduled', 'pending', 'in_transit'];
         const sorted = (res.data.pickups as Pickup[])
           .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
           .sort((a, b) => {
@@ -89,7 +89,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending', 'in_transit'];
+        const APPROVED_STATUSES = ['approved', 'accepted', 'confirmed', 'scheduled', 'pending', 'in_transit'];
         const sorted = (res.data.pickups as Pickup[])
           .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -155,7 +155,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
   };
 
   const handleDeletePickup = (pickup: Pickup) => {
-    const isScheduledOrApproved = ['scheduled', 'approved'].includes(pickup.status.toLowerCase());
+    const isScheduledOrApproved = ['scheduled', 'approved', 'accepted', 'confirmed'].includes(pickup.status.toLowerCase());
 
     Alert.alert(
       isScheduledOrApproved ? 'Decline Scheduled Pickup' : 'Cancel Pickup',
@@ -202,17 +202,20 @@ export default function AllUpcomingPickups({ navigation }: any) {
   };
 
   const getStatusColor = (status: string) => {
-    if (status === 'scheduled') return '#00592d';
-    if (status === 'approved') return '#00592d';
-    if (status === 'pending') return '#D17C31';
-    if (status === 'in_transit') return '#2E7D32';
-    if (status === 'missed') return '#C62828';
+    const s = status.toLowerCase();
+    if (s === 'scheduled') return '#00592d';
+    if (s === 'approved' || s === 'accepted' || s === 'confirmed') return '#00592d';
+    if (s === 'pending') return '#D17C31';
+    if (s === 'in_transit') return '#2E7D32';
+    if (s === 'missed') return '#C62828';
     return '#888';
   };
 
   const getStatusLabel = (status: string) => {
-    if (status === 'missed') return 'Missed';
-    if (status === 'in_transit') return 'In Transit';
+    const s = status.toLowerCase();
+    if (s === 'missed') return 'Missed';
+    if (s === 'in_transit') return 'In Transit';
+    if (s === 'accepted' || s === 'confirmed') return 'Approved';
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
@@ -247,7 +250,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
             ) : (
               pickups.map((pickup, idx) => {
                 const renderRightActions = () => {
-                  const isDeclinable = ['scheduled', 'approved'].includes(pickup.status.toLowerCase());
+                  const isDeclinable = ['scheduled', 'approved', 'accepted', 'confirmed'].includes(pickup.status.toLowerCase());
                   return (
                     <TouchableOpacity
                       style={[styles.swipeDeleteAction, isDeclinable && { backgroundColor: '#D97706' }]}
@@ -322,7 +325,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                           <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
                         </View>
 
-                        {pickup.mode !== 'delivery' && ['scheduled', 'approved'].includes(pickup.status.toLowerCase()) && (
+                        {pickup.mode !== 'delivery' && ['scheduled', 'approved', 'accepted', 'confirmed'].includes(pickup.status.toLowerCase()) && (
                           <View style={styles.declineActionWrapper}>
                             <TouchableOpacity
                               style={[styles.actionBtn, styles.declineBtn]}
@@ -368,7 +371,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                   <Text style={{ color: '#2E7D32', fontSize: 14, fontWeight: '700' }}>In Transit</Text>
                                 </View>
                               </>
-                            ) : ['approved', 'accepted'].includes(pickup.status.toLowerCase()) ? (
+                            ) : ['approved', 'accepted', 'confirmed'].includes(pickup.status.toLowerCase()) ? (
                               <View style={styles.deliveryActions}>
                                 <TouchableOpacity
                                   style={[styles.actionBtn, styles.confirmBtn, { flex: 1 }]}
