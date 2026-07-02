@@ -847,6 +847,7 @@ exports.getUpcomingPickups = async (req, res) => {
       pickups: pickups.map(p => ({
         id: p.id,
         status: p.status,
+        mode: p.mode,
         preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
         time_slot: (() => {
           const formatTime12Hour = (timeStr) => {
@@ -907,6 +908,82 @@ exports.deletePickup = async (req, res) => {
   await db.execute('DELETE FROM food_donation_records WHERE id = ?', [id]);
 
   return res.json({ success: true, message: 'Pickup deleted successfully.' });
+};
+
+exports.confirmDelivery = async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM food_donation_records WHERE id = ? AND user_id = ?",
+      [id, uid]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Donation not found.' });
+    }
+
+    await db.execute(
+      "UPDATE food_donation_records SET status = 'completed', updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
+    const donorName = userRows[0]?.name || 'A donor';
+
+    await logActivity(
+      uid,
+      'food',
+      'Food Donation Delivered',
+      `Donation delivered by ${donorName}`,
+      'truckicon',
+      id
+    );
+
+    const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+    const title = 'Food Donation Delivered';
+    const description = `${donorName} has confirmed delivery for donation #${id}.`;
+    for (const staff of staffRows) {
+      await createNotification(staff.id, 'food', title, description, false);
+    }
+
+    return res.json({ success: true, message: 'Delivery confirmed successfully.' });
+  } catch (err) {
+    console.error('[confirmDelivery]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to confirm delivery.', error: err.message });
+  }
+};
+
+exports.markArrived = async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM food_donation_records WHERE id = ? AND user_id = ?",
+      [id, uid]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Donation not found.' });
+    }
+
+    const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
+    const donorName = userRows[0]?.name || 'A donor';
+
+    const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+    const title = 'Donor Arrived';
+    const description = `${donorName} has arrived at the food bank to deliver scheduled donation #${id}.`;
+    for (const staff of staffRows) {
+      await createNotification(staff.id, 'food', title, description, true);
+    }
+
+    return res.json({ success: true, message: 'Arrival alert sent to staff.' });
+  } catch (err) {
+    console.error('[markArrived]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to report arrival.', error: err.message });
+  }
 };
 
 // ─── Badges ───────────────────────────────────────────────────────────────────

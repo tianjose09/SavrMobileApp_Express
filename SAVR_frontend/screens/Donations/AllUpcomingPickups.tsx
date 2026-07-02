@@ -37,6 +37,7 @@ const formatTimeSlotTo12Hour = (timeSlotStr: string | null | undefined): string 
 type Pickup = {
   id: number;
   status: string;
+  mode?: string;
   preferred_date: string | null;
   time_slot: string;
   pickup_address: string | null;
@@ -46,6 +47,8 @@ type Pickup = {
 export default function AllUpcomingPickups({ navigation }: any) {
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+
   const fetchPickups = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -73,6 +76,53 @@ export default function AllUpcomingPickups({ navigation }: any) {
     fetchPickups();
     return unsub;
   }, [navigation, fetchPickups]);
+
+  const handleConfirmDelivery = async (pickup: Pickup) => {
+    Alert.alert(
+      'Confirm Delivery',
+      'Are you sure you want to confirm that you have delivered this donation to the food bank?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            setActionLoading(pickup.id);
+            try {
+              // @ts-ignore
+              const res = await ApiService.confirmDelivery(pickup.id);
+              if (res?.data?.success) {
+                Alert.alert('Delivery Confirmed', 'Thank you so much for your delivery! The record is now completed.');
+                fetchPickups();
+              } else {
+                Alert.alert('Error', res?.data?.message || 'Failed to confirm delivery.');
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.message || 'An error occurred while confirming delivery.');
+            } finally {
+              setActionLoading(null);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReportArrival = async (pickup: Pickup) => {
+    setActionLoading(pickup.id);
+    try {
+      // @ts-ignore
+      const res = await ApiService.reportArrival(pickup.id);
+      if (res?.data?.success) {
+        Alert.alert('Arrival Sent', 'Staff has been notified that you have arrived with the donation!');
+      } else {
+        Alert.alert('Error', res?.data?.message || 'Failed to report arrival.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message || 'An error occurred while reporting arrival.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleDeletePickup = (pickup: Pickup) => {
     if (pickup.status.toLowerCase() !== 'pending') {
@@ -138,7 +188,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>All Upcoming Pickups</Text>
+          <Text style={styles.headerTitle}>Upcoming Pickups & Delivery</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -154,7 +204,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
             {pickups.length === 0 ? (
               <View style={styles.emptyWrap}>
                 <Ionicons name="cube-outline" size={52} color="#B0B0B0" />
-                <Text style={styles.emptyText}>No upcoming pickups found.</Text>
+                <Text style={styles.emptyText}>No upcoming pickups or deliveries found.</Text>
               </View>
             ) : (
               pickups.map((pickup, idx) => {
@@ -180,8 +230,26 @@ export default function AllUpcomingPickups({ navigation }: any) {
                   >
                     <View style={styles.card}>
                       <View style={styles.cardHeader}>
-                        <View style={styles.cardNumberBadge}>
-                          <Text style={styles.cardNumberText}>#{idx + 1}</Text>
+                        <View style={styles.cardHeaderLeft}>
+                          <View style={styles.cardNumberBadge}>
+                            <Text style={styles.cardNumberText}>#{idx + 1}</Text>
+                          </View>
+                          {pickup.mode && (
+                            <View style={[
+                              styles.modeBadge,
+                              { 
+                                backgroundColor: pickup.mode === 'delivery' ? '#EFF6FF' : '#F0FDF4',
+                                borderColor: pickup.mode === 'delivery' ? '#BFDBFE' : '#BBF7D0'
+                              }
+                            ]}>
+                              <Text style={[
+                                styles.modeText,
+                                { color: pickup.mode === 'delivery' ? '#1D4ED8' : '#15803D' }
+                              ]}>
+                                {pickup.mode === 'delivery' ? 'Delivery' : 'Pickup'}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pickup.status) + '20' }]}>
                           <View style={[styles.statusDot, { backgroundColor: getStatusColor(pickup.status) }]} />
@@ -214,6 +282,37 @@ export default function AllUpcomingPickups({ navigation }: any) {
                           <Text style={styles.infoLabelGray}>Submitted:</Text>
                           <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
                         </View>
+
+                        {pickup.mode === 'delivery' && (
+                          <>
+                            <View style={styles.deliveryReminder}>
+                              <Ionicons name="information-circle-outline" size={16} color="#92400E" />
+                              <Text style={styles.deliveryReminderText}>
+                                Reminder: You scheduled to deliver this donation to the food bank yourself.
+                              </Text>
+                            </View>
+
+                            <View style={styles.deliveryActions}>
+                              <TouchableOpacity
+                                style={[styles.actionBtn, styles.imHereBtn]}
+                                onPress={() => handleReportArrival(pickup)}
+                                disabled={actionLoading !== null}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.imHereText}>I'm Here</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                style={[styles.actionBtn, styles.confirmBtn]}
+                                onPress={() => handleConfirmDelivery(pickup)}
+                                disabled={actionLoading !== null}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.confirmText}>Confirm Delivery</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </>
+                        )}
                       </View>
                     </View>
                   </Swipeable>
@@ -368,5 +467,71 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     marginTop: 4,
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  modeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  deliveryReminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 6,
+    gap: 8,
+  },
+  deliveryReminderText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 16,
+  },
+  deliveryActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14,
+  },
+  actionBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  imHereBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#00592d',
+  },
+  imHereText: {
+    color: '#00592d',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  confirmBtn: {
+    backgroundColor: '#00592d',
+    borderColor: '#00592d',
+  },
+  confirmText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
