@@ -953,19 +953,15 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <View style={[styles.disbursementNoteBox, { marginBottom: 16 }]}>
               <Ionicons name="checkmark-circle" size={16} color="#00592d" style={{ marginRight: 6, marginTop: 2, flexShrink: 0 }} />
               <Text style={styles.disbursementNoteText}>
-                {'Your requested amount of '}
-                <Text style={{ fontWeight: '700', color: '#222' }}>
-                  {disbursementModal.amount > 0 ? `₱${disbursementModal.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}
-                </Text>
-                {' was successfully sent to your account number '}
+                {'Your requested amount was successfully sent to your account number '}
                 <Text style={{ fontWeight: '700', color: '#222' }}>{disbursementModal.accountNo || '—'}</Text>
                 {disbursementModal.refNo ? (
                   <Text>
                     {'. Reference Number: '}
                     <Text style={{ fontWeight: '700', color: '#222' }}>{disbursementModal.refNo}</Text>
-                    {'.'}
                   </Text>
-                ) : '.'}
+                ) : null}
+                {'.'}
               </Text>
             </View>
 
