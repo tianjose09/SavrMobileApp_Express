@@ -1362,13 +1362,35 @@ exports.getBeneficiaryRequests = async (req, res) => {
         let items = [];
         try { items = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : (row.delivery_items || []); } catch {}
         const financialItems = items.filter((item) => item.type === 'financial');
-        if (financialItems.length === 0) continue;
+
+        // Include row if it has financial delivery_items OR if staff set grant_amount directly
+        const hasDirectGrant = row.grant_amount !== null && row.grant_amount !== undefined;
+        if (financialItems.length === 0 && !hasDirectGrant) continue;
+
         if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
-        for (const fi of financialItems) {
+
+        if (financialItems.length > 0) {
+          for (const fi of financialItems) {
+            disbursementsByRequest[rid].push({
+              id: row.delivery_id,
+              delivery_id: row.delivery_id,
+              amount: parseFloat(row.grant_amount || fi.qty || fi.amount || '0'),
+              date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
+              status: row.status,
+              proof_of_transfer: row.receipt_path || row.proof_of_transfer || null,
+              notes: row.notes || null,
+              reference_number: row.reference_number || null,
+              transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
+              confirmed: !!row.beneficiary_confirmed,
+              confirmed_at: row.beneficiary_confirmed_at ? new Date(row.beneficiary_confirmed_at).toISOString() : null,
+            });
+          }
+        } else {
+          // grant_amount set directly by staff with no delivery_items
           disbursementsByRequest[rid].push({
             id: row.delivery_id,
             delivery_id: row.delivery_id,
-            amount: parseFloat(row.grant_amount || fi.qty || fi.amount || '0'),
+            amount: parseFloat(row.grant_amount || '0'),
             date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
             status: row.status,
             proof_of_transfer: row.receipt_path || row.proof_of_transfer || null,
