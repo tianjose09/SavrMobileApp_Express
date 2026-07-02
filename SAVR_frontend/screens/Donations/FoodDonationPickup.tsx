@@ -298,6 +298,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<{ label: string; lat: number; lon: number }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView>(null);
   const isProgrammaticMove = useRef(false);
   const isMapDragged = useRef(false);
@@ -344,6 +347,48 @@ export default function FoodDonationPickup({ route, navigation }: any) {
     } finally {
       setIsGeocoding(false);
     }
+  };
+
+  const searchAddressSuggestions = (text: string) => {
+    if (suggestDebounce.current) clearTimeout(suggestDebounce.current);
+    if (!text.trim() || text.length < 3) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestDebounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&countrycodes=ph`,
+          { headers: { 'User-Agent': 'SavrMobileApp' } }
+        );
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setAddressSuggestions(data.map((d: any) => ({
+            label: d.display_name,
+            lat: parseFloat(d.lat),
+            lon: parseFloat(d.lon),
+          })));
+          setShowSuggestions(true);
+        } else {
+          setAddressSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 600);
+  };
+
+  const selectAddressSuggestion = (suggestion: { label: string; lat: number; lon: number }) => {
+    setPickupAddress(suggestion.label);
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+    const newRegion = { latitude: suggestion.lat, longitude: suggestion.lon, latitudeDelta: 0.008, longitudeDelta: 0.008 };
+    isProgrammaticMove.current = true;
+    setLocation(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 800);
   };
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
@@ -701,16 +746,39 @@ export default function FoodDonationPickup({ route, navigation }: any) {
           <Text style={styles.inputLabel}>{scheduleType === 'pickup' ? 'Pickup Address' : 'Drop-off Address'}<Text style={{ color: '#E4B63F' }}> *</Text></Text>
 
           {scheduleType === 'pickup' ? (
-            <View style={styles.addressInputRow}>
-              <TextInput
-                style={[styles.addressInput, { flex: 1 }]}
-                placeholder="Enter pickup address"
-                placeholderTextColor="rgba(0,89,45,0.45)"
-                value={pickupAddress}
-                onChangeText={setPickupAddress}
-                onSubmitEditing={() => geocodeAddress(pickupAddress)}
-                returnKeyType="search"
-              />
+            <View style={{ position: 'relative', zIndex: 999 }}>
+              <View style={styles.addressInputRow}>
+                <TextInput
+                  style={[styles.addressInput, { flex: 1 }]}
+                  placeholder="Enter pickup address"
+                  placeholderTextColor="rgba(0,89,45,0.45)"
+                  value={pickupAddress}
+                  onChangeText={(text) => {
+                    setPickupAddress(text);
+                    searchAddressSuggestions(text);
+                  }}
+                  onSubmitEditing={() => {
+                    setShowSuggestions(false);
+                    geocodeAddress(pickupAddress);
+                  }}
+                  returnKeyType="search"
+                />
+              </View>
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <View style={styles.addrSuggestionsContainer}>
+                  {addressSuggestions.map((sug, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.addrSuggestionRow, idx < addressSuggestions.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }]}
+                      onPress={() => selectAddressSuggestion(sug)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="location-outline" size={14} color="#00592d" style={{ marginRight: 8, marginTop: 1 }} />
+                      <Text style={styles.addrSuggestionText} numberOfLines={2}>{sug.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <View>
@@ -732,8 +800,8 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             provider={PROVIDER_GOOGLE}
             style={styles.map}
             region={scheduleType === 'pickup' ? location : {
-              latitude: 14.5332,
-              longitude: 121.0189,
+              latitude: 14.4378,
+              longitude: 120.9836,
               latitudeDelta: 0.008,
               longitudeDelta: 0.008,
             }}
@@ -1130,6 +1198,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#D17C31',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  addrSuggestionsContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#D0DDD5',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 999,
+    overflow: 'hidden',
+  },
+  addrSuggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  addrSuggestionText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#2a2a2a',
+    lineHeight: 18,
   },
   warehouseAddressWrap: {
     flexDirection: 'row',
