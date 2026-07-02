@@ -1691,7 +1691,7 @@ exports.recordDisbursement = async (req, res) => {
   }
 
   const { id } = req.params;
-  const { amount, date, notes } = req.body;
+  const { amount, date, notes, reference_no } = req.body;
 
   if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
     return res.status(422).json({ success: false, message: 'A valid amount is required.' });
@@ -1705,11 +1705,22 @@ exports.recordDisbursement = async (req, res) => {
     return res.status(422).json({ success: false, message: 'Disbursements only apply to financial requests.' });
   }
 
+  let proofPhotoUrl = null;
+  if (req.file) {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const baseUrl = process.env.APP_URL || `${proto}://${req.get('host')}`;
+    proofPhotoUrl = `${baseUrl}/storage/donations/receipts/${req.file.filename}`;
+  }
+
   const disbursedAmount = parseFloat(amount);
   const newEntry = {
+    id: Date.now(),
     amount: disbursedAmount,
     date: date || new Date().toISOString().split('T')[0],
     notes: notes || null,
+    reference_no: reference_no || null,
+    proof_photo: proofPhotoUrl,
+    confirmed: false,
   };
 
   let existing = [];
@@ -1734,6 +1745,66 @@ exports.recordDisbursement = async (req, res) => {
   await createNotification(request.user_id, 'service', goalMet ? 'Financial Request Fulfilled' : 'Partial Payment Sent', msg, true);
 
   return res.json({ success: true, message: 'Disbursement recorded.', total_sent: totalSent, disbursements: existing });
+};
+
+exports.confirmDisbursement = async (req, res) => {
+  const { id, disbursementId } = req.params;
+  const uid = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?",
+      [id, uid]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Request not found.' });
+    }
+
+    const request = rows[0];
+    let disbursements = [];
+    try {
+      disbursements = typeof request.dispatched_items === 'string' 
+        ? JSON.parse(request.dispatched_items) 
+        : (request.dispatched_items || []);
+    } catch {}
+
+    if (!Array.isArray(disbursements)) {
+      disbursements = [];
+    }
+
+    let found = false;
+    disbursements = disbursements.map(d => {
+      if (String(d.id) === String(disbursementId)) {
+        d.confirmed = true;
+        d.confirmed_at = new Date().toISOString();
+        found = true;
+      }
+      return d;
+    });
+
+    if (!found) {
+      return res.status(404).json({ success: false, message: 'Disbursement not found.' });
+    }
+
+    await db.execute(
+      "UPDATE beneficiary_requests SET dispatched_items = ?, updated_at = NOW() WHERE id = ?",
+      [JSON.stringify(disbursements), id]
+    );
+
+    const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+    const title = 'Financial Disbursement Received';
+    const description = `Beneficiary has confirmed receipt of disbursement for request "${request.request_name}".`;
+    for (const staff of staffRows) {
+      const { createNotification } = require('./notificationController');
+      await createNotification(staff.id, 'service', title, description, false);
+    }
+
+    return res.json({ success: true, message: 'Disbursement receipt confirmed.', disbursements });
+  } catch (err) {
+    console.error('[confirmDisbursement]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to confirm receipt.', error: err.message });
+  }
 };
 
 // Donors: get active food/financial drives (Approved beneficiary requests)

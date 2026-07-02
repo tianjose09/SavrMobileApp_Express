@@ -72,7 +72,8 @@ router.post('/donation/my-requests/:id/cancel',        donationController.cancel
 router.post('/donation/my-requests/:id/complete',      donationController.completeBeneficiaryRequest);
 router.get('/donation/active-drives',                  donationController.getActiveDrives);
 router.get('/donation/requests',                       donationController.getAllBeneficiaryRequests);
-router.post('/donation/requests/:id/disburse',               donationController.recordDisbursement);
+router.post('/donation/requests/:id/disburse',               uploadReceipt.single('proof_photo'), donationController.recordDisbursement);
+router.put('/donation/requests/:id/disbursements/:disbursementId/confirm', donationController.confirmDisbursement);
 router.get('/donation/requests/:id',                         donationController.getBeneficiaryRequestById);
 router.post('/donation/requests/:id/stops/:stopId/received', donationController.receiveBeneficiaryStop);
 router.post('/donation/stops/:stopId/missed',                donationController.markStopMissed);
