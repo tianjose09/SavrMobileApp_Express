@@ -68,8 +68,9 @@ router.post('/donation/service',                       donationController.submit
 router.post('/donation/request',                       donationController.submitBeneficiaryRequest);
 router.get('/donation/my-requests',                    donationController.getBeneficiaryRequests);
 router.post('/donation/my-requests/auto-cancel-expired', donationController.autoCancelExpiredRequests);
-router.post('/donation/my-requests/:id/cancel',        donationController.cancelBeneficiaryRequest);
-router.post('/donation/my-requests/:id/complete',      donationController.completeBeneficiaryRequest);
+router.post('/donation/my-requests/:id/cancel',                 donationController.cancelBeneficiaryRequest);
+router.post('/donation/my-requests/:id/complete',               donationController.completeBeneficiaryRequest);
+router.post('/donation/my-requests/:id/financial-received',     donationController.confirmFinancialReceived);
 router.get('/donation/active-drives',                  donationController.getActiveDrives);
 router.get('/donation/requests',                       donationController.getAllBeneficiaryRequests);
 router.post('/donation/requests/:id/disburse',               uploadReceipt.single('proof_photo'), donationController.recordDisbursement);

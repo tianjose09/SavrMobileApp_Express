@@ -13,6 +13,10 @@ function formatAmount(amount) {
 }
 
 db.execute(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS reference_id INTEGER DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS proof_of_transfer TEXT DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS reference_number VARCHAR(255) DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS transfer_datetime TIMESTAMP DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS financial_received_at TIMESTAMP DEFAULT NULL`).catch(() => {});
 
 async function logActivity(userId, type, title, description, icon = 'financialiconyellow', referenceId = null) {
   await db.execute(
@@ -1311,7 +1315,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
   if (requestIds.length > 0) {
     const placeholders = requestIds.map(() => '?').join(',');
     const [deliveryRows] = await db.execute(`
-      SELECT dd.beneficiary_request_id, del.delivery_items, del.status, del.created_at
+      SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
+             del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime
       FROM donation_deliveries del
       JOIN donation_drives dd ON dd.id = del.donation_drive_id
       WHERE dd.beneficiary_request_id IN (${placeholders})
@@ -1327,9 +1332,13 @@ exports.getBeneficiaryRequests = async (req, res) => {
       if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
       for (const fi of financialItems) {
         disbursementsByRequest[rid].push({
+          delivery_id: row.delivery_id,
           amount: parseFloat(fi.qty || fi.amount || '0'),
           date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
           status: row.status,
+          proof_of_transfer: row.proof_of_transfer || null,
+          reference_number: row.reference_number || null,
+          transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
         });
       }
     }
@@ -1429,6 +1438,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       food_type: r.food_type || (foodItems[0]?.food_name ?? foodItems[0]?.name ?? null),
       quantity: r.quantity ?? (foodItems[0]?.qty ?? null),
       unit: r.unit || (foodItems[0]?.unit ?? null),
+      financial_received_at: r.financial_received_at ? new Date(r.financial_received_at).toISOString() : null,
     };
   });
 
@@ -2274,6 +2284,50 @@ exports.deleteAccount = async (req, res) => {
   } catch (error) {
     console.error('Error deactivating account:', error);
     return res.status(500).json({ success: false, message: 'Something went wrong, please try again.' });
+  }
+};
+
+exports.confirmFinancialReceived = async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.id;
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ? AND type = 'financial'",
+      [id, uid]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Request not found.' });
+    const request = rows[0];
+
+    if (request.financial_received_at) {
+      return res.status(400).json({ success: false, message: 'You have already confirmed receipt of this disbursement.' });
+    }
+
+    const effectiveStatus = (request.status || '').toLowerCase();
+    if (!['approved', 'allocated', 'accepted'].includes(effectiveStatus)) {
+      return res.status(400).json({ success: false, message: 'This request is not yet in an approved state.' });
+    }
+
+    await db.execute(
+      "UPDATE beneficiary_requests SET financial_received_at = NOW(), status = 'Completed', updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    await createNotification(
+      uid, 'financial',
+      'Financial Assistance Received',
+      `You have confirmed receipt of the financial assistance for your request "${request.request_name || 'Financial Assistance'}". Thank you!`
+    );
+    await logActivity(
+      uid, 'financial',
+      'Financial Assistance Received',
+      `You confirmed receipt of the financial disbursement for request #${id}.`,
+      'financialiconyellow', parseInt(id)
+    );
+
+    return res.json({ success: true, message: 'Receipt confirmed. Your request has been marked as completed.' });
+  } catch (err) {
+    console.error('[confirmFinancialReceived]', err.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
   }
 };
 
