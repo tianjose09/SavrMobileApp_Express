@@ -597,7 +597,7 @@ exports.registerDonor = async (req, res) => {
   if (!last_name) errors.last_name = ['Last name is required.'];
   if (!date_of_birth || new Date(date_of_birth) >= new Date()) errors.date_of_birth = ['Date of birth must be strictly before today.'];
   if (!['Male', 'Female', 'Other'].includes(gender)) errors.gender = ['Gender must be Male, Female, or Other.'];
-  if (!house_no || !/^[0-9]+$/.test(house_no)) errors.house_no = ['House number must contain numbers only.'];
+  if (!house_no || !house_no.trim()) errors.house_no = ['House number is required.'];
   if (!street) errors.street = ['Street is required.'];
   if (!barangay) errors.barangay = ['Barangay is required.'];
   if (!city_municipality) errors.city_municipality = ['City/municipality is required.'];
@@ -789,7 +789,7 @@ exports.registerBeneficiary = async (req, res) => {
   if (!password || password.length < 12) errors.password = ['Password must be at least 12 characters.'];
   else if (password !== password_confirmation) errors.password = ['Passwords do not match.'];
   else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(password)) errors.password = ['Password must contain uppercase, lowercase, a number, and a special character.'];
-  if (!house_no || !/^[0-9]+$/.test(house_no)) errors.house_no = ['House number must contain numbers only.'];
+  if (!house_no || !house_no.trim()) errors.house_no = ['House number is required.'];
   if (!street) errors.street = ['Street is required.'];
   if (!barangay) errors.barangay = ['Barangay is required.'];
   if (!city_municipality) errors.city_municipality = ['City/municipality is required.'];

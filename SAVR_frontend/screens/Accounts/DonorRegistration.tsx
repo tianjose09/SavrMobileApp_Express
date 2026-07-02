@@ -403,7 +403,7 @@ export default function DonorRegistration({ navigation }: any) {
 
                   <View style={styles.addressRow}>
                     <View style={[styles.addressCol, { flex: 1.3 }]}>
-                      {renderLineInput('House Number', 'house_no', { keyboardType: 'numeric', isRequired: true })}
+                      {renderLineInput('House Number', 'house_no', { keyboardType: 'default', isRequired: true })}
                     </View>
                     <View style={[styles.addressCol, { flex: 1.1 }]}>
                       {renderLineInput('Street', 'street', { isRequired: true })}
