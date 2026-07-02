@@ -152,8 +152,15 @@ export default function OrgDashboard({ navigation }: any) {
         const badgesRes = await ApiService.getBadges();
         if (badgesRes?.data?.success) {
           const earnedBadges = badgesRes.data.earned || [];
-          setFeaturedBadges(earnedBadges.slice(0, 3));
           const allBadges = badgesRes.data.all || [];
+
+          const earnedWithStatus = earnedBadges.map((b: any) => ({ ...b, isEarned: true }));
+          const unearned = allBadges
+            .filter((b: any) => !earnedBadges.some((eb: any) => eb.id === b.id))
+            .map((b: any) => ({ ...b, isEarned: false }));
+
+          const featured = [...earnedWithStatus, ...unearned].slice(0, 3);
+          setFeaturedBadges(featured);
           const nextFood = allBadges
             .filter((b: any) => b.goal_type === 'food_count' && b.status !== 'earned')
             .sort((a: any, b: any) => (parseFloat(a.goal_value) || 0) - (parseFloat(b.goal_value) || 0))[0];
@@ -380,17 +387,47 @@ export default function OrgDashboard({ navigation }: any) {
                     </View>
 
                     <View style={styles.badgesRow}>
-                      {featuredBadges.map((badge, idx) => (
-                        <View style={styles.badgeCard} key={badge.id || idx}>
-                          <Image
-                            source={BADGE_IMAGES[badge.icon]}
-                            style={styles.badgeImage}
-                            resizeMode="contain"
-                          />
-                          <Text style={styles.badgeName}>{badge.name}</Text>
-                          <Text style={styles.badgeDesc}>{badge.description}</Text>
-                        </View>
-                      ))}
+                      {featuredBadges.map((badge, idx) => {
+                        const isEarned = badge.isEarned !== false;
+                        return (
+                          <View 
+                            style={[
+                              styles.badgeCard, 
+                              !isEarned && { borderColor: '#E5E5E5', backgroundColor: '#F9F9F9' }
+                            ]} 
+                            key={badge.id || idx}
+                          >
+                            <View style={{ position: 'relative' }}>
+                              <Image
+                                source={BADGE_IMAGES[badge.icon]}
+                                style={[
+                                  styles.badgeImage,
+                                  !isEarned && { opacity: 0.35 }
+                                ]}
+                                resizeMode="contain"
+                              />
+                              {!isEarned && (
+                                <View style={{
+                                  position: 'absolute',
+                                  top: '30%',
+                                  left: '30%',
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: 12,
+                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  zIndex: 10
+                                }}>
+                                  <Ionicons name="lock-closed" size={12} color="#FFF" />
+                                </View>
+                              )}
+                            </View>
+                            <Text style={[styles.badgeName, !isEarned && { color: '#888' }]}>{badge.name}</Text>
+                            <Text style={styles.badgeDesc}>{badge.description}</Text>
+                          </View>
+                        );
+                      })}
                     </View>
                   </View>
                 </Animated.View>
