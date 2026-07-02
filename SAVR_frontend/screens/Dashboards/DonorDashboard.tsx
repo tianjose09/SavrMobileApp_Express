@@ -445,17 +445,24 @@ export default function DonorDashboard({ navigation }: any) {
                               {!isEarned && (
                                 <View style={{
                                   position: 'absolute',
-                                  top: '30%',
-                                  left: '30%',
-                                  width: 24,
-                                  height: 24,
-                                  borderRadius: 12,
-                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 8,
                                   justifyContent: 'center',
                                   alignItems: 'center',
                                   zIndex: 10
                                 }}>
-                                  <Ionicons name="lock-closed" size={12} color="#FFF" />
+                                  <View style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: 12,
+                                    backgroundColor: 'rgba(0,0,0,0.55)',
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                  }}>
+                                    <Ionicons name="lock-closed" size={12} color="#FFF" />
+                                  </View>
                                 </View>
                               )}
                             </View>
