@@ -16,33 +16,11 @@ type FoodItem = { id: number; name: string; category: string; qty: string; unit:
 type RequestedFood = { id: number; name: string; category: string; qty: string; unit: string };
 
 const CATEGORY_DISPLAY_MAP: Record<string, string> = {
-  'Canned Goods': 'Canned Goods: Non-Perishable',
-  'Prepared Meals': 'Prepared Meals: Perishable',
-  'Beverages': 'Beverages: Non-Perishable',
-  'Dry Goods': 'Dry Goods: Non-Perishable',
+  'Any Available Meal': 'Any Available Meal',
 };
 
 const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
-  'Beverages': ["Bottled Water", "Canned Juice", "Soda", "Milk", "Coffee"],
-  'Canned Goods': ["Canned Sardines", "Canned Tuna", "Canned Corned Beef", "Canned Meat Loaf"],
-  'Prepared Meals': [
-    "Arroz Caldo",
-    "Champorado",
-    "Chicken Adobo",
-    "Chicken Afritada",
-    "Egg Sandwich Filling",
-    "Fried Chicken",
-    "Giniling",
-    "Lugaw",
-    "Munggo Guisado",
-    "Sandwich",
-    "Sardines with Vegetables",
-    "Sopas",
-    "Sotanghon Soup",
-    "Tuna Veggie Mix",
-    "Veggie Stir-Fry"
-  ],
-  'Dry Goods': ["Rice", "Sugar", "Salt", "Flour", "Pasta", "Noodles"]
+  'Any Available Meal': ['Any Available Meal'],
 };
 
 const getCategoryLabel = (cat: string | null) => {
@@ -67,6 +45,7 @@ const CATEGORY_ICON_MAP: Record<string, IconEntry> = {
   'Protein Alternatives': { lib: 'mci', name: 'seed-outline' },
   'Sugars & Sweets': { lib: 'mci', name: 'cookie' },
   'Prepared Meals': { lib: 'mci', name: 'food-variant' },
+  'Any Available Meal': { lib: 'mci', name: 'food-variant' },
 };
 const DEFAULT_CAT_ICON: IconEntry = { lib: 'mci', name: 'package-variant' };
 
@@ -80,10 +59,7 @@ function CatIcon({ cat, size = 22, active = false }: { cat: string; size?: numbe
 const UNIT_OPTIONS = ['kg', 'pcs', 'meal', 'L'];
 
 const CATEGORY_UNIT_MAP: Record<string, string> = {
-  'Canned Goods': 'pcs',
-  'Prepared Meals': 'meal',
-  'Beverages': 'L',
-  'Dry Goods': 'kg',
+  'Any Available Meal': 'meal',
 };
 
 function getAllowedUnits(category: string | null): string[] {
@@ -186,10 +162,7 @@ export default function CreateRequest({ navigation }: any) {
   const [itemUnit, setItemUnit] = useState('kg');
   const [requestedFoods, setRequestedFoods] = useState<RequestedFood[]>([]);
   const [dynamicFoods, setDynamicFoods] = useState<Record<string, string[]>>({
-    'Beverages': PRESET_FOODS_BY_CATEGORY['Beverages'],
-    'Canned Goods': PRESET_FOODS_BY_CATEGORY['Canned Goods'],
-    'Prepared Meals': PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
-    'Dry Goods': PRESET_FOODS_BY_CATEGORY['Dry Goods']
+    'Any Available Meal': PRESET_FOODS_BY_CATEGORY['Any Available Meal'],
   });
 
   const [foodForm, setFoodForm] = useState({
@@ -439,71 +412,8 @@ export default function CreateRequest({ navigation }: any) {
     if (requestType !== 'food') return;
 
     const fetchBackendData = async () => {
-      let bevList: string[] = [];
-      let cannedList: string[] = [];
-      let prepList: string[] = [];
-      let dryList: string[] = [];
-
-      try {
-        const rawRes = await ApiService.getInventory();
-        if (rawRes.data?.success) {
-          const items = rawRes.data.items || [];
-          items.forEach((item: any) => {
-            const name = item.name || item.food_name;
-            const cat = (item.category || '').toLowerCase().trim();
-            if (!name) return;
-
-            if (cat.startsWith('beverage') || cat.startsWith('liquid')) {
-              bevList.push(name);
-            } else if (cat.startsWith('canned')) {
-              cannedList.push(name);
-            } else if (cat === 'prepared meals' || cat === 'prep meal') {
-              prepList.push(name);
-            } else if (cat.startsWith('dry') || cat.includes('dry goods')) {
-              dryList.push(name);
-            }
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch raw inventory:', err);
-      }
-
-      try {
-        const prepRes = await ApiService.getPreparedMeals();
-        if (prepRes.data?.success) {
-          const items = prepRes.data.items || [];
-          items.forEach((item: any) => {
-            const name = item.name || item.food_name;
-            if (name) prepList.push(name);
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch prepared meals:', err);
-      }
-
-      try {
-        const mealsRes = await ApiService.getBeneficiaryMeals();
-        const mealNames: string[] = Array.isArray(mealsRes.data) ? mealsRes.data : [];
-        const existingLower = new Set(prepList.map((n: string) => n.toLowerCase()));
-        mealNames.forEach((name: string) => {
-          if (name && !existingLower.has(name.toLowerCase())) {
-            prepList.push(name);
-          }
-        });
-      } catch (err) {
-        console.error('Failed to fetch meal names:', err);
-      }
-
-      bevList = [...new Set(bevList)].sort();
-      cannedList = [...new Set(cannedList)].sort();
-      prepList = [...new Set(prepList)].sort();
-      dryList = [...new Set(dryList)].sort();
-
       setDynamicFoods({
-        'Beverages': bevList.length > 0 ? bevList : PRESET_FOODS_BY_CATEGORY['Beverages'],
-        'Canned Goods': cannedList.length > 0 ? cannedList : PRESET_FOODS_BY_CATEGORY['Canned Goods'],
-        'Prepared Meals': prepList.length > 0 ? prepList : PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
-        'Dry Goods': dryList.length > 0 ? dryList : PRESET_FOODS_BY_CATEGORY['Dry Goods'],
+        'Any Available Meal': ['Any Available Meal'],
       });
     };
 
@@ -1162,10 +1072,7 @@ export default function CreateRequest({ navigation }: any) {
                   }}
                   placeholder="Food Category"
                   items={[
-                    { label: 'Canned Goods: Non-Perishable', value: 'Canned Goods' },
-                    { label: 'Prepared Meals: Perishable', value: 'Prepared Meals' },
-                    { label: 'Beverages: Non-Perishable', value: 'Beverages' },
-                    { label: 'Dry Goods: Non-Perishable', value: 'Dry Goods' }
+                    { label: 'Any Available Meal', value: 'Any Available Meal' }
                   ]}
                   style={styles.fdCatDropdown}
                   disableSort={true}
