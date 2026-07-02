@@ -212,7 +212,7 @@ export default function VerifyEmail({ route, navigation }: any) {
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Ionicons name="arrow-back" size={32} color="#FFF" />
+          <Ionicons name="chevron-back" size={32} color="#FFF" />
         </TouchableOpacity>
       </SafeAreaView>
     </ImageBackground>

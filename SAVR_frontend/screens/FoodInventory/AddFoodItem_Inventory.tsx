@@ -8,12 +8,65 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import CustomDropdown from '../../components/CustomDropdown';
 import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
+const FILIPINO_FOODS = [
+  "Adobo", "Afritada", "Arroz Caldo", "Atchara",
+  "Bachoy", "Bagoong", "Bangus", "Batchoy", "Bibingka", "Biko", "Binagoongan", "Bistek", "Bopis", "Bulalo",
+  "Caldereta", "Champorado", "Chicken Inasal", "Chopsuey", "Crispy Pata",
+  "Daing na Bangus", "Dinuguan",
+  "Embutido", "Escabeche",
+  "Ginataang Bilo-Bilo", "Ginataang Mais", "Giniling", "Goto",
+  "Halabos na Hipon",
+  "Inasal",
+  "Kare-Kare", "Kinilaw", "Kutsinta",
+  "Laing", "Lechon", "Lechon Kawali", "Leche Flan", "Liempo", "Lomi", "Longganisa", "Lugaw", "Lumpia", "Lumpiang Shanghai",
+  "Maja Blanca", "Mami", "Mechado", "Menudo", "Morcon",
+  "Nilaga",
+  "Pako Salad", "Paksiw", "Paksiw na Lechon", "Palitaw", "Pancit Bihon", "Pancit Canton", "Pancit Malabon", "Pancit Palabok", "Pinapaitan", "Pinakbet", "Pork Belly", "Puto",
+  "Rellenong Bangus",
+  "Sapin-sapin", "Sisig", "Sinuglaw", "Sinigang", "Sinigang na Baboy", "Sinigang na Hipon", "Sinigang na Isda", "Sinigang sa Miso", "Sopas",
+  "Tapa", "Tinola", "Tocino", "Tortang Talong", "Turon",
+];
 
 export default function AddFoodItem_Inventory({ navigation }: any) {
   const [foodName, setFoodName] = useState('');
   const [category, setCategory] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('kg');
+
+  const [dbIngredients, setDbIngredients] = useState<string[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
+
+  React.useEffect(() => {
+    const loadIngredients = async () => {
+      const uniqueNames = new Set<string>();
+      try {
+        const res = await ApiService.getIngredientsList();
+        const dataArr = res.data?.data || res.data?.ingredients || [];
+        if (Array.isArray(dataArr)) {
+          dataArr.forEach((name: string) => {
+            if (name) uniqueNames.add(name);
+          });
+        }
+      } catch (e) {
+        console.log('Backend ingredients API not available:', e);
+      }
+
+      try {
+        const res = await fetch('https://www.themealdb.com/api/json/v1/1/list.php?i=list');
+        const data = await res.json();
+        const items = data.meals || [];
+        items.forEach((m: any) => {
+          if (m.strIngredient) uniqueNames.add(m.strIngredient);
+        });
+      } catch (e) {
+        console.log('TheMealDB API not available:', e);
+      }
+
+      FILIPINO_FOODS.forEach(item => uniqueNames.add(item));
+      setDbIngredients(Array.from(uniqueNames).sort());
+    };
+    loadIngredients();
+  }, []);
 
   const [expiryText, setExpiryText] = useState('');
   const [expiryDate, setExpiryDate] = useState(new Date());
@@ -179,15 +232,49 @@ export default function AddFoodItem_Inventory({ navigation }: any) {
           {/* GREEN CARD WRAPPER */}
           <View style={styles.card}>
 
-            <View style={styles.inputGroupOuter}>
+            <View style={[styles.inputGroupOuter, { zIndex: 10 }]}>
               <Text style={styles.label}>Food Item Name <Text style={{ color: '#DCAB18' }}>*</Text></Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Rice, Canned Goods, Vegetables"
-                placeholderTextColor="rgba(255,255,255,0.7)"
-                value={foodName}
-                onChangeText={setFoodName}
-              />
+              <View style={{ position: 'relative' }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g., Rice, Canned Goods, Vegetables"
+                  placeholderTextColor="rgba(255,255,255,0.7)"
+                  value={foodName}
+                  onChangeText={setFoodName}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => {
+                    setTimeout(() => setIsFocused(false), 250);
+                  }}
+                />
+                {(() => {
+                  const filtered = dbIngredients.filter(
+                    ing =>
+                      ing.toLowerCase().includes(foodName.toLowerCase()) &&
+                      ing.toLowerCase() !== foodName.toLowerCase()
+                  );
+                  if (isFocused && filtered.length > 0) {
+                    return (
+                      <View style={styles.suggestionsContainer}>
+                        <ScrollView style={{ maxHeight: 150 }} keyboardShouldPersistTaps="handled">
+                          {filtered.map((sug, idx) => (
+                            <TouchableOpacity
+                              key={idx}
+                              style={styles.suggestionRow}
+                              onPress={() => {
+                                setFoodName(sug);
+                                setIsFocused(false);
+                              }}
+                            >
+                              <Text style={styles.suggestionText}>{sug}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    );
+                  }
+                  return null;
+                })()}
+              </View>
             </View>
 
             <View style={styles.inputGroupOuter}>
@@ -414,4 +501,30 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
   modalCancel: { fontSize: 15, color: '#888' },
   modalDone: { fontSize: 15, fontWeight: '700', color: '#0E6A31' },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 999,
+  },
+  suggestionRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#333',
+  },
 });
