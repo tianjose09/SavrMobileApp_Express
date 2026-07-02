@@ -1334,21 +1334,22 @@ exports.getBeneficiaryRequests = async (req, res) => {
       const placeholders = requestIds.map(() => '?').join(',');
       let deliveryRows = [];
       try {
-        // Try with confirmed columns (available after migration)
         [deliveryRows] = await db.execute(`
           SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
                  del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
-                 del.beneficiary_confirmed, del.beneficiary_confirmed_at
+                 del.beneficiary_confirmed, del.beneficiary_confirmed_at,
+                 del.grant_amount, del.receipt_path, del.notes
           FROM donation_deliveries del
           JOIN donation_drives dd ON dd.id = del.donation_drive_id
           WHERE dd.beneficiary_request_id IN (${placeholders})
           ORDER BY del.created_at ASC
         `, requestIds);
       } catch {
-        // Fallback: columns not migrated yet — fetch without confirmed fields
+        // Fallback: fetch without newer columns
         [deliveryRows] = await db.execute(`
           SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
-                 del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime
+                 del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
+                 del.beneficiary_confirmed, del.beneficiary_confirmed_at
           FROM donation_deliveries del
           JOIN donation_drives dd ON dd.id = del.donation_drive_id
           WHERE dd.beneficiary_request_id IN (${placeholders})
@@ -1367,10 +1368,11 @@ exports.getBeneficiaryRequests = async (req, res) => {
           disbursementsByRequest[rid].push({
             id: row.delivery_id,
             delivery_id: row.delivery_id,
-            amount: parseFloat(fi.qty || fi.amount || '0'),
+            amount: parseFloat(row.grant_amount || fi.qty || fi.amount || '0'),
             date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
             status: row.status,
-            proof_of_transfer: row.proof_of_transfer || null,
+            proof_of_transfer: row.receipt_path || row.proof_of_transfer || null,
+            notes: row.notes || null,
             reference_number: row.reference_number || null,
             transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
             confirmed: !!row.beneficiary_confirmed,

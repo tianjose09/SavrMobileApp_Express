@@ -169,7 +169,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
     refNo: string | null;
     amount: number;
     proofUri: string | null;
-  }>({ visible: false, requestId: null, disbursementId: null, accountNo: null, refNo: null, amount: 0, proofUri: null });
+    notes: string | null;
+  }>({ visible: false, requestId: null, disbursementId: null, accountNo: null, refNo: null, amount: 0, proofUri: null, notes: null });
 
 
 
@@ -653,6 +654,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
                       refNo: lastUnconfirmed?.reference_no || lastUnconfirmed?.reference_number || null,
                       amount: parseFloat(lastUnconfirmed?.amount || req.amount || '0'),
                       proofUri: lastUnconfirmed?.proof_photo || lastUnconfirmed?.proof_of_transfer || null,
+                      notes: lastUnconfirmed?.notes || null,
                     });
                   }}
                 >
@@ -950,7 +952,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
               </Text>
             </View>
 
-            {/* Note */}
+            {/* Staff note */}
             <View style={{
               backgroundColor: '#F4FBF7',
               borderColor: '#D1E7DD',
@@ -960,7 +962,9 @@ export default function TrackMyRequest({ route, navigation }: any) {
               marginBottom: 16,
             }}>
               <Text style={{ fontSize: 13, lineHeight: 18, color: '#155724', fontWeight: '500' }}>
-                Your requested amount is already accredited to "{disbursementModal.accountNo || '—'}". See uploaded proof of transaction. Please confirm.
+                {disbursementModal.notes
+                  ? disbursementModal.notes
+                  : `Your requested amount is already accredited to "${disbursementModal.accountNo || '—'}". See uploaded proof of transaction. Please confirm.`}
               </Text>
             </View>
 
@@ -987,15 +991,20 @@ export default function TrackMyRequest({ route, navigation }: any) {
 
             {/* Proof of transfer */}
             <View style={{ marginBottom: 16 }}>
-              <Image
-                source={{ uri: disbursementModal.proofUri || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=600&auto=format&fit=crop' }}
-                style={[styles.proofImage, { height: 180, borderRadius: 12 }]}
-                resizeMode="cover"
-              />
-              {!disbursementModal.proofUri && (
-                <Text style={{ fontSize: 11, color: '#888', textAlign: 'center', marginTop: 4 }}>
-                  (Showing placeholder. No official proof uploaded by staff yet.)
-                </Text>
+              {disbursementModal.proofUri ? (
+                <Image
+                  source={{ uri: disbursementModal.proofUri }}
+                  style={[styles.proofImage, { height: 180, borderRadius: 12 }]}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{
+                  height: 100, borderRadius: 12, backgroundColor: '#F3F4F6',
+                  alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB',
+                }}>
+                  <Ionicons name="image-outline" size={32} color="#B0B0B0" />
+                  <Text style={{ fontSize: 12, color: '#999', marginTop: 6 }}>No receipt uploaded by staff yet.</Text>
+                </View>
               )}
             </View>
 
