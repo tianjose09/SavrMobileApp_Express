@@ -161,6 +161,18 @@ export default function TrackMyRequest({ route, navigation }: any) {
     noteText: string;
   }>({ visible: false, requestId: null, noteText: '' });
 
+  const [financialReceiptModal, setFinancialReceiptModal] = useState<{
+    visible: boolean;
+    requestId: number | null;
+    disbursementId: number | string | null;
+    amount: number;
+    referenceNo: string | null;
+    proofPhoto: string | null;
+    date: string | null;
+  }>({ visible: false, requestId: null, disbursementId: null, amount: 0, referenceNo: null, proofPhoto: null, date: null });
+
+  const [financialReceiptLoading, setFinancialReceiptLoading] = useState(false);
+
 
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
@@ -235,6 +247,27 @@ export default function TrackMyRequest({ route, navigation }: any) {
       allBatches: Array.isArray(req.delivery_batches) ? req.delivery_batches : [],
       requestStatus: req._cardStatus || getEffectiveStatus(req),
     });
+  };
+
+  const handleSubmitFinancialReceipt = async () => {
+    if (!financialReceiptModal.requestId || financialReceiptModal.disbursementId === null) return;
+    setFinancialReceiptLoading(true);
+    try {
+      // @ts-ignore
+      const res = await ApiService.confirmDisbursement(financialReceiptModal.requestId, financialReceiptModal.disbursementId);
+      setFinancialReceiptModal(m => ({ ...m, visible: false }));
+      if (res?.data?.success) {
+        Alert.alert('Confirmed!', 'Thank you for confirming receipt of this transfer.');
+        fetchRequests();
+      } else {
+        Alert.alert('Error', res?.data?.message || 'Failed to confirm.');
+      }
+    } catch (err: any) {
+      setFinancialReceiptModal(m => ({ ...m, visible: false }));
+      Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
+    } finally {
+      setFinancialReceiptLoading(false);
+    }
   };
 
   const handleSubmitReceipt = async () => {
@@ -464,15 +497,15 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   </View>
                 </View>
 
-                {/* Per-disbursement detail: reference, datetime, proof photo */}
+                {/* Per-disbursement detail: reference, datetime, proof photo, confirm button */}
                 {disbursements.map((d: any, i: number) => (
                   <View key={i} style={styles.disbursementCard}>
                     <Text style={styles.disbursementTitle}>Transfer #{i + 1}  ·  ₱{parseFloat(d.amount || '0').toLocaleString()}</Text>
 
-                    {d.reference_number ? (
+                    {(d.reference_no || d.reference_number) ? (
                       <View style={styles.disbursementRow}>
                         <Ionicons name="receipt-outline" size={14} color="#555" />
-                        <Text style={styles.disbursementMeta}>Ref No: <Text style={{ fontWeight: '700', color: '#222' }}>{d.reference_number}</Text></Text>
+                        <Text style={styles.disbursementMeta}>Ref No: <Text style={{ fontWeight: '700', color: '#222' }}>{d.reference_no || d.reference_number}</Text></Text>
                       </View>
                     ) : null}
 
@@ -492,56 +525,50 @@ export default function TrackMyRequest({ route, navigation }: any) {
                       </View>
                     ) : null}
 
-                    {d.proof_of_transfer ? (
+                    {(d.proof_photo || d.proof_of_transfer) ? (
                       <View style={{ marginTop: 10 }}>
                         <Text style={[styles.disbursementMeta, { marginBottom: 6 }]}>Proof of Transfer:</Text>
                         <Image
-                          source={{ uri: d.proof_of_transfer }}
+                          source={{ uri: d.proof_photo || d.proof_of_transfer }}
                           style={styles.proofImage}
                           resizeMode="contain"
                         />
                       </View>
                     ) : null}
+
+                    {/* I Received This — opens a rich modal showing proof + reference */}
+                    {!d.confirmed && ['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && (
+                      <TouchableOpacity
+                        style={[styles.receivedBtn, { marginTop: 12 }]}
+                        activeOpacity={0.82}
+                        onPress={() => setFinancialReceiptModal({
+                          visible: true,
+                          requestId: req.id,
+                          disbursementId: d.id ?? i,
+                          amount: parseFloat(d.amount || '0'),
+                          referenceNo: d.reference_no || d.reference_number || null,
+                          proofPhoto: d.proof_photo || d.proof_of_transfer || null,
+                          date: d.transfer_datetime || d.date || null,
+                        })}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.receivedBtnText}>I Received This</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Already confirmed badge */}
+                    {d.confirmed && (
+                      <View style={[styles.receivedConfirmed, { marginTop: 10 }]}>
+                        <Ionicons name="checkmark-circle" size={16} color="#00592d" />
+                        <Text style={styles.receivedConfirmedText}>
+                          You confirmed receipt{d.confirmed_at ? ` on ${new Date(d.confirmed_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}` : ''}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 ))}
 
-                {/* I Received This button — shown when Approved and not yet confirmed */}
-                {['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && !req.financial_received_at && (
-                  <TouchableOpacity
-                    style={styles.receivedBtn}
-                    activeOpacity={0.82}
-                    onPress={() => {
-                      Alert.alert(
-                        'Confirm Receipt',
-                        'Are you sure you have received the financial assistance? This action cannot be undone.',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Yes, I Received This',
-                            onPress: async () => {
-                              try {
-                                const res = await ApiService.confirmFinancialReceived(req.id);
-                                if (res?.data?.success) {
-                                  Alert.alert('Confirmed!', 'Thank you for confirming. Your request has been marked as completed.');
-                                  fetchRequests();
-                                } else {
-                                  Alert.alert('Error', res?.data?.message || 'Failed to confirm.');
-                                }
-                              } catch (err: any) {
-                                Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
-                              }
-                            },
-                          },
-                        ]
-                      );
-                    }}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.receivedBtnText}>I Received This</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Already confirmed message */}
+                {/* Already confirmed overall message */}
                 {req.financial_received_at && (
                   <View style={styles.receivedConfirmed}>
                     <Ionicons name="checkmark-circle" size={16} color="#00592d" />
@@ -594,6 +621,55 @@ export default function TrackMyRequest({ route, navigation }: any) {
             <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.8} onPress={() => handleCancelRequest(req.id)}>
               <Text style={styles.cancelBtnText}>Cancel This Request</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* I Received This – Approved financial requests */}
+        {!isFood && effectiveStatus === 'Approved' && !req.financial_received_at && (() => {
+          let disbursements: any[] = [];
+          try {
+            const raw = req.dispatched_items;
+            disbursements = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+            if (!Array.isArray(disbursements)) disbursements = [];
+          } catch { disbursements = []; }
+
+          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed);
+
+          return (
+            <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
+              <View style={[styles.batchRow, { justifyContent: 'flex-end', borderBottomWidth: 0, paddingBottom: 0 }]}>
+                <TouchableOpacity
+                  style={styles.receivedBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    const d = lastUnconfirmed || disbursements[disbursements.length - 1];
+                    setFinancialReceiptModal({
+                      visible: true,
+                      requestId: req.id,
+                      disbursementId: d?.id !== undefined ? d.id : (disbursements.length > 0 ? disbursements.length - 1 : 0),
+                      amount: parseFloat(d?.amount || req.amount || '0'),
+                      referenceNo: d?.reference_no || d?.reference_number || null,
+                      proofPhoto: d?.proof_photo || d?.proof_of_transfer || null,
+                      date: d?.transfer_datetime || d?.date || null,
+                    });
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color="#FFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.receivedBtnText}>I Received This</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Already confirmed message for financial requests */}
+        {!isFood && req.financial_received_at && (
+          <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
+            <View style={[styles.batchRow, { justifyContent: 'flex-end', borderBottomWidth: 0, paddingBottom: 0 }]}>
+              <View style={styles.batchConfirmedBadge}>
+                <Text style={styles.batchConfirmedText}>Received</Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -854,9 +930,102 @@ export default function TrackMyRequest({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* Receipt Modal */}
-      <Modal visible={receiptModal.visible} transparent animationType="fade" onRequestClose={() => setReceiptModal(m => ({ ...m, visible: false }))}>
+      {/* Financial Disbursement Receipt Modal */}
+      <Modal
+        visible={financialReceiptModal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFinancialReceiptModal(m => ({ ...m, visible: false }))}
+      >
         <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxHeight: '85%', paddingBottom: 0, overflow: 'hidden' }]}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={styles.modalTitle}>Confirm Receipt</Text>
+              <TouchableOpacity onPress={() => setFinancialReceiptModal(m => ({ ...m, visible: false }))}>
+                <Ionicons name="close-circle" size={24} color="#999" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+              {/* Amount row */}
+              <View style={[styles.disbursementCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="cash-outline" size={20} color="#00592d" />
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: '#00592d' }}>
+                    ₱{financialReceiptModal.amount.toLocaleString()}
+                  </Text>
+                </View>
+                {financialReceiptModal.date ? (
+                  <Text style={[styles.disbursementMeta, { marginTop: 4 }]}>
+                    {new Date(financialReceiptModal.date).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Reference Number */}
+              {financialReceiptModal.referenceNo ? (
+                <View style={[styles.disbursementCard, { marginTop: 10 }]}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>Reference Number</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="receipt-outline" size={16} color="#00592d" />
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#111', letterSpacing: 0.5 }}>{financialReceiptModal.referenceNo}</Text>
+                  </View>
+                  <Text style={[styles.disbursementMeta, { marginTop: 4 }]}>Please verify this reference number matches your GCash / bank transaction.</Text>
+                </View>
+              ) : (
+                <View style={[styles.disbursementCard, { marginTop: 10, backgroundColor: '#FFF8E7' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="alert-circle-outline" size={16} color="#B45309" />
+                    <Text style={{ fontSize: 13, color: '#B45309', fontWeight: '600' }}>No reference number provided yet.</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Proof Photo */}
+              {financialReceiptModal.proofPhoto ? (
+                <View style={[styles.disbursementCard, { marginTop: 10 }]}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>Proof of Transfer</Text>
+                  <Image
+                    source={{ uri: financialReceiptModal.proofPhoto }}
+                    style={{ width: '100%', height: 220, borderRadius: 10 }}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : (
+                <View style={[styles.disbursementCard, { marginTop: 10, backgroundColor: '#F5F5F5' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="image-outline" size={16} color="#888" />
+                    <Text style={{ fontSize: 13, color: '#888' }}>No proof photo attached by staff.</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Instruction */}
+              <Text style={[styles.disbursementMeta, { marginTop: 14, textAlign: 'center', fontSize: 12 }]}>
+                Tap "Yes, I Received This" only after verifying the reference number and amount above match your transaction.
+              </Text>
+            </ScrollView>
+
+            {/* Action buttons */}
+            <View style={[styles.modalButtons, { paddingHorizontal: 0, paddingBottom: 20, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#EEE' }]}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setFinancialReceiptModal(m => ({ ...m, visible: false }))}>
+                <Text style={styles.modalCancelText}>Not Yet</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, financialReceiptLoading && { opacity: 0.6 }]}
+                onPress={handleSubmitFinancialReceipt}
+                disabled={financialReceiptLoading}
+              >
+                <Text style={styles.modalConfirmText}>{financialReceiptLoading ? 'Confirming...' : 'Yes, I Received This'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Receipt Modal */}
+      <Modal visible={receiptModal.visible} transparent animationType="fade" onRequestClose={() => setReceiptModal(m => ({ ...m, visible: false }))}>        <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Confirm Receipt</Text>
             <Text style={styles.modalDesc}>
