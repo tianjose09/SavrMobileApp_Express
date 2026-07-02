@@ -948,34 +948,26 @@ exports.confirmDelivery = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Donation not found.' });
     }
 
-    await db.execute(
-      "UPDATE food_donation_records SET status = 'completed', updated_at = NOW() WHERE id = ?",
-      [id]
-    );
-
     const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
     const donorName = userRows[0]?.name || 'A donor';
 
-    await logActivity(
-      uid,
-      'food',
-      'Food Donation Delivered',
-      `Donation delivered by ${donorName}`,
-      'truckicon',
-      id
-    );
+    const phTime = new Date().toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
 
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
-    const title = 'Food Donation Delivered';
-    const description = `${donorName} has confirmed delivery for donation #${id}.`;
+    const title = 'Donor On The Way';
+    const description = `${donorName} is on the way to the warehouse. (${phTime})`;
     for (const staff of staffRows) {
       await createNotification(staff.id, 'food', title, description, false);
     }
 
-    return res.json({ success: true, message: 'Delivery confirmed successfully.' });
+    return res.json({ success: true, message: 'Staff notified that you are on the way.' });
   } catch (err) {
     console.error('[confirmDelivery]', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to confirm delivery.', error: err.message });
+    return res.status(500).json({ success: false, message: 'Failed to notify staff.', error: err.message });
   }
 };
 
@@ -996,14 +988,20 @@ exports.markArrived = async (req, res) => {
     const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
     const donorName = userRows[0]?.name || 'A donor';
 
+    const phTime = new Date().toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
-    const title = 'Donor Arrived';
-    const description = `${donorName} has arrived at the food bank to deliver scheduled donation #${id}.`;
+    const title = 'Donor Has Arrived';
+    const description = `${donorName} is already at the delivery address. (${phTime})`;
     for (const staff of staffRows) {
       await createNotification(staff.id, 'food', title, description, true);
     }
 
-    return res.json({ success: true, message: 'Arrival alert sent to staff.' });
+    return res.json({ success: true, message: 'Staff notified that you have arrived.' });
   } catch (err) {
     console.error('[markArrived]', err.message);
     return res.status(500).json({ success: false, message: 'Failed to report arrival.', error: err.message });

@@ -79,25 +79,24 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
   const handleConfirmDelivery = async (pickup: Pickup) => {
     Alert.alert(
-      'Confirm Delivery',
-      'Are you sure you want to confirm that you have delivered this donation to the food bank?',
+      'On The Way',
+      'Notify the staff that you are now heading to the warehouse?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Confirm',
+          text: 'Yes, Notify',
           onPress: async () => {
             setActionLoading(pickup.id);
             try {
               // @ts-ignore
               const res = await ApiService.confirmDelivery(pickup.id);
               if (res?.data?.success) {
-                Alert.alert('Delivery Confirmed', 'Thank you so much for your delivery! The record is now completed.');
-                fetchPickups();
+                Alert.alert('Staff Notified', 'The staff has been informed that you are on the way to the warehouse.');
               } else {
-                Alert.alert('Error', res?.data?.message || 'Failed to confirm delivery.');
+                Alert.alert('Error', res?.data?.message || 'Failed to notify staff.');
               }
             } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || 'An error occurred while confirming delivery.');
+              Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
             } finally {
               setActionLoading(null);
             }
@@ -108,20 +107,32 @@ export default function AllUpcomingPickups({ navigation }: any) {
   };
 
   const handleReportArrival = async (pickup: Pickup) => {
-    setActionLoading(pickup.id);
-    try {
-      // @ts-ignore
-      const res = await ApiService.reportArrival(pickup.id);
-      if (res?.data?.success) {
-        Alert.alert('Arrival Sent', 'Staff has been notified that you have arrived with the donation!');
-      } else {
-        Alert.alert('Error', res?.data?.message || 'Failed to report arrival.');
-      }
-    } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message || 'An error occurred while reporting arrival.');
-    } finally {
-      setActionLoading(null);
-    }
+    Alert.alert(
+      'I\'m Here',
+      'Notify the staff that you have arrived at the delivery address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Notify',
+          onPress: async () => {
+            setActionLoading(pickup.id);
+            try {
+              // @ts-ignore
+              const res = await ApiService.reportArrival(pickup.id);
+              if (res?.data?.success) {
+                Alert.alert('Staff Notified', 'The staff has been informed that you are already at the delivery address.');
+              } else {
+                Alert.alert('Error', res?.data?.message || 'Failed to notify staff.');
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
+            } finally {
+              setActionLoading(null);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleDeletePickup = (pickup: Pickup) => {
