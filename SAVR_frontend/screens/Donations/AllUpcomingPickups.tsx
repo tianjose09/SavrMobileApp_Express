@@ -205,7 +205,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
     if (status === 'scheduled') return '#00592d';
     if (status === 'approved') return '#00592d';
     if (status === 'pending') return '#D17C31';
-    if (status === 'in_transit') return '#1565C0';
+    if (status === 'in_transit') return '#8A5E38';
     if (status === 'missed') return '#C62828';
     return '#888';
   };
@@ -353,8 +353,8 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                   </View>
                                 ) : null}
                                 <View style={{
-                                  backgroundColor: '#E3F2FD',
-                                  borderColor: '#90CAF9',
+                                  backgroundColor: '#FAF5F0',
+                                  borderColor: '#EADEC9',
                                   borderWidth: 1.5,
                                   borderRadius: 24,
                                   paddingVertical: 12,
@@ -364,8 +364,8 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                   gap: 8,
                                   marginTop: 8,
                                 }}>
-                                  <Ionicons name="car-outline" size={18} color="#1565C0" />
-                                  <Text style={{ color: '#1565C0', fontSize: 14, fontWeight: '700' }}>In Transit</Text>
+                                  <Ionicons name="car-outline" size={18} color="#8A5E38" />
+                                  <Text style={{ color: '#8A5E38', fontSize: 14, fontWeight: '700' }}>In Transit</Text>
                                 </View>
                               </>
                             ) : (
