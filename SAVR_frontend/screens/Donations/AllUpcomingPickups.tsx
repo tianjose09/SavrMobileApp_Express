@@ -313,21 +313,21 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
                             <View style={styles.deliveryActions}>
                               <TouchableOpacity
+                                style={[styles.actionBtn, styles.confirmBtn]}
+                                onPress={() => handleConfirmDelivery(pickup)}
+                                disabled={actionLoading !== null}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.confirmText}>To Deliver</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
                                 style={[styles.actionBtn, styles.imHereBtn]}
                                 onPress={() => handleReportArrival(pickup)}
                                 disabled={actionLoading !== null}
                                 activeOpacity={0.8}
                               >
                                 <Text style={styles.imHereText}>I'm Here</Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity
-                                style={[styles.actionBtn, styles.confirmBtn]}
-                                onPress={() => handleConfirmDelivery(pickup)}
-                                disabled={actionLoading !== null}
-                                activeOpacity={0.8}
-                              >
-                                <Text style={styles.confirmText}>Confirm Delivery</Text>
                               </TouchableOpacity>
                             </View>
                           </>
