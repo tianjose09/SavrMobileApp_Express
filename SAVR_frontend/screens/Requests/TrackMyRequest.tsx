@@ -497,39 +497,42 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   </View>
                 </View>
 
-                {/* Per-disbursement detail: reference, datetime, proof photo, confirm button */}
-                {disbursements.map((d: any, i: number) => (
+                {/* Per-disbursement detail */}
+                {disbursements.map((d: any, i: number) => {
+                  const refNo = d.reference_no || d.reference_number || null;
+                  const accountNo = req.account_number || null;
+                  const amount = parseFloat(d.amount || '0');
+                  const proofUri = d.proof_photo || d.proof_of_transfer || null;
+                  return (
                   <View key={i} style={styles.disbursementCard}>
-                    <Text style={styles.disbursementTitle}>Transfer #{i + 1}  ·  ₱{parseFloat(d.amount || '0').toLocaleString()}</Text>
+                    {/* Confirmation note */}
+                    <View style={styles.disbursementNoteBox}>
+                      <Ionicons name="checkmark-circle" size={16} color="#00592d" style={{ marginRight: 6, marginTop: 2, flexShrink: 0 }} />
+                      <Text style={styles.disbursementNoteText}>
+                        {'Your requested amount was successfully sent to your account number '}
+                        <Text style={{ fontWeight: '700', color: '#222' }}>{accountNo || '—'}</Text>
+                        {refNo ? (
+                          <Text>
+                            {'. Reference Number: '}
+                            <Text style={{ fontWeight: '700', color: '#222' }}>{refNo}</Text>
+                            {'.'}
+                          </Text>
+                        ) : '.'}
+                      </Text>
+                    </View>
 
-                    {(d.reference_no || d.reference_number) ? (
-                      <View style={styles.disbursementRow}>
-                        <Ionicons name="receipt-outline" size={14} color="#555" />
-                        <Text style={styles.disbursementMeta}>Ref No: <Text style={{ fontWeight: '700', color: '#222' }}>{d.reference_no || d.reference_number}</Text></Text>
-                      </View>
-                    ) : null}
+                    {/* Amount sent */}
+                    <View style={styles.disbursementAmountRow}>
+                      <Text style={styles.disbursementAmountLabel}>Amount Sent</Text>
+                      <Text style={styles.disbursementAmountValue}>₱{amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</Text>
+                    </View>
 
-                    {d.transfer_datetime ? (
-                      <View style={styles.disbursementRow}>
-                        <Ionicons name="time-outline" size={14} color="#555" />
-                        <Text style={styles.disbursementMeta}>
-                          {new Date(d.transfer_datetime).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                          {' · '}
-                          {new Date(d.transfer_datetime).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
-                    ) : d.date ? (
-                      <View style={styles.disbursementRow}>
-                        <Ionicons name="time-outline" size={14} color="#555" />
-                        <Text style={styles.disbursementMeta}>{new Date(d.date).toLocaleDateString('en-PH')}</Text>
-                      </View>
-                    ) : null}
-
-                    {(d.proof_photo || d.proof_of_transfer) ? (
-                      <View style={{ marginTop: 10 }}>
-                        <Text style={[styles.disbursementMeta, { marginBottom: 6 }]}>Proof of Transfer:</Text>
+                    {/* Proof of transfer photo */}
+                    {proofUri ? (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={styles.disbursementProofLabel}>Proof of Transfer</Text>
                         <Image
-                          source={{ uri: d.proof_photo || d.proof_of_transfer }}
+                          source={{ uri: proofUri }}
                           style={styles.proofImage}
                           resizeMode="contain"
                         />
@@ -566,7 +569,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
                       </View>
                     )}
                   </View>
-                ))}
+                  );
+                })}
 
                 {/* Already confirmed overall message */}
                 {req.financial_received_at && (
@@ -1596,6 +1600,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#555',
     flexShrink: 1,
+  },
+  disbursementNoteBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#EEF6F1',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  disbursementNoteText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 19,
+  },
+  disbursementAmountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E8EEE9',
+    marginBottom: 4,
+  },
+  disbursementAmountLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#555',
+  },
+  disbursementAmountValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#00592d',
+  },
+  disbursementProofLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#555',
+    marginBottom: 6,
   },
   proofImage: {
     width: '100%',

@@ -85,17 +85,36 @@ export default function AllUpcomingPickups({ navigation }: any) {
     setDeliveryModal({ visible: true, pickup, note: '' });
   };
 
+  const silentRefresh = async () => {
+    try {
+      const res = await ApiService.getUpcomingPickups();
+      if (res?.data?.success) {
+        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending', 'in_transit'];
+        const sorted = (res.data.pickups as Pickup[])
+          .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setPickups(sorted);
+      }
+    } catch {}
+  };
+
   const submitDelivery = async () => {
     const pickup = deliveryModal.pickup;
     if (!pickup) return;
-    setDeliveryModal(prev => ({ ...prev, visible: false }));
+    const noteValue = deliveryModal.note.trim();
+    setDeliveryModal({ visible: false, pickup: null, note: '' });
     setActionLoading(pickup.id);
     try {
       // @ts-ignore
-      const res = await ApiService.confirmDelivery(pickup.id, deliveryModal.note.trim() || undefined);
+      const res = await ApiService.confirmDelivery(pickup.id, noteValue || undefined);
       if (res?.data?.success) {
+        setPickups(prev => prev.map(p =>
+          p.id === pickup.id
+            ? { ...p, status: 'in_transit', delivery_note: noteValue || null }
+            : p
+        ));
         Alert.alert('Staff Notified', 'The staff has been informed that you are on the way to the warehouse.');
-        fetchPickups();
+        silentRefresh();
       } else {
         Alert.alert('Error', res?.data?.message || 'Failed to notify staff.');
       }
@@ -140,7 +159,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
     Alert.alert(
       isScheduledOrApproved ? 'Decline Scheduled Pickup' : 'Cancel Pickup',
-      isScheduledOrApproved 
+      isScheduledOrApproved
         ? 'Are you sure you want to decline this scheduled pickup? Staff will be notified.'
         : 'Are you sure you want to cancel/delete this pickup request?',
       [
@@ -178,7 +197,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
   const formatDisplayDate = (dateStr: string | null) => {
     if (!dateStr) return 'Date TBD';
     const [y, m, d] = dateStr.split('-');
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${months[parseInt(m) - 1]} ${parseInt(d)}, ${y}`;
   };
 
@@ -257,7 +276,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                           {pickup.mode && (
                             <View style={[
                               styles.modeBadge,
-                              { 
+                              {
                                 backgroundColor: pickup.mode === 'delivery' ? '#FAF5F0' : '#F0FDF4',
                                 borderColor: pickup.mode === 'delivery' ? '#EADEC9' : '#BBF7D0'
                               }
@@ -397,7 +416,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
               <Text style={styles.modalNoteLabel}>Tracking / Delivery Link <Text style={{ color: '#999', fontWeight: '400' }}>(optional)</Text></Text>
               <TextInput
                 style={styles.modalNoteInput}
-                placeholder="Paste Lalamove link or tracking info..."
+                placeholder="Enter tracking info..."
                 placeholderTextColor="#AAAAAA"
                 value={deliveryModal.note}
                 onChangeText={(text) => setDeliveryModal(prev => ({ ...prev, note: text }))}
