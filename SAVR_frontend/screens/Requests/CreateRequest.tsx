@@ -20,12 +20,14 @@ const CATEGORY_DISPLAY_MAP: Record<string, string> = {
   'Prepared Meals': 'Prepared Meals: Perishable',
   'Beverages': 'Beverages: Non-Perishable',
   'Dry Goods': 'Dry Goods: Non-Perishable',
+  'Any Available Meal': 'Any Available Meal',
 };
 
 const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
   'Beverages': ["Bottled Water", "Canned Juice", "Soda", "Milk", "Coffee"],
   'Canned Goods': ["Canned Sardines", "Canned Tuna", "Canned Corned Beef", "Canned Meat Loaf"],
   'Prepared Meals': [
+    "Any Available Meal",
     "Arroz Caldo",
     "Champorado",
     "Chicken Adobo",
@@ -42,7 +44,8 @@ const PRESET_FOODS_BY_CATEGORY: Record<string, string[]> = {
     "Tuna Veggie Mix",
     "Veggie Stir-Fry"
   ],
-  'Dry Goods': ["Rice", "Sugar", "Salt", "Flour", "Pasta", "Noodles"]
+  'Dry Goods': ["Rice", "Sugar", "Salt", "Flour", "Pasta", "Noodles"],
+  'Any Available Meal': ["Any Available Meal"],
 };
 
 const getCategoryLabel = (cat: string | null) => {
@@ -84,6 +87,7 @@ const CATEGORY_UNIT_MAP: Record<string, string> = {
   'Prepared Meals': 'meal',
   'Beverages': 'L',
   'Dry Goods': 'kg',
+  'Any Available Meal': 'meal',
 };
 
 function getAllowedUnits(category: string | null): string[] {
@@ -189,7 +193,8 @@ export default function CreateRequest({ navigation }: any) {
     'Beverages': PRESET_FOODS_BY_CATEGORY['Beverages'],
     'Canned Goods': PRESET_FOODS_BY_CATEGORY['Canned Goods'],
     'Prepared Meals': PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
-    'Dry Goods': PRESET_FOODS_BY_CATEGORY['Dry Goods']
+    'Dry Goods': PRESET_FOODS_BY_CATEGORY['Dry Goods'],
+    'Any Available Meal': PRESET_FOODS_BY_CATEGORY['Any Available Meal']
   });
 
   const [foodForm, setFoodForm] = useState({
@@ -499,10 +504,15 @@ export default function CreateRequest({ navigation }: any) {
       prepList = [...new Set(prepList)].sort();
       dryList = [...new Set(dryList)].sort();
 
+      const finalPrepList = [
+        'Any Available Meal',
+        ...(prepList.length > 0 ? prepList : PRESET_FOODS_BY_CATEGORY['Prepared Meals']).filter(n => n !== 'Any Available Meal')
+      ];
+
       setDynamicFoods({
         'Beverages': bevList.length > 0 ? bevList : PRESET_FOODS_BY_CATEGORY['Beverages'],
         'Canned Goods': cannedList.length > 0 ? cannedList : PRESET_FOODS_BY_CATEGORY['Canned Goods'],
-        'Prepared Meals': prepList.length > 0 ? prepList : PRESET_FOODS_BY_CATEGORY['Prepared Meals'],
+        'Prepared Meals': finalPrepList,
         'Dry Goods': dryList.length > 0 ? dryList : PRESET_FOODS_BY_CATEGORY['Dry Goods'],
       });
     };
