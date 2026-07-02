@@ -464,15 +464,15 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   </View>
                 </View>
 
-                {/* Per-disbursement detail: reference, datetime, proof photo */}
+                {/* Per-disbursement detail: reference, datetime, proof photo, confirm button */}
                 {disbursements.map((d: any, i: number) => (
                   <View key={i} style={styles.disbursementCard}>
                     <Text style={styles.disbursementTitle}>Transfer #{i + 1}  ·  ₱{parseFloat(d.amount || '0').toLocaleString()}</Text>
 
-                    {d.reference_number ? (
+                    {(d.reference_no || d.reference_number) ? (
                       <View style={styles.disbursementRow}>
                         <Ionicons name="receipt-outline" size={14} color="#555" />
-                        <Text style={styles.disbursementMeta}>Ref No: <Text style={{ fontWeight: '700', color: '#222' }}>{d.reference_number}</Text></Text>
+                        <Text style={styles.disbursementMeta}>Ref No: <Text style={{ fontWeight: '700', color: '#222' }}>{d.reference_no || d.reference_number}</Text></Text>
                       </View>
                     ) : null}
 
@@ -492,56 +492,67 @@ export default function TrackMyRequest({ route, navigation }: any) {
                       </View>
                     ) : null}
 
-                    {d.proof_of_transfer ? (
+                    {(d.proof_photo || d.proof_of_transfer) ? (
                       <View style={{ marginTop: 10 }}>
                         <Text style={[styles.disbursementMeta, { marginBottom: 6 }]}>Proof of Transfer:</Text>
                         <Image
-                          source={{ uri: d.proof_of_transfer }}
+                          source={{ uri: d.proof_photo || d.proof_of_transfer }}
                           style={styles.proofImage}
                           resizeMode="contain"
                         />
                       </View>
                     ) : null}
+
+                    {/* I Received This — shown per-disbursement when not yet confirmed */}
+                    {!d.confirmed && ['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && (
+                      <TouchableOpacity
+                        style={[styles.receivedBtn, { marginTop: 12 }]}
+                        activeOpacity={0.82}
+                        onPress={() => {
+                          Alert.alert(
+                            'Confirm Receipt',
+                            `Have you received ₱${parseFloat(d.amount || '0').toLocaleString()} from this transfer?${d.reference_no || d.reference_number ? `\n\nRef No: ${d.reference_no || d.reference_number}` : ''}`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Yes, I Received This',
+                                onPress: async () => {
+                                  try {
+                                    // @ts-ignore
+                                    const res = await ApiService.confirmDisbursement(req.id, d.id || i);
+                                    if (res?.data?.success) {
+                                      Alert.alert('Confirmed!', 'Thank you for confirming receipt of this transfer.');
+                                      fetchRequests();
+                                    } else {
+                                      Alert.alert('Error', res?.data?.message || 'Failed to confirm.');
+                                    }
+                                  } catch (err: any) {
+                                    Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
+                                  }
+                                },
+                              },
+                            ]
+                          );
+                        }}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.receivedBtnText}>I Received This</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Already confirmed badge */}
+                    {d.confirmed && (
+                      <View style={[styles.receivedConfirmed, { marginTop: 10 }]}>
+                        <Ionicons name="checkmark-circle" size={16} color="#00592d" />
+                        <Text style={styles.receivedConfirmedText}>
+                          You confirmed receipt{d.confirmed_at ? ` on ${new Date(d.confirmed_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}` : ''}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 ))}
 
-                {/* I Received This button — shown when Approved and not yet confirmed */}
-                {['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && !req.financial_received_at && (
-                  <TouchableOpacity
-                    style={styles.receivedBtn}
-                    activeOpacity={0.82}
-                    onPress={() => {
-                      Alert.alert(
-                        'Confirm Receipt',
-                        'Are you sure you have received the financial assistance? This action cannot be undone.',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Yes, I Received This',
-                            onPress: async () => {
-                              try {
-                                const res = await ApiService.confirmFinancialReceived(req.id);
-                                if (res?.data?.success) {
-                                  Alert.alert('Confirmed!', 'Thank you for confirming. Your request has been marked as completed.');
-                                  fetchRequests();
-                                } else {
-                                  Alert.alert('Error', res?.data?.message || 'Failed to confirm.');
-                                }
-                              } catch (err: any) {
-                                Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
-                              }
-                            },
-                          },
-                        ]
-                      );
-                    }}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.receivedBtnText}>I Received This</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Already confirmed message */}
+                {/* Already confirmed overall message */}
                 {req.financial_received_at && (
                   <View style={styles.receivedConfirmed}>
                     <Ionicons name="checkmark-circle" size={16} color="#00592d" />
