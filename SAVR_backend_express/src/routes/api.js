@@ -84,8 +84,9 @@ router.get('/donation/upcoming',                       donationController.getUpc
 router.put('/donation/pickup/:id',                     donationController.updatePickup);
 router.delete('/donation/pickup/:id',                  donationController.deletePickup);
 router.put('/donation/pickup/:id/decline',             donationController.declinePickup);
+router.post('/donation/pickup/:id/decline-early',      donationController.declineEarly);
 router.put('/donation/pickup/:id/delivered',           donationController.confirmDelivery);
-router.post('/donation/pickup/:id/arrived',             donationController.markArrived);
+router.post('/donation/pickup/:id/arrived',            donationController.markArrived);
 
 // Badges & Activities
 router.get('/badges',     donationController.getBadges);

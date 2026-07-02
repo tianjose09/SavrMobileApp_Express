@@ -38,6 +38,7 @@ type Pickup = {
   id: number;
   status: string;
   mode?: string;
+  pickup_now: boolean;
   preferred_date: string | null;
   time_slot: string;
   pickup_address: string | null;
@@ -53,20 +54,19 @@ export default function AllUpcomingPickups({ navigation }: any) {
   const [deliveryModal, setDeliveryModal] = useState<{ visible: boolean; pickup: Pickup | null; note: string; trackingLink: string }>({
     visible: false, pickup: null, note: '', trackingLink: '',
   });
+  const [staffOnWayModal, setStaffOnWayModal] = useState<{ visible: boolean; pickup: Pickup | null }>({
+    visible: false, pickup: null,
+  });
 
   const fetchPickups = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'confirmed', 'scheduled', 'pending', 'in_transit'];
+        const PICKUP_STATUSES = ['approved', 'accepted', 'confirmed', 'scheduled', 'pending', 'in_transit'];
         const sorted = (res.data.pickups as Pickup[])
-          .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
-          .sort((a, b) => {
-            const da = new Date(a.created_at).getTime();
-            const db2 = new Date(b.created_at).getTime();
-            return db2 - da;
-          });
+          .filter(p => PICKUP_STATUSES.includes((p.status || '').toLowerCase()))
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setPickups(sorted);
       }
     } catch (e) {
@@ -90,9 +90,9 @@ export default function AllUpcomingPickups({ navigation }: any) {
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'confirmed', 'scheduled', 'pending', 'in_transit'];
+        const PICKUP_STATUSES = ['approved', 'accepted', 'confirmed', 'scheduled', 'pending', 'in_transit'];
         const sorted = (res.data.pickups as Pickup[])
-          .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
+          .filter(p => PICKUP_STATUSES.includes((p.status || '').toLowerCase()))
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setPickups(sorted);
       }
@@ -127,33 +127,26 @@ export default function AllUpcomingPickups({ navigation }: any) {
     }
   };
 
-  const handleReportArrival = async (pickup: Pickup) => {
-    Alert.alert(
-      'I\'m Here',
-      'Notify the staff that you have arrived at the delivery address?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Notify',
-          onPress: async () => {
-            setActionLoading(pickup.id);
-            try {
-              // @ts-ignore
-              const res = await ApiService.reportArrival(pickup.id);
-              if (res?.data?.success) {
-                Alert.alert('Staff Notified', 'The staff has been informed that you are already at the delivery address.');
-              } else {
-                Alert.alert('Error', res?.data?.message || 'Failed to notify staff.');
-              }
-            } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
-            } finally {
-              setActionLoading(null);
-            }
-          }
-        }
-      ]
-    );
+  const handleDeclineEarly = async (pickup: Pickup) => {
+    setStaffOnWayModal({ visible: false, pickup: null });
+    setActionLoading(pickup.id);
+    try {
+      // @ts-ignore
+      const res = await ApiService.declineEarly(pickup.id);
+      if (res?.data?.success) {
+        setPickups(prev => prev.map(p =>
+          p.id === pickup.id ? { ...p, status: 'accepted', pickup_now: false } : p
+        ));
+        Alert.alert('Pickup Declined', 'Staff has been notified. Your pickup is still approved and can be rescheduled.');
+        silentRefresh();
+      } else {
+        Alert.alert('Error', res?.data?.message || 'Failed to decline pickup.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleDeletePickup = (pickup: Pickup) => {
@@ -252,17 +245,31 @@ export default function AllUpcomingPickups({ navigation }: any) {
             ) : (
               pickups.map((pickup, idx) => {
                 const renderRightActions = () => {
-                  const isDeclinable = ['scheduled', 'approved', 'accepted', 'confirmed'].includes(pickup.status.toLowerCase());
-                  return (
-                    <TouchableOpacity
-                      style={[styles.swipeDeleteAction, isDeclinable && { backgroundColor: '#D97706' }]}
-                      onPress={() => handleDeletePickup(pickup)}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name={isDeclinable ? "close-circle" : "trash"} size={22} color="#FFF" />
-                      <Text style={styles.swipeDeleteText}>{isDeclinable ? 'Decline' : 'Delete'}</Text>
-                    </TouchableOpacity>
-                  );
+                  if (pickup.mode !== 'delivery' && pickup.pickup_now) {
+                    return (
+                      <TouchableOpacity
+                        style={[styles.swipeDeleteAction, { backgroundColor: '#D97706' }]}
+                        onPress={() => setStaffOnWayModal({ visible: true, pickup })}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="close-circle" size={22} color="#FFF" />
+                        <Text style={styles.swipeDeleteText}>Decline</Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                  if (pickup.status.toLowerCase() === 'pending') {
+                    return (
+                      <TouchableOpacity
+                        style={styles.swipeDeleteAction}
+                        onPress={() => handleDeletePickup(pickup)}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="trash" size={22} color="#FFF" />
+                        <Text style={styles.swipeDeleteText}>Delete</Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                  return null;
                 };
 
                 return (
@@ -327,17 +334,23 @@ export default function AllUpcomingPickups({ navigation }: any) {
                           <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
                         </View>
 
-                        {pickup.mode !== 'delivery' && ['scheduled', 'approved', 'accepted', 'confirmed'].includes(pickup.status.toLowerCase()) && (
-                          <View style={styles.declineActionWrapper}>
-                            <TouchableOpacity
-                              style={[styles.actionBtn, styles.declineBtn]}
-                              onPress={() => handleDeletePickup(pickup)}
-                              disabled={actionLoading !== null}
-                              activeOpacity={0.8}
-                            >
-                              <Text style={styles.declineBtnText}>Decline Pickup</Text>
-                            </TouchableOpacity>
-                          </View>
+                        {pickup.mode !== 'delivery' && pickup.pickup_now && (
+                          <>
+                            <View style={styles.staffOnWayBadge}>
+                              <Ionicons name="car-outline" size={15} color="#92400E" />
+                              <Text style={styles.staffOnWayText}>Staff picking up TODAY</Text>
+                            </View>
+                            <View style={styles.declineActionWrapper}>
+                              <TouchableOpacity
+                                style={[styles.actionBtn, styles.declineBtn]}
+                                onPress={() => setStaffOnWayModal({ visible: true, pickup })}
+                                disabled={actionLoading !== null}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.declineBtnText}>Decline Pickup</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </>
                         )}
 
                         {pickup.mode === 'delivery' && (
@@ -415,6 +428,42 @@ export default function AllUpcomingPickups({ navigation }: any) {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* Staff Is On The Way Modal */}
+      <Modal
+        visible={staffOnWayModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStaffOnWayModal({ visible: false, pickup: null })}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="car-outline" size={22} color="#D97706" style={{ marginRight: 8 }} />
+              <Text style={[styles.modalTitle, { color: '#D97706' }]}>Staff Is On The Way!</Text>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              A staff member is already heading to your location to pick up your donation. Are you sure you want to decline?
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setStaffOnWayModal({ visible: false, pickup: null })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelText}>Okay, Got It</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, { backgroundColor: '#C62828' }]}
+                onPress={() => staffOnWayModal.pickup && handleDeclineEarly(staffOnWayModal.pickup)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalConfirmText}>Decline Anyway</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Deliver Now Modal */}
       <Modal
@@ -625,6 +674,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
+  },
+  staffOnWayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 6,
+    gap: 6,
+  },
+  staffOnWayText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '700',
   },
   deliveryReminder: {
     flexDirection: 'row',

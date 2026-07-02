@@ -856,7 +856,15 @@ exports.getUpcomingPickups = async (req, res) => {
     const uid = req.user.id;
 
     const [pickups] = await db.execute(
-      `SELECT fdr.* FROM food_donation_records fdr
+      `SELECT fdr.*,
+        EXISTS (
+          SELECT 1 FROM truck_stops ts2
+          WHERE ts2.reference_id::text = fdr.id::text
+            AND ts2.source = 'food_donation'
+            AND ts2.stop_type = 'PICKUP'
+            AND ts2.status = 'in_transit'
+        ) AS pickup_now
+       FROM food_donation_records fdr
        WHERE fdr.user_id = ?
          AND fdr.status IN ('pending','scheduled','approved','accepted','confirmed','in_transit')
          AND (
@@ -879,6 +887,7 @@ exports.getUpcomingPickups = async (req, res) => {
         id: p.id,
         status: p.status,
         mode: p.mode,
+        pickup_now: !!p.pickup_now,
         preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
         time_slot: (() => {
           const formatTime12Hour = (timeStr) => {
@@ -1070,6 +1079,47 @@ exports.declinePickup = async (req, res) => {
     return res.json({ success: true, message: 'Pickup declined successfully.' });
   } catch (err) {
     console.error('[declinePickup]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to decline pickup.', error: err.message });
+  }
+};
+
+exports.declineEarly = async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM food_donation_records WHERE id = ? AND user_id = ?",
+      [id, uid]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Pickup not found.' });
+    }
+
+    // Revert the in_transit truck stop back to pending (staff can re-attempt)
+    await db.execute(
+      "UPDATE truck_stops SET status = 'pending', updated_at = NOW() WHERE reference_id::text = ? AND source = 'food_donation' AND stop_type = 'PICKUP' AND status = 'in_transit'",
+      [id]
+    );
+
+    // Reset the donation record back to accepted so it still appears as approved
+    await db.execute(
+      "UPDATE food_donation_records SET status = 'accepted', updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
+    const donorName = userRows[0]?.name || 'A donor';
+
+    const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+    for (const staff of staffRows) {
+      await createNotification(staff.id, 'food', 'Donor Declined Pickup', `${donorName} is unable to proceed with the pickup for donation #${id} at this time.`, true);
+    }
+
+    return res.json({ success: true, message: 'Pickup declined. Staff has been notified.' });
+  } catch (err) {
+    console.error('[declineEarly]', err.message);
     return res.status(500).json({ success: false, message: 'Failed to decline pickup.', error: err.message });
   }
 };
