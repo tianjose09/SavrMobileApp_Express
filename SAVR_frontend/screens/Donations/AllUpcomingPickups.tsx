@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View
+  ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +41,7 @@ type Pickup = {
   preferred_date: string | null;
   time_slot: string;
   pickup_address: string | null;
+  delivery_note: string | null;
   created_at: string;
 };
 
@@ -48,13 +49,16 @@ export default function AllUpcomingPickups({ navigation }: any) {
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [deliveryModal, setDeliveryModal] = useState<{ visible: boolean; pickup: Pickup | null; note: string }>({
+    visible: false, pickup: null, note: '',
+  });
 
   const fetchPickups = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await ApiService.getUpcomingPickups();
       if (res?.data?.success) {
-        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending'];
+        const APPROVED_STATUSES = ['approved', 'accepted', 'scheduled', 'pending', 'in_transit'];
         const sorted = (res.data.pickups as Pickup[])
           .filter(p => APPROVED_STATUSES.includes((p.status || '').toLowerCase()))
           .sort((a, b) => {
@@ -77,33 +81,29 @@ export default function AllUpcomingPickups({ navigation }: any) {
     return unsub;
   }, [navigation, fetchPickups]);
 
-  const handleConfirmDelivery = async (pickup: Pickup) => {
-    Alert.alert(
-      'On The Way',
-      'Notify the staff that you are now heading to the warehouse?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Notify',
-          onPress: async () => {
-            setActionLoading(pickup.id);
-            try {
-              // @ts-ignore
-              const res = await ApiService.confirmDelivery(pickup.id);
-              if (res?.data?.success) {
-                Alert.alert('Staff Notified', 'The staff has been informed that you are on the way to the warehouse.');
-              } else {
-                Alert.alert('Error', res?.data?.message || 'Failed to notify staff.');
-              }
-            } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
-            } finally {
-              setActionLoading(null);
-            }
-          }
-        }
-      ]
-    );
+  const openDeliveryModal = (pickup: Pickup) => {
+    setDeliveryModal({ visible: true, pickup, note: '' });
+  };
+
+  const submitDelivery = async () => {
+    const pickup = deliveryModal.pickup;
+    if (!pickup) return;
+    setDeliveryModal(prev => ({ ...prev, visible: false }));
+    setActionLoading(pickup.id);
+    try {
+      // @ts-ignore
+      const res = await ApiService.confirmDelivery(pickup.id, deliveryModal.note.trim() || undefined);
+      if (res?.data?.success) {
+        Alert.alert('Staff Notified', 'The staff has been informed that you are on the way to the warehouse.');
+        fetchPickups();
+      } else {
+        Alert.alert('Error', res?.data?.message || 'Failed to notify staff.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message || 'An error occurred.');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleReportArrival = async (pickup: Pickup) => {
@@ -184,13 +184,16 @@ export default function AllUpcomingPickups({ navigation }: any) {
 
   const getStatusColor = (status: string) => {
     if (status === 'scheduled') return '#00592d';
+    if (status === 'approved') return '#00592d';
     if (status === 'pending') return '#D17C31';
+    if (status === 'in_transit') return '#1565C0';
     if (status === 'missed') return '#C62828';
     return '#888';
   };
 
   const getStatusLabel = (status: string) => {
     if (status === 'missed') return 'Missed';
+    if (status === 'in_transit') return 'In Transit';
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
@@ -322,25 +325,45 @@ export default function AllUpcomingPickups({ navigation }: any) {
                               </Text>
                             </View>
 
-                            <View style={styles.deliveryActions}>
-                              <TouchableOpacity
-                                style={[styles.actionBtn, styles.confirmBtn]}
-                                onPress={() => handleConfirmDelivery(pickup)}
-                                disabled={actionLoading !== null}
-                                activeOpacity={0.8}
-                              >
-                                <Text style={styles.confirmText}>To Deliver</Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity
-                                style={[styles.actionBtn, styles.imHereBtn]}
-                                onPress={() => handleReportArrival(pickup)}
-                                disabled={actionLoading !== null}
-                                activeOpacity={0.8}
-                              >
-                                <Text style={styles.imHereText}>I'm Here</Text>
-                              </TouchableOpacity>
-                            </View>
+                            {pickup.status.toLowerCase() === 'in_transit' ? (
+                              <>
+                                <View style={styles.inTransitBadge}>
+                                  <Ionicons name="car-outline" size={15} color="#1565C0" style={{ marginRight: 6 }} />
+                                  <Text style={styles.inTransitText}>In Transit</Text>
+                                </View>
+                                {pickup.delivery_note ? (
+                                  <View style={styles.deliveryNoteWrap}>
+                                    <Ionicons name="link-outline" size={13} color="#555" style={{ marginRight: 5 }} />
+                                    <Text style={styles.deliveryNoteText} numberOfLines={2}>{pickup.delivery_note}</Text>
+                                  </View>
+                                ) : null}
+                                <View style={styles.deliveryActions}>
+                                  <TouchableOpacity
+                                    style={[styles.actionBtn, styles.imHereBtn, { flex: 1 }]}
+                                    onPress={() => handleReportArrival(pickup)}
+                                    disabled={actionLoading !== null}
+                                    activeOpacity={0.8}
+                                  >
+                                    {actionLoading === pickup.id
+                                      ? <ActivityIndicator size="small" color="#00592d" />
+                                      : <Text style={styles.imHereText}>I'm Here</Text>}
+                                  </TouchableOpacity>
+                                </View>
+                              </>
+                            ) : (
+                              <View style={styles.deliveryActions}>
+                                <TouchableOpacity
+                                  style={[styles.actionBtn, styles.confirmBtn, { flex: 1 }]}
+                                  onPress={() => openDeliveryModal(pickup)}
+                                  disabled={actionLoading !== null}
+                                  activeOpacity={0.8}
+                                >
+                                  {actionLoading === pickup.id
+                                    ? <ActivityIndicator size="small" color="#FFF" />
+                                    : <Text style={styles.confirmText}>To Deliver</Text>}
+                                </TouchableOpacity>
+                              </View>
+                            )}
                           </>
                         )}
                       </View>
@@ -353,6 +376,56 @@ export default function AllUpcomingPickups({ navigation }: any) {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* To Deliver Modal */}
+      <Modal
+        visible={deliveryModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeliveryModal(prev => ({ ...prev, visible: false }))}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <Ionicons name="car-outline" size={22} color="#00592d" style={{ marginRight: 8 }} />
+                <Text style={styles.modalTitle}>On The Way</Text>
+              </View>
+              <Text style={styles.modalSubtitle}>
+                Notify the staff that you are now heading to the warehouse.
+              </Text>
+              <Text style={styles.modalNoteLabel}>Tracking / Delivery Link <Text style={{ color: '#999', fontWeight: '400' }}>(optional)</Text></Text>
+              <TextInput
+                style={styles.modalNoteInput}
+                placeholder="Paste Lalamove link or tracking info..."
+                placeholderTextColor="#AAAAAA"
+                value={deliveryModal.note}
+                onChangeText={(text) => setDeliveryModal(prev => ({ ...prev, note: text }))}
+                multiline
+                numberOfLines={3}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={() => setDeliveryModal(prev => ({ ...prev, visible: false }))}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalConfirmBtn}
+                  onPress={submitDelivery}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalConfirmText}>Yes, Notify</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 }
@@ -575,5 +648,113 @@ const styles = StyleSheet.create({
     color: '#C62828',
     fontSize: 13,
     fontWeight: '700',
+  },
+  inTransitBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#E3F2FD',
+    borderWidth: 1,
+    borderColor: '#90CAF9',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  inTransitText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1565C0',
+  },
+  deliveryNoteWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 2,
+  },
+  deliveryNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#555',
+    lineHeight: 17,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalSheet: {
+    backgroundColor: '#FFF',
+    borderRadius: 18,
+    padding: 22,
+    width: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#00592d',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  modalNoteLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  modalNoteInput: {
+    borderWidth: 1,
+    borderColor: '#D0D0D0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#222',
+    backgroundColor: '#FAFAFA',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CCC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#777',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#00592d',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });

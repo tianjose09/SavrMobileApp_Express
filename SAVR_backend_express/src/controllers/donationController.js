@@ -17,6 +17,7 @@ db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS proof_of_tr
 db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS reference_number VARCHAR(255) DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE donation_deliveries ADD COLUMN IF NOT EXISTS transfer_datetime TIMESTAMP DEFAULT NULL`).catch(() => {});
 db.execute(`ALTER TABLE beneficiary_requests ADD COLUMN IF NOT EXISTS financial_received_at TIMESTAMP DEFAULT NULL`).catch(() => {});
+db.execute(`ALTER TABLE food_donation_records ADD COLUMN IF NOT EXISTS delivery_note TEXT DEFAULT NULL`).catch(() => {});
 
 async function logActivity(userId, type, title, description, icon = 'financialiconyellow', referenceId = null) {
   await db.execute(
@@ -854,7 +855,7 @@ exports.getUpcomingPickups = async (req, res) => {
     const [pickups] = await db.execute(
       `SELECT fdr.* FROM food_donation_records fdr
        WHERE fdr.user_id = ?
-         AND fdr.status IN ('pending','scheduled','approved')
+         AND fdr.status IN ('pending','scheduled','approved','in_transit')
          AND NOT EXISTS (
            SELECT 1 FROM truck_stops ts
            WHERE ts.reference_id::text = fdr.id::text
@@ -884,6 +885,7 @@ exports.getUpcomingPickups = async (req, res) => {
           return start12 + (end12 ? ` - ${end12}` : '');
         })(),
         pickup_address: p.pickup_address,
+        delivery_note: p.delivery_note || null,
         created_at: dayjs(p.created_at).format('MM/DD/YYYY'),
       })),
     });
@@ -937,6 +939,7 @@ exports.deletePickup = async (req, res) => {
 exports.confirmDelivery = async (req, res) => {
   const { id } = req.params;
   const uid = req.user.id;
+  const { note } = req.body;
 
   try {
     const [rows] = await db.execute(
@@ -948,6 +951,11 @@ exports.confirmDelivery = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Donation not found.' });
     }
 
+    await db.execute(
+      "UPDATE food_donation_records SET status = 'in_transit', delivery_note = ?, updated_at = NOW() WHERE id = ?",
+      [note || null, id]
+    );
+
     const [userRows] = await db.execute('SELECT name FROM users WHERE id = ?', [uid]);
     const donorName = userRows[0]?.name || 'A donor';
 
@@ -957,9 +965,10 @@ exports.confirmDelivery = async (req, res) => {
       hour: '2-digit', minute: '2-digit', hour12: true,
     });
 
+    const noteText = note ? ` Tracking link: ${note}` : '';
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
     const title = 'Donor On The Way';
-    const description = `${donorName} is on the way to the warehouse. (${phTime})`;
+    const description = `${donorName} is on the way to the warehouse. (${phTime})${noteText}`;
     for (const staff of staffRows) {
       await createNotification(staff.id, 'food', title, description, false);
     }
