@@ -356,18 +356,6 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                     <Text style={styles.deliveryNoteText} numberOfLines={2}>{pickup.delivery_note}</Text>
                                   </View>
                                 ) : null}
-                                <View style={styles.deliveryActions}>
-                                  <TouchableOpacity
-                                    style={[styles.actionBtn, styles.imHereBtn, { flex: 1 }]}
-                                    onPress={() => handleReportArrival(pickup)}
-                                    disabled={actionLoading !== null}
-                                    activeOpacity={0.8}
-                                  >
-                                    {actionLoading === pickup.id
-                                      ? <ActivityIndicator size="small" color="#00592d" />
-                                      : <Text style={styles.imHereText}>I'm Here</Text>}
-                                  </TouchableOpacity>
-                                </View>
                               </>
                             ) : (
                               <View style={styles.deliveryActions}>
