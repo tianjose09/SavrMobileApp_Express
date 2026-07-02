@@ -862,6 +862,7 @@ const styles = StyleSheet.create({
   },
   drivesScroll: {
     paddingRight: 16,
+    alignItems: 'flex-start',
   },
   driveCard: {
     width: 270,
