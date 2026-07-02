@@ -156,7 +156,13 @@ export default function DonorDashboard({ navigation }: any) {
         const earnedWithStatus = earnedBadges.map((b: any) => ({ ...b, isEarned: true }));
         const unearned = allBadges
           .filter((b: any) => !earnedBadges.some((eb: any) => eb.id === b.id))
-          .map((b: any) => ({ ...b, isEarned: false }));
+          .map((b: any) => ({ ...b, isEarned: false }))
+          .sort((a: any, b: any) => {
+            const ratioA = (parseFloat(a.progress) || 0) / (parseFloat(a.goal_value) || 1);
+            const ratioB = (parseFloat(b.progress) || 0) / (parseFloat(b.goal_value) || 1);
+            if (ratioA !== ratioB) return ratioB - ratioA;
+            return (parseFloat(a.goal_value) || 0) - (parseFloat(b.goal_value) || 0);
+          });
 
         const featured = [...earnedWithStatus, ...unearned].slice(0, 3);
         setFeaturedBadges(featured);
