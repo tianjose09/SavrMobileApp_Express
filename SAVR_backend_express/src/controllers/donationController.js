@@ -1320,6 +1320,9 @@ exports.submitBeneficiaryRequest = async (req, res) => {
 
 exports.getBeneficiaryRequests = async (req, res) => {
   try {
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  const baseUrl = process.env.APP_URL || `${proto}://${req.get('host')}`;
+
   const [requests] = await db.execute(
     "SELECT * FROM beneficiary_requests WHERE user_id = ? AND status != 'Deleted' ORDER BY created_at DESC",
     [req.user.id]
@@ -1369,16 +1372,23 @@ exports.getBeneficiaryRequests = async (req, res) => {
 
         if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
 
+        const toAbsoluteUrl = (path) => {
+          if (!path) return null;
+          if (path.startsWith('http://') || path.startsWith('https://')) return path;
+          return `${baseUrl}/storage/${path}`;
+        };
+
         if (financialItems.length > 0) {
           for (const fi of financialItems) {
+            const receiptUrl = toAbsoluteUrl(row.receipt_path || fi.receipt || row.proof_of_transfer || null);
             disbursementsByRequest[rid].push({
               id: row.delivery_id,
               delivery_id: row.delivery_id,
               amount: parseFloat(row.grant_amount || fi.qty || fi.amount || '0'),
               date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
               status: row.status,
-              proof_of_transfer: row.receipt_path || row.proof_of_transfer || null,
-              notes: row.notes || null,
+              proof_of_transfer: receiptUrl,
+              notes: row.notes || fi.note || fi.notes || null,
               reference_number: row.reference_number || null,
               transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
               confirmed: !!row.beneficiary_confirmed,
@@ -1387,13 +1397,14 @@ exports.getBeneficiaryRequests = async (req, res) => {
           }
         } else {
           // grant_amount set directly by staff with no delivery_items
+          const receiptUrl = toAbsoluteUrl(row.receipt_path || row.proof_of_transfer || null);
           disbursementsByRequest[rid].push({
             id: row.delivery_id,
             delivery_id: row.delivery_id,
             amount: parseFloat(row.grant_amount || '0'),
             date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
             status: row.status,
-            proof_of_transfer: row.receipt_path || row.proof_of_transfer || null,
+            proof_of_transfer: receiptUrl,
             notes: row.notes || null,
             reference_number: row.reference_number || null,
             transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
