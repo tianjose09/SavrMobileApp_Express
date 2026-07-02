@@ -558,7 +558,9 @@ export default function PkDashboard({ navigation }: any) {
                               </View>
                             )}
                           </View>
-                          <Text style={styles.actDesc} numberOfLines={2}>{act.description}</Text>
+                          <Text style={styles.actDesc} numberOfLines={2}>
+                            {act.description ? act.description.split('\n')[0] : ''}
+                          </Text>
                         </View>
                         <Text style={styles.actTime}>{act.time_ago}</Text>
                       </View>
