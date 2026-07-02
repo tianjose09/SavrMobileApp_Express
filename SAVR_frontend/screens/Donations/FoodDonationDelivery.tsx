@@ -193,7 +193,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
         <View style={styles.mapContainer}>
           <MapView
             style={styles.map}
-            initialRegion={warehouseLocation}
+            region={warehouseLocation}
             zoomEnabled={false}
             scrollEnabled={false}
             pitchEnabled={false}
