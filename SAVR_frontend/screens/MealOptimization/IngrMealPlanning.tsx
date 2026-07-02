@@ -49,6 +49,39 @@ const isMatch = (itemName: string, ingName: string): boolean => {
   return ingLower.includes(mainNoun);
 };
 
+const UNIT_OPTIONS = ['kg', 'pcs', 'L'];
+
+// Auto-select all non-expired, in-stock inventory items at their full available quantities.
+// Used for "Any Available Meal" mode where no specific recipe is targeted.
+function computeAutoSelection(items: any[]): Map<number, { inputQty: string; inputUnit: string }> {
+  const selection = new Map<number, { inputQty: string; inputUnit: string }>();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (const item of items) {
+    const parsedQty = parseQty(item.qty);
+    if (parsedQty.value <= 0) continue;
+    if (item.expiry) {
+      const expiryDate = new Date(item.expiry);
+      expiryDate.setHours(0, 0, 0, 0);
+      if (expiryDate < today) continue;
+    }
+    const normUnit = parsedQty.unit.toLowerCase();
+    let targetUnit = 'kg';
+    if (item.category === 'Canned Goods') {
+      targetUnit = 'pcs';
+    } else {
+      const found = UNIT_OPTIONS.find(o => o.toLowerCase() === normUnit);
+      if (found) targetUnit = found;
+    }
+    selection.set(item.id, {
+      inputQty: String(parsedQty.value),
+      inputUnit: targetUnit,
+    });
+  }
+  return selection;
+}
+
 // FEFO (First Expired, First Out) ingredient selection.
 // For each recipe ingredient, cascades through non-expired inventory batches
 // sorted by earliest expiry, allocating from each until the needed qty is met.
@@ -112,13 +145,13 @@ function computeFefoSelection(
 }
 
 export default function IngrMealPlanning({ route, navigation }: any) {
+  const isAnyAvailableMeal = (route.params?.mealName || '').toLowerCase() === 'any available meal';
+
   const [targetPax, setTargetPax] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [openUnitPickerId, setOpenUnitPickerId] = useState<number | null>(null);
-
-  const UNIT_OPTIONS = ['kg', 'pcs', 'L'];
 
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,14 +161,14 @@ export default function IngrMealPlanning({ route, navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setTargetPax('0');
+    setTargetPax(isAnyAvailableMeal ? String(parseFloat(route.params?.targetPax) || 0) : '0');
     setSearchQuery('');
     consumedParamsRef.current = null;
-    await fetchInventory(); // automatically re-fetches and un-checks all select boxes natively
+    await fetchInventory(undefined, isAnyAvailableMeal ? parseFloat(route.params?.targetPax) || 0 : undefined, isAnyAvailableMeal);
     setRefreshing(false);
   };
 
-  const fetchInventory = async (recipeIngredients?: any[], targetPaxVal?: number) => {
+  const fetchInventory = async (recipeIngredients?: any[], targetPaxVal?: number, autoSelectAll?: boolean) => {
     setIsLoading(true);
     try {
       const res = await ApiService.getInventory();
@@ -145,9 +178,11 @@ export default function IngrMealPlanning({ route, navigation }: any) {
       } else {
         throw new Error('API not available yet');
       }
-      const fefoSelection = recipeIngredients
-        ? computeFefoSelection(items, recipeIngredients, targetPaxVal || 0)
-        : new Map<number, { inputQty: string; inputUnit: string }>();
+      const fefoSelection = autoSelectAll
+        ? computeAutoSelection(items)
+        : recipeIngredients
+          ? computeFefoSelection(items, recipeIngredients, targetPaxVal || 0)
+          : new Map<number, { inputQty: string; inputUnit: string }>();
       // Map data to inject UI selection states
       const formatted = items.map((item: any) => {
         const parsedQty = parseQty(item.qty);
@@ -196,9 +231,11 @@ export default function IngrMealPlanning({ route, navigation }: any) {
         ];
         await StorageUtils.setItem('MOCK_INVENTORY_LIST', JSON.stringify(items));
       }
-      const fefoSelection = recipeIngredients
-        ? computeFefoSelection(items, recipeIngredients, targetPaxVal || 0)
-        : new Map<number, { inputQty: string; inputUnit: string }>();
+      const fefoSelection = autoSelectAll
+        ? computeAutoSelection(items)
+        : recipeIngredients
+          ? computeFefoSelection(items, recipeIngredients, targetPaxVal || 0)
+          : new Map<number, { inputQty: string; inputUnit: string }>();
       const formatted = items.map((item: any) => {
         const parsedQty = parseQty(item.qty);
         const outOfStock = parsedQty.value === 0;
@@ -267,35 +304,40 @@ export default function IngrMealPlanning({ route, navigation }: any) {
           setSearchQuery('');
           setSelectedCategory(null);
 
-          let matchingIngredients: any[] = [];
-          try {
-            const recipeRes = await ApiService.getRecipes();
-            if (recipeRes.data && recipeRes.data.success) {
-              const recipes = recipeRes.data.data || [];
-              const matchingRecipe = recipes.find((r: any) => 
-                r.name.toLowerCase() === routeMeal.toLowerCase()
-              );
-              if (matchingRecipe) {
-                matchingIngredients = matchingRecipe.ingredients || [];
+          if (isAnyAvailableMeal) {
+            // Auto-select all non-expired inventory — no recipe lookup needed
+            await fetchInventory(undefined, paxNum, true);
+          } else {
+            let matchingIngredients: any[] = [];
+            try {
+              const recipeRes = await ApiService.getRecipes();
+              if (recipeRes.data && recipeRes.data.success) {
+                const recipes = recipeRes.data.data || [];
+                const matchingRecipe = recipes.find((r: any) =>
+                  r.name.toLowerCase() === routeMeal.toLowerCase()
+                );
+                if (matchingRecipe) {
+                  matchingIngredients = matchingRecipe.ingredients || [];
+                }
+              }
+            } catch (err) {
+              console.log('Failed to fetch recipes for auto-selection, using fallback matching', err);
+              const fallbacks: Record<string, string[]> = {
+                'lugaw': ['rice', 'chicken', 'garlic', 'onion', 'ginger'],
+                'arroz caldo': ['rice', 'chicken', 'garlic', 'onion', 'ginger', 'eggs'],
+                'champorado': ['rice', 'milk'],
+                'chicken adobo': ['chicken', 'garlic', 'onion'],
+                'sopas': ['milk', 'chicken', 'carrots', 'cabbage'],
+                'sandwich': ['bread', 'eggs'],
+              };
+              const lowerMeal = routeMeal.toLowerCase();
+              const matchingKey = Object.keys(fallbacks).find(k => lowerMeal.includes(k));
+              if (matchingKey) {
+                matchingIngredients = fallbacks[matchingKey].map(name => ({ ingredient_name: name, qty_per_serving: 0.15, unit: 'kg' }));
               }
             }
-          } catch (err) {
-            console.log('Failed to fetch recipes for auto-selection, using fallback matching', err);
-            const fallbacks: Record<string, string[]> = {
-              'lugaw': ['rice', 'chicken', 'garlic', 'onion', 'ginger'],
-              'arroz caldo': ['rice', 'chicken', 'garlic', 'onion', 'ginger', 'eggs'],
-              'champorado': ['rice', 'milk'],
-              'chicken adobo': ['chicken', 'garlic', 'onion'],
-              'sopas': ['milk', 'chicken', 'carrots', 'cabbage'],
-              'sandwich': ['bread', 'eggs'],
-            };
-            const lowerMeal = routeMeal.toLowerCase();
-            const matchingKey = Object.keys(fallbacks).find(k => lowerMeal.includes(k));
-            if (matchingKey) {
-              matchingIngredients = fallbacks[matchingKey].map(name => ({ ingredient_name: name, qty_per_serving: 0.15, unit: 'kg' }));
-            }
+            await fetchInventory(matchingIngredients, paxNum);
           }
-          await fetchInventory(matchingIngredients, paxNum);
         } else if (!paramKey) {
           // Normal navigation (no params from dashboard) – only reset if we haven't just consumed params
           if (!consumedParamsRef.current) {
@@ -415,6 +457,7 @@ export default function IngrMealPlanning({ route, navigation }: any) {
       targetPax: pax,
       selectedIds: selectedIds,
       mealRequestId: route.params?.mealRequestId,
+      mode: isAnyAvailableMeal ? 'any_available' : undefined,
       selectedIngredients: selectedItems.map(i => ({
         id: i.id,
         name: i.name,
@@ -505,6 +548,19 @@ export default function IngrMealPlanning({ route, navigation }: any) {
             <Image source={require('../../assets/images/ingrmealscaling_icon.png')} style={{ width: 44, height: 44, tintColor: '#156133' }} resizeMode="contain" />
             <Text style={styles.pageTitleText}>Meal Planning & Scaling</Text>
           </View>
+
+          {/* ANY AVAILABLE MEAL MODE BANNER */}
+          {isAnyAvailableMeal && (
+            <View style={styles.anyAvailableBanner}>
+              <MaterialCommunityIcons name="food-variant" size={20} color="#5a3800" style={{ marginRight: 10, marginTop: 1 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.anyAvailableBannerTitle}>Any Available Meal Mode</Text>
+                <Text style={styles.anyAvailableBannerText}>
+                  All available inventory has been auto-selected. The algorithm will rank meals by expiry urgency, ingredient coverage, and serving capacity to minimize food waste.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* BENEFICIARY INFO */}
           <View style={styles.sectionHeader}>
@@ -1506,6 +1562,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#b91c1c',
+  },
+  anyAvailableBanner: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fdf6ec',
+    borderWidth: 1.5,
+    borderColor: '#e8c87a',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+  },
+  anyAvailableBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#8A3E08',
+    marginBottom: 3,
+  },
+  anyAvailableBannerText: {
+    fontSize: 12,
+    color: '#7a5c10',
+    lineHeight: 17,
   },
   noAvailableBanner: {
     flexDirection: 'row',

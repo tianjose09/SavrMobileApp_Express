@@ -92,6 +92,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
   const selectedIds = route.params?.selectedIds || [];
   const selectedIngredients = route.params?.selectedIngredients || [];
   const mealRequestId: number | undefined = route.params?.mealRequestId;
+  const optimizeMode: string | undefined = route.params?.mode;
 
   const [isLoading, setIsLoading] = useState(true);
   const [fullMatchMeals, setFullMatchMeals] = useState<any[]>([]);
@@ -112,6 +113,7 @@ export default function MealOptimizationResults({ route, navigation }: any) {
         target_pax: parsedPax,
         ingredient_ids: selectedIds,
         selected_ingredients: selectedIngredients,
+        ...(optimizeMode ? { mode: optimizeMode } : {}),
       });
 
       if (res.data && res.data.success) {

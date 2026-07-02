@@ -128,6 +128,8 @@ const WEIGHT_EXPIRY = 0.3;
 exports.optimizeMeals = async (req, res) => {
   const targetPax = Math.max(1, parseInt(req.body.target_pax) || 1);
   const selectedIngredients = req.body.selected_ingredients || [];
+  const mode = (req.body.mode || 'recipe').toLowerCase();
+  const isAnyAvailable = mode === 'any_available';
 
   if (!selectedIngredients.length) {
     return res.status(422).json({ success: false, message: 'No ingredients provided.' });
@@ -142,13 +144,16 @@ exports.optimizeMeals = async (req, res) => {
     if (!name) continue;
 
     let daysRemaining = 999;
+    let daysRaw = null;
     if (item.expiry) {
       try {
         const expiry = dayjs(item.expiry);
-        const diff = expiry.diff(today, 'day');
-        daysRemaining = Math.max(0, diff);
+        daysRaw = expiry.diff(today, 'day');
+        daysRemaining = Math.max(0, daysRaw);
       } catch {}
     }
+    // In any_available mode, expired items are excluded entirely
+    if (isAnyAvailable && daysRaw !== null && daysRaw < 0) continue;
 
     selected[name] = {
       inputQty: parseFloat(item.inputQty) || 0,
@@ -258,7 +263,26 @@ exports.optimizeMeals = async (req, res) => {
     const maxServings = Math.min(rawMax, targetPax);
     const paxScore = targetPax > 0 ? maxServings / targetPax : 0;
     const expiryScore = Math.max(0, 1 - minDays / 90);
-    const finalScore = WEIGHT_PAX * paxScore + WEIGHT_EXPIRY * expiryScore;
+
+    let finalScore;
+    if (isAnyAvailable) {
+      // Coverage: avg(min(available / needed, 1.0)) across all required recipe ingredients
+      const requiredIngs = mealIngredients.filter(ing => !ing.is_optional);
+      let totalCoverage = 0;
+      for (const ing of requiredIngs) {
+        const m = matchedIngredients.find(mi => mi.ingredient.id === ing.id);
+        if (m) {
+          const needed = toBaseUnit(ing.qty_per_serving * targetPax, ing.unit);
+          const available = toBaseUnit(m.selData.inputQty, m.selData.unit);
+          totalCoverage += needed > 0 ? Math.min(available / needed, 1.0) : 1.0;
+        }
+        // unmatched required ingredients contribute 0 to coverage
+      }
+      const coverageScore = requiredIngs.length > 0 ? totalCoverage / requiredIngs.length : 0;
+      finalScore = 0.5 * expiryScore + 0.3 * coverageScore + 0.2 * paxScore;
+    } else {
+      finalScore = WEIGHT_PAX * paxScore + WEIGHT_EXPIRY * expiryScore;
+    }
 
     plans.push({
       meal,
