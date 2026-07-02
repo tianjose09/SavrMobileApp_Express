@@ -158,13 +158,13 @@ export default function ChooseDonation({ navigation }: any) {
                       <View style={[
                         styles.miniModeBadge,
                         { 
-                          backgroundColor: item.mode === 'delivery' ? '#EFF6FF' : '#F0FDF4',
-                          borderColor: item.mode === 'delivery' ? '#BFDBFE' : '#BBF7D0'
+                          backgroundColor: item.mode === 'delivery' ? '#F5F3FF' : '#F0FDF4',
+                          borderColor: item.mode === 'delivery' ? '#DDD6FE' : '#BBF7D0'
                         }
                       ]}>
                         <Text style={[
                           styles.miniModeText,
-                          { color: item.mode === 'delivery' ? '#1D4ED8' : '#15803D' }
+                          { color: item.mode === 'delivery' ? '#6D28D9' : '#15803D' }
                         ]}>
                           {item.mode === 'delivery' ? 'Delivery' : 'Pickup'}
                         </Text>
