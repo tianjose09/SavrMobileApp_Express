@@ -70,7 +70,7 @@ db.execute(`
 
 exports.index = async (req, res) => {
   const [items] = await db.execute(
-    "SELECT * FROM food_inventory ORDER BY food_name"
+    "SELECT * FROM food_inventory WHERE meal_type IS DISTINCT FROM 'Prep Meal' ORDER BY food_name"
   );
 
   return res.json({
