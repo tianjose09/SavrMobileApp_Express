@@ -537,9 +537,9 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         formData.append('pickup_longitude', location.longitude.toString());
         formData.append('pickup_address', pickupAddress.trim() || `${location.latitude}, ${location.longitude}`);
       } else {
-        formData.append('pickup_latitude', '14.5332');
-        formData.append('pickup_longitude', '121.0189');
-        formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 , Metro Manila, Philippines');
+        formData.append('pickup_latitude', '14.4378');
+        formData.append('pickup_longitude', '120.9836');
+        formData.append('pickup_address', '107 Marcos Alvarez Avenue, Talon Kuatro, Las Piñas 1747, Metro Manila, Philippines');
       }
 
       const finalDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
@@ -589,7 +589,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
         } else {
           Alert.alert(
             'Delivery Scheduled!',
-            `You have scheduled to deliver ${donatedItemsStr}. Please deliver to our warehouse at Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232 during your selected slot. Thank you for your contribution!`,
+            `You have scheduled to deliver ${donatedItemsStr}. Please deliver to our warehouse at 107 Marcos Alvarez Avenue, Talon Kuatro, Las Piñas 1747 during your selected slot. Thank you for your contribution!`,
             [{ 
               text: 'OK', 
               onPress: () => {
@@ -716,7 +716,7 @@ export default function FoodDonationPickup({ route, navigation }: any) {
             <View>
               <View style={styles.warehouseAddressWrap}>
                 <Ionicons name="location" size={22} color="#00592d" style={{ marginRight: 6, flexShrink: 0, alignSelf: 'flex-start', marginTop: 2 }} />
-                <Text style={styles.warehouseAddressText}>Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232, Metro Manila, Philippines</Text>
+                <Text style={styles.warehouseAddressText}>107 Marcos Alvarez Avenue, Talon Kuatro, Las Piñas 1747, Metro Manila, Philippines</Text>
               </View>
               <Text style={styles.deliveryHintText}>
                 Please bring your donation to this address on your selected date and time.

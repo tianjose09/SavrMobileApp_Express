@@ -10,10 +10,10 @@ import { ApiService } from '../../services/api';
 import NotificationBell from '../../components/NotificationBell';
 
 export default function FoodDonationDelivery({ route, navigation }: any) {
-  // Exact coordinates for Room 300, DHI Building, No. 2 Lapu Lapu Ave, Magallanes, Makati City
+  // Exact coordinates for 107 Marcos Alvarez Avenue, Talon Kuatro, Las Piñas
   const warehouseLocation = {
-    latitude: 14.5332,
-    longitude: 121.0189,
+    latitude: 14.4378,
+    longitude: 120.9836,
     latitudeDelta: 0.008,
     longitudeDelta: 0.008,
   };
@@ -97,9 +97,9 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
     try {
       const formData = new FormData();
       formData.append('schedule_type', 'delivery');
-      formData.append('pickup_address', 'Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232, Metro Manila, Philippines');
-      formData.append('pickup_latitude', '14.5332');
-      formData.append('pickup_longitude', '121.0189');
+      formData.append('pickup_address', '107 Marcos Alvarez Avenue, Talon Kuatro, Las Piñas 1747, Metro Manila, Philippines');
+      formData.append('pickup_latitude', '14.4378');
+      formData.append('pickup_longitude', '120.9836');
 
       const dateStr = deliveryDate.toISOString().split('T')[0];
       const fromStr = deliveryTimeFrom.toTimeString().split(' ')[0].substring(0, 5);
@@ -210,7 +210,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
             <Ionicons name="location" size={20} color="#00592d" style={{ marginRight: 6, marginTop: 1 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.addressTitle}>HQ Drop-off Point</Text>
-              <Text style={styles.addressText}>Room 300, DHI Building, No. 2 Lapu Lapu Avenue, Magallanes, Makati City 1232, Metro Manila, Philippines.</Text>
+              <Text style={styles.addressText}>107 Marcos Alvarez Avenue, Talon Kuatro, Las Piñas 1747, Metro Manila, Philippines.</Text>
             </View>
           </View>
           <Text style={styles.deliveryHintText}>
