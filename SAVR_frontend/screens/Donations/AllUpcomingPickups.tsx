@@ -379,7 +379,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                                 >
                                   {actionLoading === pickup.id
                                     ? <ActivityIndicator size="small" color="#FFF" />
-                                    : <Text style={styles.confirmText}>To Deliver</Text>}
+                                    : <Text style={styles.confirmText}>Deliver Now</Text>}
                                 </TouchableOpacity>
                               </View>
                             )}
@@ -396,7 +396,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
         )}
       </SafeAreaView>
 
-      {/* To Deliver Modal */}
+      {/* Deliver Now Modal */}
       <Modal
         visible={deliveryModal.visible}
         transparent
