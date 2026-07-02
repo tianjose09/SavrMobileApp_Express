@@ -771,6 +771,7 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
         })()}
       </Text>
 
+      {(mealPax > 0 && targetPax > 0 && mealPax < targetPax) || meal.comment_title || meal.comment_desc ? (
       <View style={[styles.commentBox, isSuggested && styles.commentBoxSuggested]}>
         {mealPax > 0 && targetPax > 0 && mealPax < targetPax ? (
           <>
@@ -838,10 +839,13 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
             {meal.comment_title ? (
               <Text style={styles.commentTitle}>{meal.comment_title}</Text>
             ) : null}
-            <Text style={styles.commentText}>{meal.comment_desc}</Text>
+            {meal.comment_desc ? (
+              <Text style={styles.commentText}>{meal.comment_desc}</Text>
+            ) : null}
           </>
         )}
       </View>
+      ) : null}
 
       {/* Prepare This Meal Button */}
       {navigation && (
