@@ -118,9 +118,10 @@ export default function ServiceDonation({ navigation }: any) {
     return d;
   });
 
-  // Text inputs for Transportation date fields (MM/DD/YYYY)
+  // Text inputs for date fields (MM/DD/YYYY)
   const [deliverAtInput, setDeliverAtInput] = useState('');
   const [returnAtInput, setReturnAtInput] = useState('');
+  const [preferredDateInput, setPreferredDateInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState({ visible: false, title: '', message: '' });
@@ -166,6 +167,36 @@ export default function ServiceDonation({ navigation }: any) {
   const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 
   /** Auto-inserts slashes to format MM/DD/YYYY as the user types */
+  const handleSetDate = (d: Date | null) => {
+    setDate(d);
+    if (d) {
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const y = d.getFullYear();
+      setPreferredDateInput(`${m}/${day}/${y}`);
+    } else {
+      setPreferredDateInput('');
+    }
+  };
+
+  const handlePreferredDateInput = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    let formatted = digits;
+    if (digits.length > 2 && digits.length <= 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+    setPreferredDateInput(formatted);
+    if (formatted.length === 10) {
+      const [mm, dd, yyyy] = formatted.split('/');
+      const d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+      if (!isNaN(d.getTime())) setDate(d);
+    } else {
+      setDate(null);
+    }
+  };
+
   const handleDeliverAtInput = (text: string) => {
     const digits = text.replace(/[^0-9]/g, '');
     let formatted = digits;
@@ -748,26 +779,32 @@ export default function ServiceDonation({ navigation }: any) {
                 {(frequency === 'Monthly' || frequency === 'One-Time') && (
                   <View style={[styles.inputGroup, { width: '100%', marginBottom: 15 }]}>
                     <Text style={styles.label}>Preferred Date<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.inputBox,
-                        { paddingLeft: 8, paddingRight: 6, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }
-                      ]}
-                      onPress={() => {
-                        if (Platform.OS === 'ios') {
-                          setTempDate(date || new Date());
-                          setShowIOSDate(true);
-                        } else {
-                          setDatePickerMode('date');
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.inputInner, { textAlign: 'left', lineHeight: 38, fontSize: 11, paddingRight: 18 }]}>
-                        {formatDateMMDDYYYY(date)}
-                      </Text>
-                      <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.7)" style={{ position: 'absolute', right: 4 }} />
-                    </TouchableOpacity>
+                    <View style={{ position: 'relative', justifyContent: 'center' }}>
+                      <View style={[styles.inputBox, { paddingRight: 35 }]}>
+                        <TextInput
+                          style={styles.inputInner}
+                          placeholder="mm/dd/yyyy"
+                          placeholderTextColor="rgba(255,255,255,0.5)"
+                          value={preferredDateInput}
+                          onChangeText={handlePreferredDateInput}
+                          keyboardType="number-pad"
+                          maxLength={10}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (Platform.OS === 'ios') {
+                            setTempDate(date || new Date());
+                            setShowIOSDate(true);
+                          } else {
+                            setDatePickerMode('date');
+                          }
+                        }}
+                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 35, justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.8)" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
 
@@ -944,7 +981,7 @@ export default function ServiceDonation({ navigation }: any) {
             const currentMode = datePickerMode;
             setDatePickerMode(null);
             if (event.type === 'set' && selectedDate) {
-              if (currentMode === 'date') setDate(selectedDate);
+              if (currentMode === 'date') handleSetDate(selectedDate);
               else if (currentMode === 'starts_at') setStartsAt(selectedDate);
               else if (currentMode === 'ends_at') setEndsAt(selectedDate);
             }
@@ -959,7 +996,7 @@ export default function ServiceDonation({ navigation }: any) {
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowIOSDate(false)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
               <Text style={styles.modalTitle}>Select Date</Text>
-              <TouchableOpacity onPress={() => { setDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { handleSetDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
               <DateTimePicker value={tempDate} mode="date" display="spinner" onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />

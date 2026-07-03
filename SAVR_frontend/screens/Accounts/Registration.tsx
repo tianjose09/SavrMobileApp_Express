@@ -25,7 +25,13 @@ export default function Registration({ navigation }: any) {
         {/* BACK BUTTON */}
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation?.goBack?.()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('LandingPage');
+            }
+          }}
           activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={26} color="#FFF" />

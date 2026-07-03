@@ -338,18 +338,7 @@ export default function LandingPage({ navigation }: any) {
 
         {/* Cards — scroll-driven slide-up */}
         <Animated.View
-          style={[
-            styles.cardsColumn,
-            {
-              transform: [{
-                translateY: scrollY.interpolate({
-                  inputRange: [0, 300],
-                  outputRange: [60, 0],
-                  extrapolate: 'clamp'
-                })
-              }]
-            }
-          ]}
+          style={styles.cardsColumn}
         >
           <View style={styles.actionCard}>
             <View style={styles.cardHeader}>
@@ -482,6 +471,18 @@ export default function LandingPage({ navigation }: any) {
           </Animated.ScrollView>
         </View>
       </SafeAreaView>
+
+      {insets.bottom > 0 && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: insets.bottom,
+          backgroundColor: '#FFFFFF',
+          zIndex: 998,
+        }} />
+      )}
 
       <View style={[styles.bottomNav, { bottom: insets.bottom }]}>
         {[
@@ -1002,10 +1003,11 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     backgroundColor: '#FCFAF5',
-    paddingVertical: 30,
+    paddingTop: 12,
+    paddingBottom: 30,
     paddingHorizontal: 20,
     borderRadius: 20,
-    marginTop: 10,
+    marginTop: 0,
   },
 
   getInvolvedBadge: {
@@ -1036,7 +1038,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 22,
-    marginBottom: 28,
+    marginBottom: 10,
     paddingHorizontal: 10,
   },
 
@@ -1044,6 +1046,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'column',
     gap: 16,
+    marginTop: -8,
   },
 
   actionCard: {

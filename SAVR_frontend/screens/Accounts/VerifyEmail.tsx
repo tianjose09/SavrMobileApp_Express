@@ -141,10 +141,11 @@ export default function VerifyEmail({ route, navigation }: any) {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/backgrounds/register_bg.png')}
+      source={require('../../assets/images/backgrounds/registration_bg.png')}
       style={styles.background}
       resizeMode="cover"
     >
+      <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -209,7 +210,13 @@ export default function VerifyEmail({ route, navigation }: any) {
 
         <TouchableOpacity
           style={styles.backGlobalButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Login');
+            }
+          }}
           activeOpacity={0.8}
         >
           <Ionicons name="chevron-back" size={32} color="#FFF" />
@@ -224,6 +231,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(22, 105, 58, 0.58)',
   },
   safeArea: {
     flex: 1,

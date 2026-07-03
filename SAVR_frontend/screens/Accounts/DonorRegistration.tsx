@@ -119,6 +119,15 @@ export default function DonorRegistration({ navigation }: any) {
       return;
     }
 
+    if (form.password.length < 12) {
+      Alert.alert('Weak Password', 'Password must be at least 12 characters.');
+      return;
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+    if (!passwordRegex.test(form.password)) {
+      Alert.alert('Weak Password', 'Password must contain uppercase, lowercase, a number, and a special character.');
+      return;
+    }
     if (form.password !== form.password_confirmation) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
@@ -216,7 +225,13 @@ export default function DonorRegistration({ navigation }: any) {
       <SafeAreaView style={styles.safeArea}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Registration');
+            }
+          }}
           activeOpacity={0.8}
         >
           <Ionicons name="chevron-back" size={26} color="#FFFFFF" />

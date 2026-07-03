@@ -789,12 +789,14 @@ exports.registerBeneficiary = async (req, res) => {
   if (!password || password.length < 12) errors.password = ['Password must be at least 12 characters.'];
   else if (password !== password_confirmation) errors.password = ['Passwords do not match.'];
   else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(password)) errors.password = ['Password must contain uppercase, lowercase, a number, and a special character.'];
-  if (!house_no || !house_no.trim()) errors.house_no = ['House number is required.'];
-  if (!street) errors.street = ['Street is required.'];
-  if (!barangay) errors.barangay = ['Barangay is required.'];
-  if (!city_municipality) errors.city_municipality = ['City/municipality is required.'];
-  if (!province_region) errors.province_region = ['Province/region is required.'];
-  if (!postal_zip_code) errors.postal_zip_code = ['Postal/zip code is required.'];
+  if (beneficiary_type === 'individual') {
+    if (!house_no || !house_no.trim()) errors.house_no = ['House number is required.'];
+    if (!street) errors.street = ['Street is required.'];
+    if (!barangay) errors.barangay = ['Barangay is required.'];
+    if (!city_municipality) errors.city_municipality = ['City/municipality is required.'];
+    if (!province_region) errors.province_region = ['Province/region is required.'];
+    if (!postal_zip_code) errors.postal_zip_code = ['Postal/zip code is required.'];
+  }
 
   if (beneficiary_type === 'organization') {
     if (!organization_name) errors.organization_name = ['Organization name is required.'];
@@ -833,7 +835,7 @@ exports.registerBeneficiary = async (req, res) => {
       await conn.execute(
         `INSERT INTO beneficiary_organizations (user_id, org_name, website, industry, type, house, street, barangay, city, province, zip, contact, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [userId, organization_name, website_url || null, industry_sector, organization_type, house_no, street, barangay, city_municipality, province_region, postal_zip_code, contact_number]
+        [userId, organization_name, website_url || null, industry_sector, organization_type, house_no || null, street || null, barangay || null, city_municipality || null, province_region || null, postal_zip_code || null, contact_number]
       );
     } else {
       await conn.execute(

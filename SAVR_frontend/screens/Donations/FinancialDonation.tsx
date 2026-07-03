@@ -49,6 +49,7 @@ export default function FinancialDonation({ navigation }: any) {
             index: 0,
             routes: [{ name: 'ChooseDonation' }],
           });
+          navigation.navigate('Home');
         }
       }]
     );
