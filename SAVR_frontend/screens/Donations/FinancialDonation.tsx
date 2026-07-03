@@ -47,8 +47,9 @@ export default function FinancialDonation({ navigation }: any) {
         onPress: () => {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'MainDrawer' }],
+            routes: [{ name: 'ChooseDonation' }],
           });
+          navigation.navigate('Home');
         }
       }]
     );
