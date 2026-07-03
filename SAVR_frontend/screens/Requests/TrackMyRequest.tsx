@@ -549,26 +549,6 @@ export default function TrackMyRequest({ route, navigation }: any) {
                         )}
                       </View>
 
-                      {/* I Received This — confirms directly, no modal */}
-                      {!d.confirmed && ['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && (
-                        <TouchableOpacity
-                          style={[styles.receivedBtn, { marginTop: 12 }]}
-                          activeOpacity={0.82}
-                          onPress={() =>
-                            Alert.alert(
-                              'Confirm Receipt',
-                              'Are you sure you have received this transfer?',
-                              [
-                                { text: 'Not Yet', style: 'cancel' },
-                                { text: 'Yes, Received', onPress: () => handleSubmitFinancialReceipt(req.id, d.id ?? i) },
-                              ]
-                            )
-                          }
-                        >
-                          <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
-                          <Text style={styles.receivedBtnText}>I Received This</Text>
-                        </TouchableOpacity>
-                      )}
 
                       {/* Already confirmed badge */}
                       {d.confirmed && (
@@ -639,7 +619,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
           </View>
         )}
 
-        {/* I Received This – always shown for Approved financial requests not yet confirmed */}
+        {/* I Received This – only when staff has sent a grant */}
         {!isFood && effectiveStatus === 'Approved' && !req.financial_received_at && (() => {
           let disbursements: any[] = [];
           try {
@@ -648,7 +628,21 @@ export default function TrackMyRequest({ route, navigation }: any) {
             if (!Array.isArray(disbursements)) disbursements = [];
           } catch { disbursements = []; }
 
-          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed) || disbursements[disbursements.length - 1] || null;
+          const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed) || null;
+
+          if (!lastUnconfirmed) {
+            // Staff hasn't granted yet — show waiting state
+            return (
+              <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 }}>
+                  <Ionicons name="time-outline" size={16} color="#92400E" />
+                  <Text style={{ fontSize: 13, color: '#92400E', fontWeight: '600' }}>
+                    Awaiting financial grant from staff
+                  </Text>
+                </View>
+              </View>
+            );
+          }
 
           return (
             <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
@@ -660,12 +654,12 @@ export default function TrackMyRequest({ route, navigation }: any) {
                     setDisbursementModal({
                       visible: true,
                       requestId: req.id,
-                      disbursementId: lastUnconfirmed?.id ?? null,
+                      disbursementId: lastUnconfirmed.id ?? null,
                       accountNo: req.account_number || null,
-                      refNo: lastUnconfirmed?.reference_no || lastUnconfirmed?.reference_number || null,
-                      amount: parseFloat(lastUnconfirmed?.amount || req.amount || '0'),
-                      proofUri: lastUnconfirmed?.proof_photo || lastUnconfirmed?.proof_of_transfer || null,
-                      notes: lastUnconfirmed?.notes || null,
+                      refNo: lastUnconfirmed.reference_no || lastUnconfirmed.reference_number || null,
+                      amount: parseFloat(lastUnconfirmed.amount || req.amount || '0'),
+                      proofUri: lastUnconfirmed.proof_photo || lastUnconfirmed.proof_of_transfer || null,
+                      notes: lastUnconfirmed.notes || null,
                     });
                   }}
                 >
