@@ -119,8 +119,8 @@ export default function DonorRegistration({ navigation }: any) {
       return;
     }
 
-    if (form.password.length < 12) {
-      Alert.alert('Weak Password', 'Password must be at least 12 characters.');
+    if (form.password.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters.');
       return;
     }
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;

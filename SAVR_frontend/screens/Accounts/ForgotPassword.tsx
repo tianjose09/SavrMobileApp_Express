@@ -224,7 +224,7 @@ export default function ForgotPassword({ navigation }: any) {
 
             {step === 3 && (
               <View>
-                <Text style={styles.subtitle}>Create a new secure password. (min 12 chars)</Text>
+                <Text style={styles.subtitle}>Create a new secure password. (min 8 chars)</Text>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>New Password</Text>

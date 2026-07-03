@@ -36,8 +36,8 @@ export default function PkRegistration({ navigation }: any) {
       return;
     }
 
-    if (formData.password.length < 12) {
-      Alert.alert('Weak Password', 'Password must be at least 12 characters.');
+    if (formData.password.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters.');
       return;
     }
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
