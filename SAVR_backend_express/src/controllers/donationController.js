@@ -1384,9 +1384,9 @@ exports.getBeneficiaryRequests = async (req, res) => {
   const disbursementsByRequest = {};
   if (requestIds.length > 0) {
     try {
-      const placeholders = requestIds.map(() => '?').join(',');
       let deliveryRows = [];
       try {
+        // Use ANY($1) with a cast so PostgreSQL accepts the JS array directly
         [deliveryRows] = await db.execute(`
           SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
                  del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
@@ -1394,10 +1394,11 @@ exports.getBeneficiaryRequests = async (req, res) => {
                  del.grant_amount, del.receipt_path, del.notes
           FROM donation_deliveries del
           JOIN donation_drives dd ON dd.id = del.donation_drive_id
-          WHERE dd.beneficiary_request_id IN (${placeholders})
+          WHERE dd.beneficiary_request_id = ANY(?)
           ORDER BY del.created_at ASC
-        `, requestIds);
-      } catch {
+        `, [requestIds]);
+      } catch (innerErr) {
+        console.error('[getMyRequests] delivery query error:', innerErr.message);
         // Fallback: fetch without newer columns
         [deliveryRows] = await db.execute(`
           SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
@@ -1405,10 +1406,11 @@ exports.getBeneficiaryRequests = async (req, res) => {
                  del.beneficiary_confirmed, del.beneficiary_confirmed_at
           FROM donation_deliveries del
           JOIN donation_drives dd ON dd.id = del.donation_drive_id
-          WHERE dd.beneficiary_request_id IN (${placeholders})
+          WHERE dd.beneficiary_request_id = ANY(?)
           ORDER BY del.created_at ASC
-        `, requestIds);
+        `, [requestIds]);
       }
+      console.log('[getMyRequests] deliveryRows count:', deliveryRows.length, '| requestIds:', requestIds);
 
       for (const row of deliveryRows) {
         const rid = row.beneficiary_request_id;
