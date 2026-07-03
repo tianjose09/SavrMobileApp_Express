@@ -1931,7 +1931,7 @@ exports.confirmDisbursement = async (req, res) => {
     // Validate the disbursement belongs to this request via the drive join;
     // donation_deliveries links to donation_drives, not directly to beneficiary_requests
     const [deliveryRows] = await db.execute(`
-      SELECT del.id FROM donation_deliveries del
+      SELECT del.id, del.donation_drive_id FROM donation_deliveries del
       JOIN donation_drives dd ON dd.id = del.donation_drive_id
       WHERE del.id = ? AND dd.beneficiary_request_id = ?
     `, [disbursementId, id]);
@@ -1940,14 +1940,22 @@ exports.confirmDisbursement = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Disbursement not found.' });
     }
 
+    const driveId = deliveryRows[0].donation_drive_id;
+
     await db.execute(
       "UPDATE donation_deliveries SET received_at = NOW(), status = 'received', updated_at = NOW() WHERE id = ?",
       [disbursementId]
     );
 
-    // Also stamp the parent request so the dashboard can show financial_received_at
+    // Mark the donation drive as completed so it no longer appears as active
     await db.execute(
-      "UPDATE beneficiary_requests SET financial_received_at = NOW(), updated_at = NOW() WHERE id = ?",
+      "UPDATE donation_drives SET status = 'Completed', updated_at = NOW() WHERE id = ?",
+      [driveId]
+    );
+
+    // Stamp the parent request with receipt time and mark it completed
+    await db.execute(
+      "UPDATE beneficiary_requests SET financial_received_at = NOW(), status = 'Completed', updated_at = NOW() WHERE id = ?",
       [id]
     );
 
