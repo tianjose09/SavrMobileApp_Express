@@ -1403,7 +1403,10 @@ exports.getBeneficiaryRequests = async (req, res) => {
       for (const row of deliveryRows) {
         const rid = row.beneficiary_request_id;
         let items = [];
-        try { items = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : (row.delivery_items || []); } catch {}
+        try {
+          const parsed = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : row.delivery_items;
+          items = Array.isArray(parsed) ? parsed : [];
+        } catch {}
         const financialItems = items.filter((item) => item.type === 'financial');
 
         // Include row if it has financial delivery_items OR if staff set grant_amount directly
