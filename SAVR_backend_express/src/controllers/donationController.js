@@ -1956,22 +1956,37 @@ exports.confirmDisbursement = async (req, res) => {
 
     const driveId = deliveryRows[0].donation_drive_id;
 
-    await db.execute(
-      "UPDATE donation_deliveries SET received_at = NOW(), status = 'received', updated_at = NOW() WHERE id = ?",
-      [disbursementId]
-    );
+    try {
+      await db.execute(
+        "UPDATE donation_deliveries SET received_at = NOW(), status = 'received', updated_at = NOW() WHERE id = ?",
+        [disbursementId]
+      );
+    } catch (delErr) {
+      console.error('[confirmDisbursement] delivery update failed:', delErr.message);
+      throw new Error(`Delivery update failed: ${delErr.message}`);
+    }
 
-    // Mark the donation drive as completed so it no longer appears as active
-    await db.execute(
-      "UPDATE donation_drives SET status = 'Completed' WHERE id = ?",
-      [driveId]
-    );
+    // Mark the donation drive as completed — wrapped separately so a schema constraint on
+    // donation_drives.status (managed by the web app) doesn't abort the whole confirmation
+    try {
+      await db.execute(
+        "UPDATE donation_drives SET status = 'Completed' WHERE id = ?",
+        [driveId]
+      );
+    } catch (driveErr) {
+      console.error('[confirmDisbursement] donation_drives update failed:', driveErr.message);
+    }
 
     // Stamp the parent request with receipt time and mark it completed
-    await db.execute(
-      "UPDATE beneficiary_requests SET financial_received_at = NOW(), status = 'Completed', updated_at = NOW() WHERE id = ?",
-      [id]
-    );
+    try {
+      await db.execute(
+        "UPDATE beneficiary_requests SET financial_received_at = NOW(), status = 'Completed', updated_at = NOW() WHERE id = ?",
+        [id]
+      );
+    } catch (reqErr) {
+      console.error('[confirmDisbursement] beneficiary_requests update failed:', reqErr.message);
+      throw new Error(`Request update failed: ${reqErr.message}`);
+    }
 
     const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
     const title = 'Financial Disbursement Received';
@@ -1983,7 +1998,7 @@ exports.confirmDisbursement = async (req, res) => {
     return res.json({ success: true, message: 'Disbursement receipt confirmed.' });
   } catch (err) {
     console.error('[confirmDisbursement]', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to confirm receipt.', error: err.message });
+    return res.status(500).json({ success: false, message: err.message || 'Failed to confirm receipt.' });
   }
 };
 
