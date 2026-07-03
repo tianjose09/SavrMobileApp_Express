@@ -338,18 +338,7 @@ export default function LandingPage({ navigation }: any) {
 
         {/* Cards — scroll-driven slide-up */}
         <Animated.View
-          style={[
-            styles.cardsColumn,
-            {
-              transform: [{
-                translateY: scrollY.interpolate({
-                  inputRange: [0, 300],
-                  outputRange: [60, 0],
-                  extrapolate: 'clamp'
-                })
-              }]
-            }
-          ]}
+          style={styles.cardsColumn}
         >
           <View style={styles.actionCard}>
             <View style={styles.cardHeader}>
