@@ -307,9 +307,23 @@ exports.paymentSuccess = async (req, res) => {
   <script>
     function returnToApp() {
       const isExpoGo = ${req.query.is_expo_go === 'true'};
-      const scheme = isExpoGo ? 'exp+savrmobile://' : 'savrmobile://';
-      window.location.href = scheme;
-      setTimeout(function () { window.close(); }, 2000);
+      const schemes = [
+        'savrmobile://',
+        'exp+savr-mobile://',
+        'exp+savrmobile://'
+      ];
+      if (isExpoGo) {
+        schemes.unshift('exp+savr-mobile://');
+      }
+      var index = 0;
+      function tryNext() {
+        if (index >= schemes.length) return;
+        var scheme = schemes[index++];
+        window.location.href = scheme;
+        setTimeout(tryNext, 1000);
+      }
+      tryNext();
+      setTimeout(function () { window.close(); }, 5000);
     }
     window.onload = returnToApp;
   </script>
