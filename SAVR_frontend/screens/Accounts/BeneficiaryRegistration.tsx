@@ -132,6 +132,15 @@ export default function BeneficiaryRegistration({ navigation }: any) {
       return;
     }
 
+    if (form.password.length < 12) {
+      Alert.alert('Weak Password', 'Password must be at least 12 characters.');
+      return;
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+    if (!passwordRegex.test(form.password)) {
+      Alert.alert('Weak Password', 'Password must contain uppercase, lowercase, a number, and a special character.');
+      return;
+    }
     if (form.password !== form.password_confirmation) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
