@@ -341,6 +341,7 @@ exports.optimizeMeals = async (req, res) => {
         nearExpiryCount,
         requiredIngredientCount: requiredMatched.length,
         matched: matchedIngredients.map(m => m.ingredient.ingredient_name),
+        requiredMatchedIngs: requiredMatched,
         missing: [],
       });
 
@@ -428,6 +429,12 @@ exports.optimizeMeals = async (req, res) => {
           plan.expiryScore, plan.servingCapScore,
           plan.possibleServings, targetPax, plan.minDays
         ),
+        // Per-ingredient qty_per_serving so the frontend can compute targetPax × qty_per_serving deductions
+        recipe_ingredients: plan.requiredMatchedIngs.map(m => ({
+          name: m.ingredient.ingredient_name,
+          qty_per_serving: m.ingredient.qty_per_serving,
+          unit: m.ingredient.unit,
+        })),
         missing_items: null,
       };
     });

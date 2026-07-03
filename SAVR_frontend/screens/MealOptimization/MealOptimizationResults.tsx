@@ -641,6 +641,28 @@ export default function MealOptimizationResults({ route, navigation }: any) {
 }
 
 // â”€â”€ Reusable Meal Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Convert a quantity from its recipe unit to base unit (kg or L) for cross-unit deduction math
+const toBaseQty = (qty: number, unit: string): number => {
+  switch ((unit || '').toLowerCase().trim()) {
+    case 'g':    return qty / 1000;
+    case 'ml':   return qty / 1000;
+    case 'tsp':  return qty * 0.005;
+    case 'tbsp': return qty * 0.015;
+    case 'pcs': case 'pc': return (qty * 400) / 1000;
+    default:     return qty;
+  }
+};
+
+// Convert from base unit (kg or L) to the inventory item's display/storage unit
+const fromBaseQty = (base: number, unit: string): number => {
+  switch ((unit || '').toLowerCase().trim()) {
+    case 'g':  return base * 1000;
+    case 'ml': return base * 1000;
+    case 'pcs': case 'pc': return (base * 1000) / 400;
+    default:   return base;
+  }
+};
+
 function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigation, targetPax = 0, mealRequestId, isAnyAvailable = false }: {
   meal: any;
   isSuggested?: boolean;
@@ -886,7 +908,28 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
           style={[styles.preparBtn, isSuggested && styles.preparBtnSuggested]}
           activeOpacity={0.85}
           onPress={async () => {
-            const deductions = matchedIngredients
+            // In any_available mode, override each ingredient's inputQty to targetPax × qty_per_serving
+            // so PrepareMeal shows and deducts exactly the amount needed for the requested servings.
+            // Cap at the ingredient's maxQty if targetPax exceeds what's available.
+            let prepIngredients = matchedIngredients;
+            const prepPax = isAnyAvailable ? targetPax : mealPax;
+
+            if (isAnyAvailable && Array.isArray(meal.recipe_ingredients) && meal.recipe_ingredients.length > 0) {
+              prepIngredients = matchedIngredients.map((inv: any) => {
+                const recipeIng = (meal.recipe_ingredients as any[]).find((r: any) =>
+                  isMatch((inv.name || '').toLowerCase(), (r.name || '').toLowerCase()) ||
+                  isMatch((r.name || '').toLowerCase(), (inv.name || '').toLowerCase())
+                );
+                if (!recipeIng) return inv;
+                const invUnit = (inv.inputUnit || 'kg').toLowerCase();
+                const neededBase = toBaseQty(recipeIng.qty_per_serving * targetPax, recipeIng.unit);
+                const neededInInvUnit = fromBaseQty(neededBase, invUnit);
+                const capped = Math.min(neededInInvUnit, inv.maxQty ?? neededInInvUnit);
+                return { ...inv, inputQty: parseFloat(capped.toFixed(3)).toString() };
+              });
+            }
+
+            const deductions = prepIngredients
               .filter((ing: any) => ing.id && parseFloat(ing.inputQty) > 0)
               .map((ing: any) => ({ id: ing.id, qty_used: parseFloat(ing.inputQty) }));
 
@@ -894,14 +937,14 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
               mealId: meal.id,
               mealName: meal.name,
               ingredients: meal.ingredients_used,
-              pax: mealPax,
+              pax: prepPax,
               status: 'Preparing',
               deductions,
             });
             navigation.navigate('PrepareMeal', {
               meal,
-              selectedIngredients: matchedIngredients,
-              mealPax,
+              selectedIngredients: prepIngredients,
+              mealPax: prepPax,
               prepMealId: mealItem.id,
               mealRequestId,
             });
