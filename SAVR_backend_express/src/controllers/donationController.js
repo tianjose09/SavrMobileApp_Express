@@ -1963,7 +1963,7 @@ exports.confirmDisbursement = async (req, res) => {
 
     // Mark the donation drive as completed so it no longer appears as active
     await db.execute(
-      "UPDATE donation_drives SET status = 'Completed', updated_at = NOW() WHERE id = ?",
+      "UPDATE donation_drives SET status = 'Completed' WHERE id = ?",
       [driveId]
     );
 
