@@ -1498,12 +1498,25 @@ exports.getBeneficiaryRequests = async (req, res) => {
     }
   }
 
-  // Bulk-fetch all DELIVER truck stops — each row is one food item in a delivery
+  // Bulk-fetch all DELIVER truck stops — each row is one food item in a delivery.
+  // The CASE also promotes a pending stop to in_transit when the web app has already
+  // dispatched the delivery via donation_deliveries (web marks del.status='in_transit'
+  // without touching truck_stops.status, so we bridge the gap here).
   let allStops = [];
   if (requestIds.length > 0) {
     const placeholders = requestIds.map(() => '?').join(',');
     [allStops] = await db.execute(`
-      SELECT ts.id AS stop_id, ts.status, ts.date, ts.time_slot_start, ts.time_slot_end,
+      SELECT ts.id AS stop_id,
+             CASE
+               WHEN ts.status NOT IN ('completed', 'missed', 'in_transit')
+                    AND EXISTS (
+                      SELECT 1 FROM donation_deliveries del
+                      WHERE del.donation_drive_id = dd.id AND del.status = 'in_transit'
+                    )
+               THEN 'in_transit'
+               ELSE ts.status
+             END AS status,
+             ts.date, ts.time_slot_start, ts.time_slot_end,
              ts.food_name, ts.qty, ts.unit, ts.food_type,
              dd.id AS drive_id, dd.beneficiary_request_id, dd.status AS drive_status,
              dd.start_date AS drive_start_date, dd.end_date AS drive_end_date
