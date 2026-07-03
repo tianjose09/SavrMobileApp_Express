@@ -241,13 +241,15 @@ export default function BeneficiaryRegistration({ navigation }: any) {
     >
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="chevron-back" size={26} color="#FFF" />
-        </TouchableOpacity>
+        {navigation.canGoBack() && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chevron-back" size={26} color="#FFF" />
+          </TouchableOpacity>
+        )}
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
