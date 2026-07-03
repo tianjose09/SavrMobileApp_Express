@@ -1556,6 +1556,50 @@ exports.getBeneficiaryRequests = async (req, res) => {
     });
   }
 
+  // Fallback: for requests with no DELIVER truck_stops at all (web app manages delivery via
+  // donation_deliveries only), build batch cards directly from donation_deliveries rows.
+  // stop_id is set to the delivery row id so receiveBeneficiaryStop can route confirmation.
+  const requestsWithStops = new Set(Object.keys(batchesByRequest).map(Number));
+  const requestsWithoutStops = requestIds.filter(rid => !requestsWithStops.has(rid));
+  if (requestsWithoutStops.length > 0) {
+    try {
+      const fbPH = requestsWithoutStops.map(() => '?').join(',');
+      const [fbRows] = await db.execute(`
+        SELECT del.id AS delivery_id, del.status AS del_status, del.delivery_items,
+               del.donation_drive_id AS drive_id, dd.beneficiary_request_id,
+               dd.status AS drive_status, dd.start_date AS drive_start_date, dd.end_date AS drive_end_date
+        FROM donation_deliveries del
+        JOIN donation_drives dd ON dd.id = del.donation_drive_id
+        WHERE dd.beneficiary_request_id IN (${fbPH})
+          AND del.status IN ('pending', 'in_transit')
+          AND (del.grant_amount IS NULL OR del.grant_amount = 0)
+        ORDER BY dd.id ASC, del.created_at ASC
+      `, requestsWithoutStops);
+
+      for (const del of fbRows) {
+        const rid = del.beneficiary_request_id;
+        const delStatus = (del.del_status || '').toLowerCase();
+        if (!batchesByRequest[rid]) batchesByRequest[rid] = [];
+        batchesByRequest[rid].push({
+          stop_id: del.delivery_id,   // delivery id used as stop_id for routing
+          drive_id: del.drive_id,
+          request_id: rid,
+          drive_status: (del.drive_status || '').toLowerCase(),
+          status: delStatus,
+          date: null,
+          time: null,
+          time_end: null,
+          start_date: del.drive_start_date ? new Date(del.drive_start_date).toISOString().split('T')[0] : null,
+          end_date: del.drive_end_date ? new Date(del.drive_end_date).toISOString().split('T')[0] : null,
+          delivery_food_items: ['pending', 'in_transit'].includes(delStatus) ? [] : [],
+          delivered_food_items: [],
+        });
+      }
+    } catch (fbErr) {
+      console.error('[getBeneficiaryRequests] delivery fallback error:', fbErr.message);
+    }
+  }
+
   const mapped = requests.map(r => {
     let foodItems = [];
     try { foodItems = typeof r.food_items === 'string' ? JSON.parse(r.food_items) : (r.food_items || []); } catch {}
@@ -1634,7 +1678,80 @@ exports.receiveBeneficiaryStop = async (req, res) => {
     WHERE ts.id = ? AND dd.beneficiary_request_id = ? AND ts.stop_type = 'DELIVER'
   `, [stopId, id]);
   if (!stopRows.length) {
-    return res.status(404).json({ success: false, message: 'Delivery stop not found.' });
+    // Fallback: stopId may be a donation_delivery id (drives with no truck_stops)
+    const [delRows] = await db.execute(`
+      SELECT del.id, del.status, del.donation_drive_id AS drive_id, del.delivery_items,
+             dd.beneficiary_request_id
+      FROM donation_deliveries del
+      JOIN donation_drives dd ON dd.id = del.donation_drive_id
+      WHERE del.id = ? AND dd.beneficiary_request_id = ?
+        AND (del.grant_amount IS NULL OR del.grant_amount = 0)
+    `, [stopId, id]);
+
+    if (!delRows.length) {
+      return res.status(404).json({ success: false, message: 'Delivery stop not found.' });
+    }
+    const del = delRows[0];
+
+    const [reqRows2] = await db.execute(
+      'SELECT * FROM beneficiary_requests WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    if (!reqRows2.length) return res.status(404).json({ success: false, message: 'Request not found.' });
+    const request2 = reqRows2[0];
+
+    await db.execute(
+      "UPDATE donation_deliveries SET status = 'received', received_at = NOW(), updated_at = NOW() WHERE id = ?",
+      [del.id]
+    );
+
+    // Extract food items from delivery_items JSON (web app format)
+    let deliveryFoodItems = [];
+    try {
+      const parsed = typeof del.delivery_items === 'string' ? JSON.parse(del.delivery_items) : (del.delivery_items || []);
+      deliveryFoodItems = Array.isArray(parsed)
+        ? parsed.filter(i => i.type !== 'financial').map(i => ({
+            food_name: i.food_name || i.name || '',
+            qty: parseFloat(i.qty || i.quantity || '0'),
+          }))
+        : [];
+    } catch {}
+
+    let existingReceived2 = [];
+    try { existingReceived2 = typeof request2.received_items === 'string' ? JSON.parse(request2.received_items) : (request2.received_items || []); } catch {}
+    const receivedMap2 = {};
+    for (const item of existingReceived2) receivedMap2[item.food_name] = parseFloat(item.received_qty || '0');
+    for (const item of deliveryFoodItems) {
+      if (item.food_name) receivedMap2[item.food_name] = (receivedMap2[item.food_name] || 0) + item.qty;
+    }
+    const updatedReceived2 = Object.entries(receivedMap2).map(([food_name, received_qty]) => ({ food_name, received_qty }));
+
+    let foodItems2 = [];
+    try { foodItems2 = typeof request2.food_items === 'string' ? JSON.parse(request2.food_items) : (request2.food_items || []); } catch {}
+    const goalMet2 = foodItems2.length === 0 || foodItems2.every(item => {
+      const name = item.food_name || item.name || 'Unknown';
+      return (receivedMap2[name] || 0) >= parseFloat(item.qty || item.quantity || '0');
+    });
+
+    if (goalMet2) {
+      await db.execute(
+        "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, updated_at = NOW() WHERE id = ?",
+        [JSON.stringify(updatedReceived2), id]
+      );
+      await createNotification(req.user.id, 'service', 'Request Completed',
+        `Your request "${request2.request_name || 'Unnamed'}" has been fully fulfilled. Thank you!`, true);
+    } else {
+      await db.execute(
+        'UPDATE beneficiary_requests SET received_items = ?, updated_at = NOW() WHERE id = ?',
+        [JSON.stringify(updatedReceived2), id]
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: goalMet2 ? 'All items received. Request completed!' : 'Delivery confirmed. More deliveries may follow.',
+      goal_met: goalMet2,
+    });
   }
   const stop = stopRows[0];
 
