@@ -1538,7 +1538,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
       time_end: stop.time_slot_end ? stop.time_slot_end.substring(0, 5) : null,
       start_date: stop.drive_start_date ? new Date(stop.drive_start_date).toISOString().split('T')[0] : null,
       end_date: stop.drive_end_date ? new Date(stop.drive_end_date).toISOString().split('T')[0] : null,
-      delivery_food_items: mappedStatus === 'pending' ? [item] : [],   // DELIVERING badge
+      delivery_food_items: ['pending', 'in_transit'].includes(mappedStatus) ? [item] : [],   // DELIVERING badge
       delivered_food_items: mappedStatus === 'completed' ? [item] : [], // Delivered Batches
     });
   }

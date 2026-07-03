@@ -63,10 +63,12 @@ function batchIsInTransit(batch: any): boolean {
   return false;
 }
 
-// Spec §3: missed = staff flagged it, OR in-transit batch whose date is strictly past
+// Spec §3: missed = staff flagged it, OR pending batch whose scheduled date is strictly past.
+// A stop explicitly marked in_transit is never missed — the driver is actively en route.
 function isMissedBatch(batch: any): boolean {
   const s = (batch.status || '').toLowerCase();
   if (['notified', 'missed'].includes(s)) return true;
+  if (s === 'in_transit') return false;
   if (!batch.delivery_date) return false;
   const todayStr = new Date().toISOString().slice(0, 10);
   return batchIsInTransit(batch) && batch.delivery_date.slice(0, 10) < todayStr;
@@ -322,6 +324,7 @@ export default function TrackMyRequest({ route, navigation }: any) {
     const reqStatus = getEffectiveStatus(req);
     const batches: any[] = Array.isArray(req.delivery_batches) ? req.delivery_batches : [];
     const activeBatch =
+      batches.find((b: any) => b.status === 'in_transit') ||
       batches.find((b: any) => b.status === 'pending' && deliveryStarted(b)) ||
       batches.find((b: any) => b.status === 'pending') ||
       batches[0] || null;
