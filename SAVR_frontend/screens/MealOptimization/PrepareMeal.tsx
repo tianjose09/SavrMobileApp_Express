@@ -23,7 +23,14 @@ const isMatch = (selectedName: string, ingToken: string): boolean => {
   if (words.length === 0) return false;
   // Anchor on the rightmost meaningful noun so "brown rice" never matches "brown sugar"
   const mainNoun = words[words.length - 1];
-  return ingToken.includes(mainNoun);
+  if (ingToken.includes(mainNoun)) return true;
+  // Plural inventory names (e.g. "eggs") vs singular recipe token (e.g. "egg"):
+  // compare against the whole token or a leading word to avoid "bags"→"bag" matching "bagel"
+  const singular = mainNoun.endsWith('es') && mainNoun.length > 4 ? mainNoun.slice(0, -2)
+                 : mainNoun.endsWith('s')  && mainNoun.length > 3 ? mainNoun.slice(0, -1)
+                 : null;
+  if (singular && (ingToken === singular || ingToken.startsWith(singular + ' '))) return true;
+  return false;
 };
 
 export default function PrepareMeal({ route, navigation }: any) {

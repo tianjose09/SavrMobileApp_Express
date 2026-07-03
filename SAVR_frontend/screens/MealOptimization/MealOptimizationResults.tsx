@@ -14,7 +14,17 @@ const isMatch = (selectedName: string, ingText: string): boolean => {
   if (words.length === 0) return false;
   // Anchor on the rightmost word (main noun) so "brown rice" never matches "brown sugar"
   const mainNoun = words[words.length - 1];
-  return ingText.includes(mainNoun);
+  if (ingText.includes(mainNoun)) return true;
+  // Plural inventory names (e.g. "eggs", "tomatoes") vs singular recipe text (e.g. "egg", "tomato"):
+  // check against comma-split tokens to avoid substring false positives like "bags"→"bag" in "bagel"
+  const singular = mainNoun.endsWith('es') && mainNoun.length > 4 ? mainNoun.slice(0, -2)
+                 : mainNoun.endsWith('s')  && mainNoun.length > 3 ? mainNoun.slice(0, -1)
+                 : null;
+  if (singular) {
+    const tokens = ingText.split(',').map(t => t.trim());
+    if (tokens.some(t => t === singular || t.startsWith(singular + ' '))) return true;
+  }
+  return false;
 };
 
 // Serving size per person in the ingredient's own unit
