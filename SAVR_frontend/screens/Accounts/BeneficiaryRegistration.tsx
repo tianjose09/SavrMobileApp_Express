@@ -117,7 +117,7 @@ export default function BeneficiaryRegistration({ navigation }: any) {
     // Required fields check
     const requiredFields = selectedRole === 'individual'
       ? ['first_name', 'last_name', 'date_of_birth', 'gender', 'province_region', 'city_municipality', 'barangay', 'house_no', 'street', 'postal_zip_code', 'email', 'contact_number', 'password', 'password_confirmation']
-      : ['organization_name', 'website_url', 'industry_sector', 'organization_type', 'contact_person', 'position_role', 'email', 'contact_number', 'password', 'password_confirmation'];
+      : ['organization_name', 'website_url', 'industry_sector', 'organization_type', 'contact_person', 'position_role', 'province_region', 'city_municipality', 'barangay', 'house_no', 'street', 'postal_zip_code', 'email', 'contact_number', 'password', 'password_confirmation'];
 
     const missingFields = [];
     for (const key of requiredFields) {
@@ -359,77 +359,6 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                       </View>
                     </View>
                   </View>
-
-                  <View style={styles.addressRow}>
-                    <View style={[styles.addressCol, { flex: 1.5 }]}>
-                      <View style={styles.inputBlock}>
-                        <View style={styles.labelContainer}>
-                          <Text style={styles.label}>Province / Region<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                        </View>
-                        <View style={[styles.lineInputWrap, styles.pickerContainer]}>
-                          <CustomDropdown
-                            selectedValue={form.province_region}
-                            onValueChange={(val) => {
-                              updateForm('province_region', val);
-                              handleProvinceChange(val);
-                            }}
-                            placeholder={isLoadingProvinces ? "Loading..." : "Select"}
-                            items={provinces}
-                            style={{ borderWidth: 0, paddingHorizontal: 0, height: 28 }}
-                          />
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={[styles.addressCol, { flex: 1.5 }]}>
-                      <View style={styles.inputBlock}>
-                        <View style={styles.labelContainer}>
-                          <Text style={styles.label}>City/Municipality<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                        </View>
-                        <View style={[styles.lineInputWrap, styles.pickerContainer]}>
-                          <CustomDropdown
-                            selectedValue={form.city_municipality}
-                            onValueChange={(val) => {
-                              updateForm('city_municipality', val);
-                              handleCityChange(val);
-                            }}
-                            placeholder={isLoadingCities ? "Loading..." : "City"}
-                            items={cities}
-                            style={{ borderWidth: 0, paddingHorizontal: 0, height: 28 }}
-                          />
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={[styles.addressCol, { flex: 1.1 }]}>
-                      <View style={styles.inputBlock}>
-                        <View style={styles.labelContainer}>
-                          <Text style={styles.label}>Brgy.<Text style={{ color: '#E4B63F' }}> *</Text></Text>
-                        </View>
-                        <View style={[styles.lineInputWrap, styles.pickerContainer]}>
-                          <CustomDropdown
-                            selectedValue={form.barangay}
-                            onValueChange={(val) => updateForm('barangay', val)}
-                            placeholder={isLoadingBarangays ? "Loading..." : "Brgy"}
-                            items={barangays}
-                            style={{ borderWidth: 0, paddingHorizontal: 0, height: 28 }}
-                          />
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.addressRow}>
-                    <View style={[styles.addressCol, { flex: 1.3 }]}>
-                      {renderLineInput('House Number', 'house_no', { keyboardType: 'default', isRequired: true })}
-                    </View>
-                    <View style={[styles.addressCol, { flex: 1.1 }]}>
-                      {renderLineInput('Street', 'street', { isRequired: true })}
-                    </View>
-                    <View style={[styles.addressCol, { flex: 1.7 }]}>
-                      {renderLineInput('Postal / ZIP', 'postal_zip_code', { keyboardType: 'numeric', isRequired: true })}
-                    </View>
-                  </View>
                 </>
               ) : (
                 <>
@@ -499,6 +428,78 @@ export default function BeneficiaryRegistration({ navigation }: any) {
                   </View>
                 </>
               )}
+
+              {/* Shared Address Fields */}
+              <View style={styles.addressRow}>
+                <View style={[styles.addressCol, { flex: 1.5 }]}>
+                  <View style={styles.inputBlock}>
+                    <View style={styles.labelContainer}>
+                      <Text style={styles.label}>Province / Region<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    </View>
+                    <View style={[styles.lineInputWrap, styles.pickerContainer]}>
+                      <CustomDropdown
+                        selectedValue={form.province_region}
+                        onValueChange={(val) => {
+                          updateForm('province_region', val);
+                          handleProvinceChange(val);
+                        }}
+                        placeholder={isLoadingProvinces ? "Loading..." : "Select"}
+                        items={provinces}
+                        style={{ borderWidth: 0, paddingHorizontal: 0, height: 28 }}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <View style={[styles.addressCol, { flex: 1.5 }]}>
+                  <View style={styles.inputBlock}>
+                    <View style={styles.labelContainer}>
+                      <Text style={styles.label}>City/Municipality<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    </View>
+                    <View style={[styles.lineInputWrap, styles.pickerContainer]}>
+                      <CustomDropdown
+                        selectedValue={form.city_municipality}
+                        onValueChange={(val) => {
+                          updateForm('city_municipality', val);
+                          handleCityChange(val);
+                        }}
+                        placeholder={isLoadingCities ? "Loading..." : "City"}
+                        items={cities}
+                        style={{ borderWidth: 0, paddingHorizontal: 0, height: 28 }}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <View style={[styles.addressCol, { flex: 1.1 }]}>
+                  <View style={styles.inputBlock}>
+                    <View style={styles.labelContainer}>
+                      <Text style={styles.label}>Brgy.<Text style={{ color: '#E4B63F' }}> *</Text></Text>
+                    </View>
+                    <View style={[styles.lineInputWrap, styles.pickerContainer]}>
+                      <CustomDropdown
+                        selectedValue={form.barangay}
+                        onValueChange={(val) => updateForm('barangay', val)}
+                        placeholder={isLoadingBarangays ? "Loading..." : "Brgy"}
+                        items={barangays}
+                        style={{ borderWidth: 0, paddingHorizontal: 0, height: 28 }}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.addressRow}>
+                <View style={[styles.addressCol, { flex: 1.3 }]}>
+                  {renderLineInput('House Number', 'house_no', { keyboardType: 'default', isRequired: true })}
+                </View>
+                <View style={[styles.addressCol, { flex: 1.1 }]}>
+                  {renderLineInput('Street', 'street', { isRequired: true })}
+                </View>
+                <View style={[styles.addressCol, { flex: 1.7 }]}>
+                  {renderLineInput('Postal / ZIP', 'postal_zip_code', { keyboardType: 'numeric', isRequired: true })}
+                </View>
+              </View>
 
               <View>
                 {renderLineInput('Email Address', 'email', {
