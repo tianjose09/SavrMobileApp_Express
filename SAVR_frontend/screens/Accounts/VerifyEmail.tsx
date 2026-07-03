@@ -208,15 +208,19 @@ export default function VerifyEmail({ route, navigation }: any) {
           </View>
         </KeyboardAvoidingView>
 
-        {navigation.canGoBack() && (
-          <TouchableOpacity
-            style={styles.backGlobalButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="chevron-back" size={32} color="#FFF" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.backGlobalButton}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Login');
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chevron-back" size={32} color="#FFF" />
+        </TouchableOpacity>
       </SafeAreaView>
     </ImageBackground>
   );

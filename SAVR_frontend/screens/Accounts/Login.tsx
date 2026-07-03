@@ -248,15 +248,19 @@ export default function Login({ navigation }: any) {
           </View>
         </KeyboardAvoidingView>
 
-        {navigation.canGoBack() && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="chevron-back" size={26} color="#FFF" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('LandingPage');
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chevron-back" size={26} color="#FFF" />
+        </TouchableOpacity>
       </SafeAreaView>
     </ImageBackground>
   );
