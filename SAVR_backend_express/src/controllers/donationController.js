@@ -1422,15 +1422,19 @@ exports.getBeneficiaryRequests = async (req, res) => {
 
         if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
 
-        const toAbsoluteUrl = (path) => {
-          if (!path) return null;
-          if (path.startsWith('http://') || path.startsWith('https://')) return path;
-          return `${baseUrl}/storage/${path}`;
+        const webAppUrl = process.env.WEB_APP_URL || baseUrl;
+        const toAbsoluteUrl = (p) => {
+          if (!p) return null;
+          if (p.startsWith('http://') || p.startsWith('https://')) return p;
+          // Paths starting with 'financial-records/' were uploaded by the web app
+          if (p.startsWith('financial-records/')) return `${webAppUrl}/storage/${p}`;
+          return `${baseUrl}/storage/${p}`;
         };
 
         if (financialItems.length > 0) {
           for (const fi of financialItems) {
-            const receiptUrl = toAbsoluteUrl(row.receipt_path || fi.receipt || row.proof_of_transfer || null);
+            // Prefer proof_of_transfer (may already be an absolute URL set by web app)
+            const receiptUrl = toAbsoluteUrl(row.proof_of_transfer || row.receipt_path || fi.receipt || null);
             disbursementsByRequest[rid].push({
               id: row.delivery_id,
               delivery_id: row.delivery_id,
@@ -1447,7 +1451,7 @@ exports.getBeneficiaryRequests = async (req, res) => {
           }
         } else {
           // grant_amount set directly by staff with no delivery_items
-          const receiptUrl = toAbsoluteUrl(row.receipt_path || row.proof_of_transfer || null);
+          const receiptUrl = toAbsoluteUrl(row.proof_of_transfer || row.receipt_path || null);
           disbursementsByRequest[rid].push({
             id: row.delivery_id,
             delivery_id: row.delivery_id,

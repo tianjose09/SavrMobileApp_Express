@@ -504,19 +504,24 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   const proofUri = d.proof_photo || d.proof_of_transfer || null;
                   return (
                     <View key={i} style={styles.disbursementCard}>
-                      {/* Confirmation note */}
+                      {/* Staff note or fallback */}
                       <View style={styles.disbursementNoteBox}>
                         <Ionicons name="checkmark-circle" size={16} color="#00592d" style={{ marginRight: 6, marginTop: 2, flexShrink: 0 }} />
                         <Text style={styles.disbursementNoteText}>
-                          {'Your requested amount was successfully sent to your account number '}
-                          <Text style={{ fontWeight: '700', color: '#222' }}>{accountNo || '—'}</Text>
-                          {refNo ? (
-                            <Text>
-                              {'. Reference Number: '}
-                              <Text style={{ fontWeight: '700', color: '#222' }}>{refNo}</Text>
-                              {'.'}
-                            </Text>
-                          ) : '.'}
+                          {d.notes
+                            ? d.notes
+                            : <>
+                                {'Your requested amount was successfully sent to your account number '}
+                                <Text style={{ fontWeight: '700', color: '#222' }}>{accountNo || '—'}</Text>
+                                {refNo ? (
+                                  <>
+                                    {'. Reference Number: '}
+                                    <Text style={{ fontWeight: '700', color: '#222' }}>{refNo}</Text>
+                                    {'.'}
+                                  </>
+                                ) : '.'}
+                              </>
+                          }
                         </Text>
                       </View>
 
@@ -527,16 +532,22 @@ export default function TrackMyRequest({ route, navigation }: any) {
                       </View>
 
                       {/* Proof of transfer photo */}
-                      {proofUri ? (
-                        <View style={{ marginTop: 12 }}>
-                          <Text style={styles.disbursementProofLabel}>Proof of Transfer</Text>
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={styles.disbursementProofLabel}>Proof of Transfer</Text>
+                        {proofUri ? (
                           <Image
                             source={{ uri: proofUri }}
                             style={styles.proofImage}
                             resizeMode="contain"
+                            onError={() => {/* URL failed — image shows blank, acceptable */}}
                           />
-                        </View>
-                      ) : null}
+                        ) : (
+                          <View style={{ height: 80, borderRadius: 10, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB', marginTop: 6 }}>
+                            <Ionicons name="image-outline" size={28} color="#B0B0B0" />
+                            <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>No receipt uploaded yet.</Text>
+                          </View>
+                        )}
+                      </View>
 
                       {/* I Received This — confirms directly, no modal */}
                       {!d.confirmed && ['approved', 'allocated', 'accepted'].includes(effectiveStatus.toLowerCase()) && (
@@ -996,6 +1007,9 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   source={{ uri: disbursementModal.proofUri }}
                   style={[styles.proofImage, { height: 180, borderRadius: 12 }]}
                   resizeMode="cover"
+                  onError={() => {
+                    setDisbursementModal(m => ({ ...m, proofUri: null }));
+                  }}
                 />
               ) : (
                 <View style={{
