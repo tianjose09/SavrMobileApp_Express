@@ -142,6 +142,7 @@ export default function FoodDonationDetails({ navigation, route }: any) {
       { label: 'Grains & Cereals: Non-Perishable', value: 'Grains & Cereals' },
       { label: 'Liquid Goods: Non-Perishable', value: 'Liquid Goods' },
       { label: 'Beverages: Non-Perishable', value: 'Beverages' },
+      { label: 'Meal: Perishable', value: 'Meal' },
       { label: 'Meat: Perishable', value: 'Meat' },
       { label: 'Sugars & Sweets: Non-Perishable', value: 'Sugars & Sweets' },
       { label: 'Protein Alternatives: Both', value: 'Protein Alternatives' },
