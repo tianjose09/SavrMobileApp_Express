@@ -483,6 +483,18 @@ export default function LandingPage({ navigation }: any) {
         </View>
       </SafeAreaView>
 
+      {insets.bottom > 0 && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: insets.bottom,
+          backgroundColor: '#FFFFFF',
+          zIndex: 998,
+        }} />
+      )}
+
       <View style={[styles.bottomNav, { bottom: insets.bottom }]}>
         {[
           { key: 'Home', icon: 'home', label: 'Home', type: Ionicons },
@@ -1002,10 +1014,11 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     backgroundColor: '#FCFAF5',
-    paddingVertical: 30,
+    paddingTop: 12,
+    paddingBottom: 30,
     paddingHorizontal: 20,
     borderRadius: 20,
-    marginTop: 10,
+    marginTop: 0,
   },
 
   getInvolvedBadge: {
