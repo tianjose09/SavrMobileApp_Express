@@ -1386,11 +1386,9 @@ exports.getBeneficiaryRequests = async (req, res) => {
     try {
       let deliveryRows = [];
       try {
-        // Use ANY($1) with a cast so PostgreSQL accepts the JS array directly
         [deliveryRows] = await db.execute(`
           SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
                  del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
-                 del.beneficiary_confirmed, del.beneficiary_confirmed_at,
                  del.grant_amount, del.receipt_path, del.notes
           FROM donation_deliveries del
           JOIN donation_drives dd ON dd.id = del.donation_drive_id
@@ -1399,16 +1397,6 @@ exports.getBeneficiaryRequests = async (req, res) => {
         `, [requestIds]);
       } catch (innerErr) {
         console.error('[getMyRequests] delivery query error:', innerErr.message);
-        // Fallback: fetch without newer columns
-        [deliveryRows] = await db.execute(`
-          SELECT dd.beneficiary_request_id, del.id AS delivery_id, del.delivery_items, del.status,
-                 del.created_at, del.proof_of_transfer, del.reference_number, del.transfer_datetime,
-                 del.beneficiary_confirmed, del.beneficiary_confirmed_at
-          FROM donation_deliveries del
-          JOIN donation_drives dd ON dd.id = del.donation_drive_id
-          WHERE dd.beneficiary_request_id = ANY(?)
-          ORDER BY del.created_at ASC
-        `, [requestIds]);
       }
       console.log('[getMyRequests] deliveryRows count:', deliveryRows.length, '| requestIds:', requestIds);
 
@@ -1447,8 +1435,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
               notes: row.notes || fi.note || fi.notes || null,
               reference_number: row.reference_number || null,
               transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
-              confirmed: !!row.beneficiary_confirmed,
-              confirmed_at: row.beneficiary_confirmed_at ? new Date(row.beneficiary_confirmed_at).toISOString() : null,
+              confirmed: false,
+              confirmed_at: null,
             });
           }
         } else {
@@ -1464,8 +1452,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
             notes: row.notes || null,
             reference_number: row.reference_number || null,
             transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
-            confirmed: !!row.beneficiary_confirmed,
-            confirmed_at: row.beneficiary_confirmed_at ? new Date(row.beneficiary_confirmed_at).toISOString() : null,
+            confirmed: false,
+            confirmed_at: null,
           });
         }
       }
