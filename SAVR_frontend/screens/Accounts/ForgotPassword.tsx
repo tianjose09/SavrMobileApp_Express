@@ -133,10 +133,11 @@ export default function ForgotPassword({ navigation }: any) {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/backgrounds/register_bg.png')}
+      source={require('../../assets/images/backgrounds/registration_bg.png')}
       style={styles.background}
       resizeMode="cover"
     >
+      <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.container}
@@ -303,6 +304,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(22, 105, 58, 0.58)',
   },
   safeArea: {
     flex: 1,
