@@ -267,6 +267,19 @@ export default function ServiceDonation({ navigation }: any) {
     });
   };
 
+  const openAndroidPreferredDate = () => {
+    DateTimePickerAndroid.open({
+      value: date || getToday(),
+      mode: 'date',
+      minimumDate: getToday(),
+      onChange: (event, selectedDate) => {
+        if (event.type === 'set' && selectedDate) {
+          handleSetDate(selectedDate);
+        }
+      },
+    });
+  };
+
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
       setSelectedCategories(selectedCategories.filter((c) => c !== cat));
@@ -797,7 +810,7 @@ export default function ServiceDonation({ navigation }: any) {
                             setTempDate(date || new Date());
                             setShowIOSDate(true);
                           } else {
-                            setDatePickerMode('date');
+                            openAndroidPreferredDate();
                           }
                         }}
                         style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 35, justifyContent: 'center', alignItems: 'center' }}
@@ -999,7 +1012,7 @@ export default function ServiceDonation({ navigation }: any) {
               <TouchableOpacity onPress={() => { handleSetDate(tempDate); setShowIOSDate(false); }}><Text style={styles.modalDone}>Done</Text></TouchableOpacity>
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-              <DateTimePicker value={tempDate} mode="date" display="spinner" onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
+              <DateTimePicker value={tempDate} mode="date" display="spinner" minimumDate={new Date()} onChange={(_, d) => { if (d) setTempDate(d); }} style={{ width: '100%', alignSelf: 'center' }} textColor="#1a1a1a" />
             </View>
           </View>
         </View>
