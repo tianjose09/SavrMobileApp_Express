@@ -1038,7 +1038,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 22,
-    marginBottom: 10,
+    marginBottom: 16,
     paddingHorizontal: 10,
   },
 
@@ -1046,7 +1046,6 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'column',
     gap: 16,
-    marginTop: -8,
   },
 
   actionCard: {
