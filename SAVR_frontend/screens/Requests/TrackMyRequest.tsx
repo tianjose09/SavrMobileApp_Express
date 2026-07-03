@@ -619,7 +619,11 @@ export default function TrackMyRequest({ route, navigation }: any) {
           </View>
         )}
 
-        {/* I Received This – only when staff has sent a grant */}
+        {/* "I Received This" — only visible when staff has actually sent a financial grant.
+            dispatched_items comes from the backend as the merged disbursements array;
+            lastUnconfirmed is the most recent entry where confirmed=false (received_at is null).
+            Showing the button before any grant exists would let the beneficiary confirm
+            a disbursement that hasn't happened, corrupting the tracking record. */}
         {!isFood && effectiveStatus === 'Approved' && !req.financial_received_at && (() => {
           let disbursements: any[] = [];
           try {
@@ -628,10 +632,11 @@ export default function TrackMyRequest({ route, navigation }: any) {
             if (!Array.isArray(disbursements)) disbursements = [];
           } catch { disbursements = []; }
 
+          // Reverse so we target the newest unconfirmed grant, not the oldest
           const lastUnconfirmed = [...disbursements].reverse().find((d: any) => !d.confirmed) || null;
 
           if (!lastUnconfirmed) {
-            // Staff hasn't granted yet — show waiting state
+            // No disbursement row yet — staff hasn't issued the financial grant
             return (
               <View style={[styles.batchSection, { borderTopWidth: 1, borderTopColor: '#E8F5E9' }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 }}>
@@ -651,6 +656,8 @@ export default function TrackMyRequest({ route, navigation }: any) {
                   style={styles.receivedBtn}
                   activeOpacity={0.8}
                   onPress={() => {
+                    // Populate modal with this specific disbursement's data so the beneficiary
+                    // can review the staff's proof and notes before confirming
                     setDisbursementModal({
                       visible: true,
                       requestId: req.id,

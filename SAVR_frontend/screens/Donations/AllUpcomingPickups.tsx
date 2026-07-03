@@ -54,6 +54,8 @@ export default function AllUpcomingPickups({ navigation }: any) {
   const [deliveryModal, setDeliveryModal] = useState<{ visible: boolean; pickup: Pickup | null; note: string; trackingLink: string }>({
     visible: false, pickup: null, note: '', trackingLink: '',
   });
+  // Separate from deliveryModal — appears when pickup_now=true and donor taps "Decline".
+  // Shows a confirmation step before calling declineEarly so donors don't accidentally cancel.
   const [staffOnWayModal, setStaffOnWayModal] = useState<{ visible: boolean; pickup: Pickup | null }>({
     visible: false, pickup: null,
   });
@@ -134,6 +136,8 @@ export default function AllUpcomingPickups({ navigation }: any) {
       // @ts-ignore
       const res = await ApiService.declineEarly(pickup.id);
       if (res?.data?.success) {
+        // Optimistically revert to accepted + clear pickup_now so the badge disappears
+        // immediately without waiting for a full refresh
         setPickups(prev => prev.map(p =>
           p.id === pickup.id ? { ...p, status: 'accepted', pickup_now: false } : p
         ));
@@ -244,6 +248,10 @@ export default function AllUpcomingPickups({ navigation }: any) {
               </View>
             ) : (
               pickups.map((pickup, idx) => {
+                // Swipe-right shows different actions depending on pickup state:
+                // - pickup_now=true (staff dispatched): "Decline" only — opens staffOnWayModal
+                // - pending: "Delete" to cancel before staff schedules a driver
+                // Delivery mode never shows a decline swipe since the donor isn't at a pickup location
                 const renderRightActions = () => {
                   if (pickup.mode !== 'delivery' && pickup.pickup_now) {
                     return (
@@ -334,6 +342,7 @@ export default function AllUpcomingPickups({ navigation }: any) {
                           <Text style={styles.infoValueGray}>{pickup.created_at}</Text>
                         </View>
 
+                        {/* Badge + inline decline button only when staff has dispatched a driver */}
                         {pickup.mode !== 'delivery' && pickup.pickup_now && (
                           <>
                             <View style={styles.staffOnWayBadge}>

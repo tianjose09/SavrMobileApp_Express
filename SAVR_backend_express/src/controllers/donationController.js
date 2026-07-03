@@ -855,6 +855,11 @@ exports.getUpcomingPickups = async (req, res) => {
   try {
     const uid = req.user.id;
 
+    // reference_id is stored as TEXT in truck_stops so we cast fdr.id to avoid type mismatch.
+    // pickup_now = true means staff has already dispatched a driver (truck stop is in_transit).
+    // The second NOT EXISTS clause filters out pickup-mode records where the driver already
+    // completed the pickup (status='completed'), so they no longer appear in the "upcoming" list.
+    // Delivery-mode records are always included regardless of truck_stop state.
     const [pickups] = await db.execute(
       `SELECT fdr.*,
         EXISTS (
@@ -887,6 +892,7 @@ exports.getUpcomingPickups = async (req, res) => {
         id: p.id,
         status: p.status,
         mode: p.mode,
+        // PostgreSQL returns EXISTS as a boolean/1/true depending on driver; coerce to JS bool
         pickup_now: !!p.pickup_now,
         preferred_date: p.preferred_date ? dayjs(p.preferred_date).format('YYYY-MM-DD') : null,
         time_slot: (() => {
@@ -1083,6 +1089,9 @@ exports.declinePickup = async (req, res) => {
   }
 };
 
+// Donor bails out after staff has already dispatched a driver (truck stop is in_transit).
+// This does NOT cancel the donation — it just reverts the trip so staff can reschedule.
+// Only applies to pickup mode; delivery mode has no donor-initiated decline-early flow.
 exports.declineEarly = async (req, res) => {
   const { id } = req.params;
   const uid = req.user.id;
@@ -1097,13 +1106,14 @@ exports.declineEarly = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Pickup not found.' });
     }
 
-    // Revert the in_transit truck stop back to pending (staff can re-attempt)
+    // Revert the in_transit truck stop to pending so staff can re-dispatch later
     await db.execute(
       "UPDATE truck_stops SET status = 'pending', updated_at = NOW() WHERE reference_id::text = ? AND source = 'food_donation' AND stop_type = 'PICKUP' AND status = 'in_transit'",
       [id]
     );
 
-    // Reset the donation record back to accepted so it still appears as approved
+    // Reset the record to accepted — keeps it visible in the donor's upcoming list
+    // (in_transit would cause it to disappear after the completed filter removes it)
     await db.execute(
       "UPDATE food_donation_records SET status = 'accepted', updated_at = NOW() WHERE id = ?",
       [id]
@@ -1380,7 +1390,10 @@ exports.getBeneficiaryRequests = async (req, res) => {
 
   const requestIds = requests.map(r => r.id);
 
-  // Bulk-fetch financial disbursements from donation_deliveries
+  // Bulk-fetch financial disbursements for all requests in one query.
+  // Using = ANY(?) with a JS array as a single param avoids the IN($1,$2,...) placeholder
+  // expansion problem — pg's native driver handles array params via ANY natively.
+  // received_at is the confirmation timestamp; there is no beneficiary_confirmed column.
   const disbursementsByRequest = {};
   if (requestIds.length > 0) {
     try {
@@ -1405,6 +1418,8 @@ exports.getBeneficiaryRequests = async (req, res) => {
         let items = [];
         try {
           const parsed = typeof row.delivery_items === 'string' ? JSON.parse(row.delivery_items) : row.delivery_items;
+          // The web app sometimes writes {} (empty object) instead of [] for financial grants;
+          // Array.isArray guards against .filter() throwing on a non-array value
           items = Array.isArray(parsed) ? parsed : [];
         } catch {}
         const financialItems = items.filter((item) => item.type === 'financial');
@@ -1415,18 +1430,21 @@ exports.getBeneficiaryRequests = async (req, res) => {
 
         if (!disbursementsByRequest[rid]) disbursementsByRequest[rid] = [];
 
+        // receipt_path values like 'financial-records/...' were uploaded through the web app
+        // (savrdonate.com) and are served from that server's storage, not this Express server.
+        // WEB_APP_URL must be set in Railway env vars; paths from the mobile app use baseUrl.
         const webAppUrl = process.env.WEB_APP_URL || baseUrl;
         const toAbsoluteUrl = (p) => {
           if (!p) return null;
           if (p.startsWith('http://') || p.startsWith('https://')) return p;
-          // Paths starting with 'financial-records/' were uploaded by the web app
           if (p.startsWith('financial-records/')) return `${webAppUrl}/storage/${p}`;
           return `${baseUrl}/storage/${p}`;
         };
 
         if (financialItems.length > 0) {
           for (const fi of financialItems) {
-            // Prefer proof_of_transfer (may already be an absolute URL set by web app)
+            // proof_of_transfer takes priority as it's set by staff directly on the delivery row;
+            // receipt_path and fi.receipt are fallbacks from older web-app grant records
             const receiptUrl = toAbsoluteUrl(row.proof_of_transfer || row.receipt_path || fi.receipt || null);
             disbursementsByRequest[rid].push({
               id: row.delivery_id,
@@ -1438,12 +1456,13 @@ exports.getBeneficiaryRequests = async (req, res) => {
               notes: row.notes || fi.note || fi.notes || null,
               reference_number: row.reference_number || null,
               transfer_datetime: row.transfer_datetime ? new Date(row.transfer_datetime).toISOString() : null,
+              // received_at is the confirmation timestamp; no beneficiary_confirmed column exists
               confirmed: !!row.received_at,
               confirmed_at: row.received_at ? new Date(row.received_at).toISOString() : null,
             });
           }
         } else {
-          // grant_amount set directly by staff with no delivery_items
+          // grant_amount set directly by staff with no delivery_items breakdown
           const receiptUrl = toAbsoluteUrl(row.proof_of_transfer || row.receipt_path || null);
           disbursementsByRequest[rid].push({
             id: row.delivery_id,
@@ -1889,6 +1908,10 @@ exports.recordDisbursement = async (req, res) => {
   return res.json({ success: true, message: 'Disbursement recorded.', total_sent: totalSent, disbursements: existing });
 };
 
+// Beneficiary taps "I Received This" to acknowledge a financial disbursement.
+// We verify the delivery belongs to this request before updating — prevents cross-request
+// confirmation by guessing a disbursementId. Uses received_at (not a non-existent
+// beneficiary_confirmed column) as the confirmation timestamp.
 exports.confirmDisbursement = async (req, res) => {
   const { id, disbursementId } = req.params;
   const uid = req.user.id;
@@ -1905,7 +1928,8 @@ exports.confirmDisbursement = async (req, res) => {
 
     const request = rows[0];
 
-    // Mark the donation_delivery as received by the beneficiary
+    // Validate the disbursement belongs to this request via the drive join;
+    // donation_deliveries links to donation_drives, not directly to beneficiary_requests
     const [deliveryRows] = await db.execute(`
       SELECT del.id FROM donation_deliveries del
       JOIN donation_drives dd ON dd.id = del.donation_drive_id
@@ -1921,7 +1945,7 @@ exports.confirmDisbursement = async (req, res) => {
       [disbursementId]
     );
 
-    // Mark the beneficiary request as financially received
+    // Also stamp the parent request so the dashboard can show financial_received_at
     await db.execute(
       "UPDATE beneficiary_requests SET financial_received_at = NOW(), updated_at = NOW() WHERE id = ?",
       [id]
