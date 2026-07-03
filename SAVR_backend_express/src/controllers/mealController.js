@@ -125,41 +125,100 @@ function toBaseUnit(qty, unit) {
 const WEIGHT_PAX = 0.7;
 const WEIGHT_EXPIRY = 0.3;
 
+// Maps days-before-expiry to a priority score per the spec's tiered table.
+// null daysRemaining = no expiry date = non-perishable → lowest urgency tier (20).
+function getExpiryTierScore(daysRemaining) {
+  if (daysRemaining === null || daysRemaining === undefined) return 20;
+  if (daysRemaining <= 1)  return 100;
+  if (daysRemaining <= 3)  return 90;
+  if (daysRemaining <= 5)  return 75;
+  if (daysRemaining <= 7)  return 60;
+  if (daysRemaining <= 14) return 40;
+  return 20;
+}
+
+// Generates the human-readable recommendation reason for any_available results.
+// Two sentences: why expiry makes this meal urgent, then how well inventory covers servings.
+function generateRecommendationReason(expiryScore, servingCapScore, possibleServings, targetPax, minDays) {
+  let expiryReason;
+  if (expiryScore >= 100) {
+    expiryReason = 'Key ingredients expire today or tomorrow — preparing this meal now prevents critical food waste.';
+  } else if (expiryScore >= 90) {
+    expiryReason = 'Ingredients are expiring within 3 days, making this a high-priority meal to avoid spoilage.';
+  } else if (expiryScore >= 75) {
+    expiryReason = 'Ingredients will expire within 5 days — this meal uses them before they go to waste.';
+  } else if (expiryScore >= 60) {
+    expiryReason = 'Ingredients expire within the week — scheduling this meal soon reduces waste risk.';
+  } else if (expiryScore >= 40) {
+    expiryReason = 'Ingredients have 8 to 14 days before expiry, making this a moderate priority for waste prevention.';
+  } else {
+    expiryReason = 'All required ingredients are stable with more than 14 days before expiry.';
+  }
+
+  const servingReason = servingCapScore >= 100
+    ? `Current inventory fully covers all ${targetPax} requested servings.`
+    : `Current inventory supports ${possibleServings} out of ${targetPax} requested servings (${Math.round(servingCapScore)}% capacity).`;
+
+  return `${expiryReason} ${servingReason}`;
+}
+
 exports.optimizeMeals = async (req, res) => {
   const targetPax = Math.max(1, parseInt(req.body.target_pax) || 1);
   const selectedIngredients = req.body.selected_ingredients || [];
   const mode = (req.body.mode || 'recipe').toLowerCase();
   const isAnyAvailable = mode === 'any_available';
 
-  if (!selectedIngredients.length) {
+  // Recipe mode requires the caller to supply ingredients; any_available pulls from DB
+  if (!isAnyAvailable && !selectedIngredients.length) {
     return res.status(422).json({ success: false, message: 'No ingredients provided.' });
   }
 
-  // Build lookup: lowercase name → { inputQty, unit, daysRemaining }
-  const selected = {};
   const today = dayjs().startOf('day');
 
-  for (const item of selectedIngredients) {
-    const name = (item.name || '').toLowerCase().trim();
-    if (!name) continue;
+  // Build ingredient lookup: lowercase name → { inputQty, unit, daysRemaining }
+  const selected = {};
 
-    let daysRemaining = 999;
-    let daysRaw = null;
-    if (item.expiry) {
-      try {
-        const expiry = dayjs(item.expiry);
-        daysRaw = expiry.diff(today, 'day');
-        daysRemaining = Math.max(0, daysRaw);
-      } catch {}
+  if (isAnyAvailable) {
+    // Pull live inventory from the database — backend is the authoritative source.
+    // Expired rows and Prep Meal rows are excluded so they don't inflate availability.
+    const [inventoryRows] = await db.execute(
+      `SELECT food_name, quantity, unit, expiration_date
+       FROM food_inventory
+       WHERE quantity > 0
+         AND meal_type IS DISTINCT FROM 'Prep Meal'
+         AND (expiration_date IS NULL OR expiration_date >= CURRENT_DATE)
+       ORDER BY food_name`
+    );
+    for (const item of inventoryRows) {
+      const name = (item.food_name || '').toLowerCase().trim();
+      if (!name) continue;
+      let daysRemaining = null; // null = no expiry date (non-perishable)
+      if (item.expiration_date) {
+        daysRemaining = Math.max(0, dayjs(item.expiration_date).diff(today, 'day'));
+      }
+      if (selected[name]) {
+        // Multiple batches of the same item: sum quantities, keep the earliest expiry
+        selected[name].inputQty += parseFloat(item.quantity) || 0;
+        if (daysRemaining !== null && (selected[name].daysRemaining === null || daysRemaining < selected[name].daysRemaining)) {
+          selected[name].daysRemaining = daysRemaining;
+        }
+      } else {
+        selected[name] = { inputQty: parseFloat(item.quantity) || 0, unit: item.unit || '', daysRemaining };
+      }
     }
-    // In any_available mode, expired items are excluded entirely
-    if (isAnyAvailable && daysRaw !== null && daysRaw < 0) continue;
-
-    selected[name] = {
-      inputQty: parseFloat(item.inputQty) || 0,
-      unit: item.unit || '',
-      daysRemaining,
-    };
+  } else {
+    // Recipe mode: use frontend-provided ingredients
+    for (const item of selectedIngredients) {
+      const name = (item.name || '').toLowerCase().trim();
+      if (!name) continue;
+      let daysRemaining = 999;
+      if (item.expiry) {
+        try {
+          daysRemaining = Math.max(0, dayjs(item.expiry).diff(today, 'day'));
+        } catch {}
+      }
+      selected[name] = { inputQty: parseFloat(item.inputQty) || 0, unit: item.unit || '', daysRemaining };
+    }
   }
 
   // Load only the 5 selected system meals + all user-created recipes
@@ -187,7 +246,6 @@ exports.optimizeMeals = async (req, res) => {
 
     for (const ing of mealIngredients) {
       const ingKey = ing.ingredient_name.toLowerCase().trim();
-
       let matchKey = null;
 
       if (selected[ingKey]) {
@@ -210,17 +268,14 @@ exports.optimizeMeals = async (req, res) => {
             'medium', 'hot', 'cold', 'sweet', 'sour', 'spicy', 'thick', 'thin',
             'mixed', 'assorted', 'regular', 'extra', 'lean', 'skinless', 'boneless',
           ]);
-
           const ingNouns = ingKey.split(' ').filter(w => w.length > 2 && !DESCRIPTORS.has(w));
           const selNouns = selName.split(' ').filter(w => w.length > 2 && !DESCRIPTORS.has(w));
-
           if (!ingNouns.length || !selNouns.length) continue;
 
           // Anchor on the rightmost noun (the main ingredient word) to avoid
           // false positives from shared modifiers.
           const ingMainNoun = ingNouns[ingNouns.length - 1];
           const selMainNoun = selNouns[selNouns.length - 1];
-
           if (ingKey.includes(selMainNoun) || selName.includes(ingMainNoun)) {
             matchKey = selName;
           }
@@ -237,129 +292,179 @@ exports.optimizeMeals = async (req, res) => {
 
     if (!matchedIngredients.length) continue;
 
-    const servingCaps = [];
-    let minDays = 999;
-
-    for (const m of matchedIngredients) {
-      const ingName = (m.ingredient.ingredient_name || '').toLowerCase().trim();
-
-      // Minor ingredients and water never limit serving count
-      if (ingName === 'water' || !isMajorIngredient(ingName)) {
-        if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
-        continue;
-      }
-
-      if (m.ingredient.qty_per_serving > 0) {
-        const availableQty  = toBaseUnit(m.selData.inputQty, m.selData.unit);
-        const reqPerServing = toBaseUnit(m.ingredient.qty_per_serving, m.ingredient.unit);
-        if (reqPerServing > 0) {
-          servingCaps.push(Math.floor(availableQty / reqPerServing));
-        }
-      }
-      if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
-    }
-
-    const rawMax = servingCaps.length ? Math.min(...servingCaps) : 0;
-    const maxServings = Math.min(rawMax, targetPax);
-    const paxScore = targetPax > 0 ? maxServings / targetPax : 0;
-    const expiryScore = Math.max(0, 1 - minDays / 90);
-
-    let finalScore;
-    let coverageScore = 0;
     if (isAnyAvailable) {
-      // Coverage: avg(min(available / needed, 1.0)) across all required recipe ingredients
-      const requiredIngs = mealIngredients.filter(ing => !ing.is_optional);
-      let totalCoverage = 0;
-      for (const ing of requiredIngs) {
-        const m = matchedIngredients.find(mi => mi.ingredient.id === ing.id);
-        if (m) {
-          const needed = toBaseUnit(ing.qty_per_serving * targetPax, ing.unit);
+      // Hard filter: every required (non-optional) ingredient must be present.
+      // A single missing required ingredient disqualifies the meal entirely.
+      if (missingIngredients.length > 0) continue;
+
+      const requiredMatched = matchedIngredients.filter(m => !m.ingredient.is_optional);
+      if (!requiredMatched.length) continue;
+
+      // Possible servings = minimum across ALL required ingredients (spec §5)
+      const servingCaps = [];
+      for (const m of requiredMatched) {
+        if (m.ingredient.qty_per_serving > 0) {
           const available = toBaseUnit(m.selData.inputQty, m.selData.unit);
-          totalCoverage += needed > 0 ? Math.min(available / needed, 1.0) : 1.0;
+          const needed = toBaseUnit(m.ingredient.qty_per_serving, m.ingredient.unit);
+          if (needed > 0) servingCaps.push(Math.floor(available / needed));
         }
       }
-      coverageScore = requiredIngs.length > 0 ? totalCoverage / requiredIngs.length : 0;
-      finalScore = 0.5 * expiryScore + 0.3 * coverageScore + 0.2 * paxScore;
-    } else {
-      finalScore = WEIGHT_PAX * paxScore + WEIGHT_EXPIRY * expiryScore;
-    }
+      const possibleServings = servingCaps.length ? Math.min(...servingCaps) : 0;
+      if (possibleServings === 0) continue; // Can't prepare even 1 serving — skip
 
-    plans.push({
-      meal,
-      maxServings,
-      paxScore,
-      expiryScore,
-      coverageScore,
-      finalScore,
-      missing: missingIngredients,
-      matched: matchedIngredients.map(m => m.ingredient.ingredient_name),
-    });
+      // Expiry score: tiered table, averaged across all required ingredients present (spec §6)
+      const expiryTiers = requiredMatched.map(m => getExpiryTierScore(m.selData.daysRemaining));
+      const expiryScore = expiryTiers.reduce((s, v) => s + v, 0) / expiryTiers.length;
+
+      // Serving capacity score capped at 100 so surplus inventory doesn't inflate the score (spec §5)
+      const servingCapScore = Math.min((possibleServings / targetPax) * 100, 100);
+
+      // All qualifying meals have 100% availability by definition (hard filter above)
+      const availabilityScore = 100;
+
+      // Final score: 50% expiry + 30% availability + 20% serving capacity (spec §7)
+      const finalScore = 0.5 * expiryScore + 0.3 * availabilityScore + 0.2 * servingCapScore;
+
+      // Tie-breaking helpers (spec §9)
+      const daysArr = requiredMatched.map(m => m.selData.daysRemaining).filter(d => d !== null);
+      const minDays = daysArr.length ? Math.min(...daysArr) : Infinity;
+      const nearExpiryCount = daysArr.filter(d => d <= 14).length;
+
+      plans.push({
+        meal,
+        possibleServings,
+        expiryScore:     Math.round(expiryScore     * 10) / 10,
+        availabilityScore,
+        servingCapScore: Math.round(servingCapScore  * 10) / 10,
+        finalScore:      Math.round(finalScore       * 10) / 10,
+        minDays,
+        nearExpiryCount,
+        requiredIngredientCount: requiredMatched.length,
+        matched: matchedIngredients.map(m => m.ingredient.ingredient_name),
+        missing: [],
+      });
+
+    } else {
+      // Recipe mode: existing scoring — unchanged
+      const servingCaps = [];
+      let minDays = 999;
+
+      for (const m of matchedIngredients) {
+        const ingName = (m.ingredient.ingredient_name || '').toLowerCase().trim();
+
+        // Minor ingredients and water never limit serving count
+        if (ingName === 'water' || !isMajorIngredient(ingName)) {
+          if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
+          continue;
+        }
+        if (m.ingredient.qty_per_serving > 0) {
+          const availableQty  = toBaseUnit(m.selData.inputQty, m.selData.unit);
+          const reqPerServing = toBaseUnit(m.ingredient.qty_per_serving, m.ingredient.unit);
+          if (reqPerServing > 0) servingCaps.push(Math.floor(availableQty / reqPerServing));
+        }
+        if (m.selData.daysRemaining < minDays) minDays = m.selData.daysRemaining;
+      }
+
+      const rawMax = servingCaps.length ? Math.min(...servingCaps) : 0;
+      const maxServings = Math.min(rawMax, targetPax);
+      const paxScore = targetPax > 0 ? maxServings / targetPax : 0;
+      const expiryScore = Math.max(0, 1 - minDays / 90);
+      const finalScore = WEIGHT_PAX * paxScore + WEIGHT_EXPIRY * expiryScore;
+
+      plans.push({
+        meal,
+        maxServings,
+        paxScore,
+        expiryScore,
+        coverageScore: 0,
+        finalScore,
+        missing: missingIngredients,
+        matched: matchedIngredients.map(m => m.ingredient.ingredient_name),
+      });
+    }
   }
 
-  let results;
-
+  // ─── Any Available Meal output ────────────────────────────────────────────
   if (isAnyAvailable) {
-    // Pick one winner per category — same meal may appear in multiple ranks
-    const categories = [
-      { key: 'expiryScore',   rank: 1, rankDisplay: '#1 Expiry',       status: 'Best for Expiry' },
-      { key: 'coverageScore', rank: 2, rankDisplay: '#2 Availability', status: 'Best Availability' },
-      { key: 'paxScore',      rank: 3, rankDisplay: '#3 Servings',     status: 'Most Servings' },
-    ];
+    if (!plans.length) {
+      return res.json({ success: true, meals: [] });
+    }
 
-    results = categories
-      .map(({ key, rank, rankDisplay, status }) => {
-        const winner = plans.slice().sort((a, b) => b[key] - a[key])[0];
-        if (!winner) return null;
-        let tags = [];
-        try { tags = typeof winner.meal.tags === 'string' ? JSON.parse(winner.meal.tags) : (winner.meal.tags || []); } catch {}
-        return {
-          id: `rank_${rank}`,
-          name: winner.meal.name,
-          rankDisplay,
-          isTop: rank === 1,
-          isFullMatch: winner.missing.length === 0,
-          tags: [...new Set(tags)],
-          servings: String(winner.maxServings),
-          status,
-          ingredients_used: winner.matched.join(', '),
-          comment_title: '',
-          comment_desc: '',
-          missing_items: winner.missing.length ? winner.missing.join(', ') : null,
-        };
-      })
-      .filter(Boolean);
-  } else {
-    // Recipe mode: full matches first, then sort by finalScore
+    // Sort by final score; four-level tie-break per spec §9
     plans.sort((a, b) => {
-      const aFull = a.missing.length === 0 ? 1 : 0;
-      const bFull = b.missing.length === 0 ? 1 : 0;
-      if (bFull !== aFull) return bFull - aFull;
-      return b.finalScore - a.finalScore;
+      if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+      // 1. Earliest expiring ingredient first
+      const aMin = a.minDays === Infinity ? 9999 : a.minDays;
+      const bMin = b.minDays === Infinity ? 9999 : b.minDays;
+      if (aMin !== bMin) return aMin - bMin;
+      // 2. More possible servings first
+      if (b.possibleServings !== a.possibleServings) return b.possibleServings - a.possibleServings;
+      // 3. More near-expiry ingredients first (maximises waste reduction per batch)
+      if (b.nearExpiryCount !== a.nearExpiryCount) return b.nearExpiryCount - a.nearExpiryCount;
+      // 4. Fewer required ingredients first (simpler to prepare)
+      return a.requiredIngredientCount - b.requiredIngredientCount;
     });
 
-    results = plans.map((plan, rank) => {
-      const rankNum = rank + 1;
-      const isTop = rankNum === 1;
-      const rankDisplay = isTop ? '#1 Best' : `#${rankNum}`;
+    const results = plans.slice(0, 3).map((plan, idx) => {
+      const rank = idx + 1;
       let tags = [];
       try { tags = typeof plan.meal.tags === 'string' ? JSON.parse(plan.meal.tags) : (plan.meal.tags || []); } catch {}
-      if (isTop) tags = ['Recommended', ...tags];
       return {
-        id: `rank_${rankNum}`,
+        id: `rank_${rank}`,
         name: plan.meal.name,
-        rankDisplay,
-        isTop,
-        isFullMatch: plan.missing.length === 0,
+        rankDisplay: `#${rank}`,
+        isTop: rank === 1,
+        isFullMatch: true,
         tags: [...new Set(tags)],
-        servings: String(plan.maxServings),
-        status: isTop ? 'Optimal Output' : '',
+        servings: String(plan.possibleServings),
+        status: rank === 1 ? 'Top Priority' : `Priority #${rank}`,
         ingredients_used: plan.matched.join(', '),
-        comment_title: isTop ? 'Why this meal ranks first:' : '',
-        comment_desc: plan.meal.comment_desc || '',
-        missing_items: plan.missing.length ? plan.missing.join(', ') : null,
+        expiry_score: plan.expiryScore,
+        availability_score: plan.availabilityScore,
+        serving_capacity_score: plan.servingCapScore,
+        final_score: plan.finalScore,
+        comment_title: 'Recommendation Reason:',
+        comment_desc: generateRecommendationReason(
+          plan.expiryScore, plan.servingCapScore,
+          plan.possibleServings, targetPax, plan.minDays
+        ),
+        missing_items: null,
       };
     });
+
+    return res.json({ success: true, meals: results });
   }
+
+  // ─── Recipe mode output (unchanged) ──────────────────────────────────────
+  plans.sort((a, b) => {
+    const aFull = a.missing.length === 0 ? 1 : 0;
+    const bFull = b.missing.length === 0 ? 1 : 0;
+    if (bFull !== aFull) return bFull - aFull;
+    return b.finalScore - a.finalScore;
+  });
+
+  const results = plans.map((plan, rank) => {
+    const rankNum = rank + 1;
+    const isTop = rankNum === 1;
+    const rankDisplay = isTop ? '#1 Best' : `#${rankNum}`;
+    let tags = [];
+    try { tags = typeof plan.meal.tags === 'string' ? JSON.parse(plan.meal.tags) : (plan.meal.tags || []); } catch {}
+    if (isTop) tags = ['Recommended', ...tags];
+    return {
+      id: `rank_${rankNum}`,
+      name: plan.meal.name,
+      rankDisplay,
+      isTop,
+      isFullMatch: plan.missing.length === 0,
+      tags: [...new Set(tags)],
+      servings: String(plan.maxServings),
+      status: isTop ? 'Optimal Output' : '',
+      ingredients_used: plan.matched.join(', '),
+      comment_title: isTop ? 'Why this meal ranks first:' : '',
+      comment_desc: plan.meal.comment_desc || '',
+      missing_items: plan.missing.length ? plan.missing.join(', ') : null,
+    };
+  });
 
   return res.json({ success: true, meals: results });
 };

@@ -736,6 +736,39 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
         ) : null}
       </View>
 
+      {/* Score breakdown — only shown for Any Available Meal results when backend provides scores */}
+      {isAnyAvailable && !isSuggested && meal.expiry_score !== undefined && (
+        <View style={{ marginBottom: 12 }}>
+          <Text style={[styles.detailLabel, { marginBottom: 6 }]}>SCORE BREAKDOWN</Text>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <View style={[styles.detailBox, { borderColor: '#f0a030' }]}>
+              <Text style={styles.detailLabel}>EXPIRY</Text>
+              <Text style={[styles.detailValue, { color: '#b07a1e', fontSize: 14 }]}>
+                {meal.expiry_score}/100
+              </Text>
+            </View>
+            <View style={[styles.detailBox, { borderColor: '#b8dfc9' }]}>
+              <Text style={styles.detailLabel}>AVAIL.</Text>
+              <Text style={[styles.detailValue, { color: '#156133', fontSize: 14 }]}>
+                {meal.availability_score}/100
+              </Text>
+            </View>
+            <View style={[styles.detailBox, { borderColor: '#b8dfc9' }]}>
+              <Text style={styles.detailLabel}>SERVING</Text>
+              <Text style={[styles.detailValue, { color: '#156133', fontSize: 14 }]}>
+                {meal.serving_capacity_score}/100
+              </Text>
+            </View>
+            <View style={[styles.detailBox, { borderColor: '#dcb04d', backgroundColor: '#fffdf7' }]}>
+              <Text style={styles.detailLabel}>FINAL</Text>
+              <Text style={[styles.detailValue, { color: '#c9791e', fontSize: 14 }]}>
+                {meal.final_score}/100
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       <Text style={styles.ingredientListText}>
         <Text style={{ fontWeight: '700' }}>Ingredients:</Text>{' '}
         {(() => {
