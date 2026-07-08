@@ -457,9 +457,15 @@ export default function AddRecipe({ navigation }: any) {
               <View style={styles.addedListContainer}>
                 {/* Column header labels */}
                 <View style={styles.ingColumnHeader}>
-                  <Text style={styles.ingColLabel}>Ingredients</Text>
-                  <Text style={styles.ingColLabelCenter}>Qty</Text>
-                  <Text style={styles.ingColLabelRight}>Unit</Text>
+                  <View style={styles.ingColLeft}>
+                    <Text style={styles.ingColLabel}>Ingredients</Text>
+                  </View>
+                  <View style={styles.ingColQty}>
+                    <Text style={styles.ingColLabelCenter}>Amount</Text>
+                  </View>
+                  <View style={styles.ingColUnit}>
+                    <Text style={styles.ingColLabelRight}>Unit</Text>
+                  </View>
                 </View>
                 {ingredientsList.map((item) => {
                   const iconDetail = getIngredientIcon(item.baseName);
@@ -817,12 +823,26 @@ const styles = StyleSheet.create({
   ingColumnHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingLeft: 12,
+    paddingRight: 2,
     paddingBottom: 6,
     marginBottom: 2,
+    gap: 8,
+  },
+  ingColLeft: {
+    flex: 1,
+  },
+  ingColQty: {
+    width: 92,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ingColUnit: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ingColLabel: {
-    flex: 1,
     fontSize: 11,
     fontWeight: '800',
     color: '#8A4F1D',
@@ -835,7 +855,6 @@ const styles = StyleSheet.create({
     color: '#8A4F1D',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginRight: 36,
   },
   ingColLabelRight: {
     fontSize: 11,
@@ -843,7 +862,6 @@ const styles = StyleSheet.create({
     color: '#8A4F1D',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginRight: 32,
   },
   ingredientCardSelected: {
     backgroundColor: '#db7a2f',
@@ -878,6 +896,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 4,
     paddingVertical: 3,
+    width: 92,
+    justifyContent: 'center',
   },
   ingUnitPill: {
     flexDirection: 'row',
@@ -888,6 +908,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
+    width: 56,
+    justifyContent: 'center',
   },
   ingUnitPillText: {
     fontSize: 12,

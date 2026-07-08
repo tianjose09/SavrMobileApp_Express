@@ -18,8 +18,8 @@ const isMatch = (selectedName: string, ingText: string): boolean => {
   // Plural inventory names (e.g. "eggs", "tomatoes") vs singular recipe text (e.g. "egg", "tomato"):
   // check against comma-split tokens to avoid substring false positives like "bags"→"bag" in "bagel"
   const singular = mainNoun.endsWith('es') && mainNoun.length > 4 ? mainNoun.slice(0, -2)
-                 : mainNoun.endsWith('s')  && mainNoun.length > 3 ? mainNoun.slice(0, -1)
-                 : null;
+    : mainNoun.endsWith('s') && mainNoun.length > 3 ? mainNoun.slice(0, -1)
+      : null;
   if (singular) {
     const tokens = ingText.split(',').map(t => t.trim());
     if (tokens.some(t => t === singular || t.startsWith(singular + ' '))) return true;
@@ -650,26 +650,26 @@ export default function MealOptimizationResults({ route, navigation }: any) {
   );
 }
 
-// â”€â”€ Reusable Meal Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Reusable Meal Card Component 
 // Convert a quantity from its recipe unit to base unit (kg or L) for cross-unit deduction math
 const toBaseQty = (qty: number, unit: string): number => {
   switch ((unit || '').toLowerCase().trim()) {
-    case 'g':    return qty / 1000;
-    case 'ml':   return qty / 1000;
-    case 'tsp':  return qty * 0.005;
+    case 'g': return qty / 1000;
+    case 'ml': return qty / 1000;
+    case 'tsp': return qty * 0.005;
     case 'tbsp': return qty * 0.015;
     case 'pcs': case 'pc': return (qty * 400) / 1000;
-    default:     return qty;
+    default: return qty;
   }
 };
 
 // Convert from base unit (kg or L) to the inventory item's display/storage unit
 const fromBaseQty = (base: number, unit: string): number => {
   switch ((unit || '').toLowerCase().trim()) {
-    case 'g':  return base * 1000;
+    case 'g': return base * 1000;
     case 'ml': return base * 1000;
     case 'pcs': case 'pc': return (base * 1000) / 400;
-    default:   return base;
+    default: return base;
   }
 };
 
@@ -837,79 +837,79 @@ function MealCard({ meal, isSuggested = false, selectedIngredients = [], navigat
       </Text>
 
       {(mealPax > 0 && targetPax > 0 && mealPax < targetPax) || meal.comment_title || meal.comment_desc ? (
-      <View style={[styles.commentBox, isSuggested && styles.commentBoxSuggested]}>
-        {mealPax > 0 && targetPax > 0 && mealPax < targetPax ? (
-          <>
-            <Text style={[styles.commentTitle, { color: '#B85C00' }]}>Heads up!</Text>
-            <Text style={styles.commentText}>
-              We're ready to help you prepare{' '}
-              <Text style={{ fontWeight: '800', color: '#156133' }}>{mealPax} serving{mealPax === 1 ? '' : 's'}</Text>{' '}
-              of this meal – out of the{' '}
-              <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
-              you requested. Just a little less than you asked for, but we got you!
-            </Text>
+        <View style={[styles.commentBox, isSuggested && styles.commentBoxSuggested]}>
+          {mealPax > 0 && targetPax > 0 && mealPax < targetPax ? (
+            <>
+              <Text style={[styles.commentTitle, { color: '#B85C00' }]}>Heads up!</Text>
+              <Text style={styles.commentText}>
+                We're ready to help you prepare{' '}
+                <Text style={{ fontWeight: '800', color: '#156133' }}>{mealPax} serving{mealPax === 1 ? '' : 's'}</Text>{' '}
+                of this meal – out of the{' '}
+                <Text style={{ fontWeight: '800', color: '#B85C00' }}>{targetPax} servings</Text>{' '}
+                you requested. Just a little less than you asked for, but we got you!
+              </Text>
 
-            {/* Notify Staff Widget */}
-            <View style={styles.notifyStaffWrapper}>
-              {hasNotified ? (
-                <View style={styles.notifiedContainer}>
-                  <Ionicons name="checkmark-circle" size={16} color="#156133" style={{ marginRight: 6 }} />
-                  <Text style={styles.notifiedText}>Staff Notified about the shortage</Text>
-                </View>
-              ) : showInput ? (
-                <View style={styles.notifyForm}>
-                  <TextInput
-                    style={styles.notifyInput}
-                    placeholder="Add optional note (e.g. Need 5kg more chicken)"
-                    placeholderTextColor="#8a7e74"
-                    value={customMsg}
-                    onChangeText={setCustomMsg}
-                    multiline
-                  />
-                  <View style={styles.notifyBtnRow}>
-                    <TouchableOpacity
-                      style={styles.notifyCancelBtn}
-                      onPress={() => setShowInput(false)}
-                      disabled={isNotifying}
-                    >
-                      <Text style={styles.notifyCancelBtnText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.notifySendBtn}
-                      onPress={handleNotifyStaff}
-                      disabled={isNotifying}
-                    >
-                      {isNotifying ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                      ) : (
-                        <Text style={styles.notifySendBtnText}>Send Alert</Text>
-                      )}
-                    </TouchableOpacity>
+              {/* Notify Staff Widget */}
+              <View style={styles.notifyStaffWrapper}>
+                {hasNotified ? (
+                  <View style={styles.notifiedContainer}>
+                    <Ionicons name="checkmark-circle" size={16} color="#156133" style={{ marginRight: 6 }} />
+                    <Text style={styles.notifiedText}>Staff Notified about the shortage</Text>
                   </View>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.notifyButton}
-                  onPress={() => setShowInput(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="notifications-outline" size={14} color="#B85C00" style={{ marginRight: 6 }} />
-                  <Text style={styles.notifyButtonText}>Notify Staff of Shortage</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </>
-        ) : (
-          <>
-            {meal.comment_title ? (
-              <Text style={styles.commentTitle}>{meal.comment_title}</Text>
-            ) : null}
-            {meal.comment_desc ? (
-              <Text style={styles.commentText}>{meal.comment_desc}</Text>
-            ) : null}
-          </>
-        )}
-      </View>
+                ) : showInput ? (
+                  <View style={styles.notifyForm}>
+                    <TextInput
+                      style={styles.notifyInput}
+                      placeholder="Add optional note (e.g. Need 5kg more chicken)"
+                      placeholderTextColor="#8a7e74"
+                      value={customMsg}
+                      onChangeText={setCustomMsg}
+                      multiline
+                    />
+                    <View style={styles.notifyBtnRow}>
+                      <TouchableOpacity
+                        style={styles.notifyCancelBtn}
+                        onPress={() => setShowInput(false)}
+                        disabled={isNotifying}
+                      >
+                        <Text style={styles.notifyCancelBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.notifySendBtn}
+                        onPress={handleNotifyStaff}
+                        disabled={isNotifying}
+                      >
+                        {isNotifying ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <Text style={styles.notifySendBtnText}>Send Alert</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.notifyButton}
+                    onPress={() => setShowInput(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="notifications-outline" size={14} color="#B85C00" style={{ marginRight: 6 }} />
+                    <Text style={styles.notifyButtonText}>Notify Staff of Shortage</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </>
+          ) : (
+            <>
+              {meal.comment_title ? (
+                <Text style={styles.commentTitle}>{meal.comment_title}</Text>
+              ) : null}
+              {meal.comment_desc ? (
+                <Text style={styles.commentText}>{meal.comment_desc}</Text>
+              ) : null}
+            </>
+          )}
+        </View>
       ) : null}
 
       {/* Prepare This Meal Button */}
