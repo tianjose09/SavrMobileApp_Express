@@ -26,6 +26,7 @@ export default function FoodDonationDelivery({ route, navigation }: any) {
   const [showIOSDateFrom, setShowIOSDateFrom] = useState(false);
   const [showIOSDateTo, setShowIOSDateTo] = useState(false);
   const getToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const getTomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0, 0, 0, 0); return d; };
   const [tempDate, setTempDate] = useState(() => getToday());
   const [tempTimeFrom, setTempTimeFrom] = useState(() => {
     const d = new Date();
