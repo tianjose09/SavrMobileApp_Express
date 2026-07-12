@@ -175,13 +175,6 @@ db.execute(`
           SET status = 'Deleted', updated_at = NOW()
           WHERE id = OLD.beneficiary_request_id
             AND LOWER(status) NOT IN ('completed','cancelled','deleted','rejected','denied');
-        IF FOUND THEN
-          INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-          SELECT user_id, 'service', 'Request Removed',
-            'Your request "' || COALESCE(request_name, 'Unnamed') || '" has been removed by our team. Please contact us if you have any questions.',
-            TRUE, NOW()
-          FROM beneficiary_requests WHERE id = OLD.beneficiary_request_id;
-        END IF;
       END IF;
     ELSIF OLD.drive_name IS NOT NULL THEN
       SELECT id INTO v_request_id

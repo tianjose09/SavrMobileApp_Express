@@ -296,12 +296,17 @@ async function autoNotifyBeneficiary(userId) {
             title = 'Delivery Rescheduled';
             msg = `Your delivery for request "${name}" has been rescheduled to ${dateStr}${timeLabel}. Please update your availability to receive it.`;
           } else if (stop.status === 'pending') {
-            // Skip if web already created 'Delivery scheduled' to avoid bell duplicate
+            // Skip if web already created a delivery notification to avoid bell duplicate
             const [webDeliveryNotif] = await db.execute(
               `SELECT id FROM notifications
-               WHERE user_id = ? AND type = 'service'
-                 AND LOWER(title) LIKE '%delivery scheduled%'
-                 AND created_at > NOW() - INTERVAL '24 hours'
+               WHERE user_id = ?
+                 AND (
+                   LOWER(title) LIKE '%delivery scheduled%'
+                   OR LOWER(title) LIKE '%scheduled%delivery%'
+                   OR LOWER(title) LIKE '%delivery incoming%'
+                   OR LOWER(description) LIKE '%has been scheduled%'
+                 )
+                 AND created_at > NOW() - INTERVAL '48 hours'
                LIMIT 1`,
               [stop.user_id]
             );
