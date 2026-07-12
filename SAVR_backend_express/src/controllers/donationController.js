@@ -1745,6 +1745,11 @@ exports.receiveBeneficiaryStop = async (req, res) => {
         'UPDATE beneficiary_requests SET received_items = ?, updated_at = NOW() WHERE id = ?',
         [JSON.stringify(updatedReceived2), id]
       );
+      await createNotification(
+        req.user.id, 'service', 'Partial Delivery Confirmed',
+        `A delivery for your request "${request2.request_name || 'Unnamed'}" has been confirmed. More deliveries may follow until your full request is fulfilled.`,
+        false
+      );
     }
 
     return res.json({
@@ -1857,8 +1862,18 @@ exports.cancelBeneficiaryRequest = async (req, res) => {
   }
 
   await db.execute(
-    "UPDATE beneficiary_requests SET status = 'Cancelled', updated_at = NOW() WHERE id = ?",
+    `UPDATE beneficiary_requests
+     SET status = 'Cancelled',
+         notified_status = 'Cancelled',
+         notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || '"Cancelled"'::jsonb,
+         updated_at = NOW()
+     WHERE id = ?`,
     [id]
+  );
+  await createNotification(
+    req.user.id, 'service', 'Request Cancelled',
+    `Your request "${request.request_name || 'Unnamed'}" has been cancelled as requested. You may submit a new request at any time.`,
+    false
   );
   return res.json({ success: true, message: 'Request cancelled successfully.' });
 };

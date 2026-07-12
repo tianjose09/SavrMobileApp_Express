@@ -377,6 +377,41 @@ async function autoNotifyBeneficiary(userId) {
     } catch (e) {
       console.error('[autoNotifyBeneficiary delivery]', e.message);
     }
+
+    // Notify beneficiary when a donation delivery transitions to in_transit.
+    // The web app sets donation_deliveries.status = 'in_transit' without touching beneficiary_requests,
+    // so this polls for that state and fires once per request using notified_statuses_json as a guard.
+    try {
+      const [inTransitRows] = await db.execute(`
+        SELECT DISTINCT br.id AS request_id, br.request_name, br.notified_statuses_json
+        FROM donation_deliveries del
+        JOIN donation_drives dd ON dd.id = del.donation_drive_id
+        JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
+        WHERE br.user_id = ? AND del.status = 'in_transit'
+          AND NOT (COALESCE(br.notified_statuses_json, '[]'::jsonb) @> '"in_transit_delivery"'::jsonb)
+      `, [userId]);
+
+      for (const row of inTransitRows) {
+        try {
+          const [claimRes] = await db.execute(
+            `UPDATE beneficiary_requests
+             SET notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || '"in_transit_delivery"'::jsonb
+             WHERE id = ? AND NOT (COALESCE(notified_statuses_json, '[]'::jsonb) @> '"in_transit_delivery"'::jsonb)`,
+            [row.request_id]
+          );
+          if (claimRes.affectedRows === 0) continue;
+          await createNotification(
+            userId, 'service', 'Your Delivery is On Its Way',
+            `A delivery for your request "${row.request_name || 'Unnamed'}" is now in transit. Please be ready to receive it.`,
+            true
+          );
+        } catch (e) {
+          console.error('[autoNotifyBeneficiary in_transit] request', row.request_id, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[autoNotifyBeneficiary in_transit]', e.message);
+    }
   } catch (e) {
     console.error('[autoNotifyBeneficiary]', e.message);
   }
