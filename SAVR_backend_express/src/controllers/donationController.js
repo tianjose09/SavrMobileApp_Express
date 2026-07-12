@@ -2064,14 +2064,6 @@ exports.recordDisbursement = async (req, res) => {
     [JSON.stringify(existing), totalSent, id]
   );
 
-  const { createNotification } = require('./notificationController');
-  const requestedAmount = parseFloat(request.amount || '0');
-  const goalMet = totalSent >= requestedAmount;
-  const msg = goalMet
-    ? `Great news! The full amount of ₱${requestedAmount.toLocaleString()} for your request "${request.request_name}" has been sent.`
-    : `₱${disbursedAmount.toLocaleString()} has been sent for your request "${request.request_name}". Total sent so far: ₱${totalSent.toLocaleString()} of ₱${requestedAmount.toLocaleString()}.`;
-  await createNotification(request.user_id, 'service', goalMet ? 'Financial Request Fulfilled' : 'Partial Payment Sent', msg, true);
-
   return res.json({ success: true, message: 'Disbursement recorded.', total_sent: totalSent, disbursements: existing });
 };
 

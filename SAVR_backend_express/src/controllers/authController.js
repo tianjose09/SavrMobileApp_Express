@@ -197,13 +197,6 @@ db.execute(`
         UPDATE beneficiary_requests
           SET status = 'Deleted', updated_at = NOW()
           WHERE id = v_request_id;
-        IF FOUND THEN
-          INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-          SELECT user_id, 'service', 'Request Removed',
-            'Your request "' || COALESCE(request_name, 'Unnamed') || '" has been removed by our team. Please contact us if you have any questions.',
-            TRUE, NOW()
-          FROM beneficiary_requests WHERE id = v_request_id;
-        END IF;
       END IF;
     END IF;
     RETURN OLD;
@@ -238,11 +231,6 @@ db.execute(`
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Rejected',
           'We regret to inform you that your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been rejected. Please contact our team if you have any questions.',
-          TRUE, NOW());
-      ELSIF v_status = 'allocated' THEN
-        INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
-        VALUES (NEW.user_id, 'service', 'Request Allocated',
-          'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been allocated and will be processed soon. Thank you for your patience.',
           TRUE, NOW());
       ELSIF v_status = 'urgent' THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)

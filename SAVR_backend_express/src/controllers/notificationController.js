@@ -128,6 +128,12 @@ db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS staff_message TEXT 
 db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS notified_date DATE DEFAULT NULL`)
   .catch(() => {});
 
+db.execute(`ALTER TABLE financial_donation_records ADD COLUMN IF NOT EXISTS notified_status VARCHAR(50)`)
+  .catch(() => {});
+
+db.execute(`ALTER TABLE truck_stops ADD COLUMN IF NOT EXISTS dispatched_notified_at TIMESTAMP DEFAULT NULL`)
+  .catch(() => {});
+
 async function createNotification(userId, type, title, description, isCritical = false) {
   try {
     await db.execute(
@@ -156,15 +162,13 @@ async function autoNotifyBeneficiary(userId) {
     );
 
     // Only handle statuses NOT covered by the DB trigger (notify_beneficiary_request_status).
-    // The trigger fires for approved/accepted/allocated/urgent/rejected/denied with the correct
+    // The trigger fires for approved/accepted/urgent/rejected/denied with the correct
     // request name. Handling them here too causes duplicates (one with name, one without).
-    const notableStatuses = ['cancelled', 'completed'];
+    const notableStatuses = ['completed'];
     const statusMessages = {
-      cancelled: 'Your request "[name]" has been cancelled by our team. Please contact us if you have any questions.',
       completed: 'Your request "[name]" has been completed and fulfilled. Thank you for reaching out to us!',
     };
     const statusTitles = {
-      cancelled: 'Request Cancelled',
       completed: 'Request Completed',
     };
 
@@ -230,65 +234,6 @@ async function autoNotifyBeneficiary(userId) {
         console.error('[autoNotifyBeneficiary] item', r.id, e.message);
       }
     }
-    // Check truck_stops DELIVER entries linked to this beneficiary's requests.
-    // Notify beneficiary when financial disbursements are made via donation_deliveries
-    try {
-      const [financialDeliveries] = await db.execute(`
-        SELECT del.id, del.delivery_items, del.created_at,
-               dd.beneficiary_request_id, br.request_name, br.amount AS total_amount, br.user_id
-        FROM donation_deliveries del
-        JOIN donation_drives dd ON dd.id = del.donation_drive_id
-        JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
-        WHERE br.user_id = ? AND br.type = 'financial'
-          AND del.notified_at IS NULL
-        ORDER BY del.created_at ASC
-      `, [userId]);
-
-      for (const del of financialDeliveries) {
-        try {
-          let items = [];
-          try { items = typeof del.delivery_items === 'string' ? JSON.parse(del.delivery_items) : (del.delivery_items || []); } catch {}
-          const financialItems = items.filter((i) => i.type === 'financial');
-          if (financialItems.length === 0) continue;
-
-          const [claimRes] = await db.execute(
-            'UPDATE donation_deliveries SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL',
-            [del.id]
-          );
-          if (claimRes.affectedRows === 0) continue;
-
-          const amountSent = financialItems.reduce((s, i) => s + parseFloat(i.qty || i.amount || '0'), 0);
-          const name = del.request_name || 'Unnamed';
-          const totalAmount = parseFloat(del.total_amount || '0');
-
-          // Compute total sent across all deliveries for this request to check if fulfilled
-          const [totals] = await db.execute(`
-            SELECT COALESCE(SUM(
-              (SELECT SUM((fi->>'qty')::numeric)
-               FROM json_array_elements(del2.delivery_items) AS fi
-               WHERE (fi->>'type') = 'financial')
-            ), 0) AS total_sent
-            FROM donation_deliveries del2
-            JOIN donation_drives dd2 ON dd2.id = del2.donation_drive_id
-            WHERE dd2.beneficiary_request_id = ?
-          `, [del.beneficiary_request_id]);
-          const totalSent = parseFloat(totals[0]?.total_sent || '0');
-          const goalMet = totalAmount > 0 && totalSent >= totalAmount;
-
-          const title = goalMet ? 'Financial Request Fulfilled' : 'Partial Payment Sent';
-          const msg = goalMet
-            ? `The full amount of ₱${totalAmount.toLocaleString()} for your request "${name}" has been sent to your account.`
-            : `₱${amountSent.toLocaleString()} has been sent for your request "${name}". Total received so far: ₱${totalSent.toLocaleString()}${totalAmount > 0 ? ' of ₱' + totalAmount.toLocaleString() : ''}.`;
-
-          await createNotification(del.user_id, 'service', title, msg, true);
-        } catch (e) {
-          console.error('[autoNotifyBeneficiary financial] delivery', del.id, e.message);
-        }
-      }
-    } catch (e) {
-      console.error('[autoNotifyBeneficiary financial]', e.message);
-    }
-
     // Two cases:
     //   1. Never notified (notified_at IS NULL) — covers pending/completed/missed on first touch
     //   2. Already notified but then marked missed (updated_at > notified_at) — staff changed
@@ -351,6 +296,16 @@ async function autoNotifyBeneficiary(userId) {
             title = 'Delivery Rescheduled';
             msg = `Your delivery for request "${name}" has been rescheduled to ${dateStr}${timeLabel}. Please update your availability to receive it.`;
           } else if (stop.status === 'pending') {
+            // Skip if web already created 'Delivery scheduled' to avoid bell duplicate
+            const [webDeliveryNotif] = await db.execute(
+              `SELECT id FROM notifications
+               WHERE user_id = ? AND type = 'service'
+                 AND LOWER(title) LIKE '%delivery scheduled%'
+                 AND created_at > NOW() - INTERVAL '24 hours'
+               LIMIT 1`,
+              [stop.user_id]
+            );
+            if (webDeliveryNotif.length > 0) continue;
             title = 'Delivery Incoming!';
             msg = `Great news! A delivery for your request "${name}" is on its way. Expected on ${dateStr}${timeLabel}. Please be available to receive it.`;
           } else if (stop.status === 'completed') {
@@ -414,6 +369,7 @@ async function autoNotifyBeneficiary(userId) {
         JOIN donation_drives dd ON dd.id = del.donation_drive_id
         JOIN beneficiary_requests br ON br.id = dd.beneficiary_request_id
         WHERE br.user_id = ? AND del.status = 'in_transit'
+          AND LOWER(COALESCE(br.type, '')) != 'financial'
           AND NOT (COALESCE(br.notified_statuses_json, '[]'::jsonb) @> '"in_transit_delivery"'::jsonb)
       `, [userId]);
 
@@ -446,13 +402,14 @@ async function autoNotifyBeneficiary(userId) {
 // Checks food/service donation records for unnotified status changes and creates notifications for donors.
 async function autoNotifyDonor(userId) {
   try {
-    const foodNotable = ['approved', 'rejected', 'received', 'completed', 'cancelled'];
+    const foodNotable = ['approved', 'rejected', 'received', 'completed', 'cancelled', 'missed'];
     const foodMessages = {
       approved:  'Great news! Your food donation has been approved and will be processed soon.',
       rejected:  'We regret to inform you that your food donation has been rejected. Please contact our team for more details.',
       received:  'Your food donation has been received. Thank you for your generosity!',
       completed: 'Your food donation has been completed and fulfilled. Thank you!',
       cancelled: 'Your food donation has been cancelled. Please contact our team if you have any questions.',
+      missed:    'We were unable to receive your scheduled food drop-off. Please contact our team to reschedule your donation.',
     };
     const foodTitles = {
       approved:  'Food Donation Approved',
@@ -460,16 +417,19 @@ async function autoNotifyDonor(userId) {
       received:  'Food Donation Received',
       completed: 'Food Donation Completed',
       cancelled: 'Food Donation Cancelled',
+      missed:    'Donation Drop-off Missed',
     };
 
     const [foodRows] = await db.execute(
-      'SELECT id, user_id, status, mode, preferred_date, notified_status FROM food_donation_records WHERE user_id = ?',
+      'SELECT id, user_id, status, mode, preferred_date, notified_status, updated_at FROM food_donation_records WHERE user_id = ?',
       [userId]
     );
     for (const r of foodRows) {
       try {
         const s = (r.status || '').toLowerCase().trim();
         if (!foodNotable.includes(s)) continue;
+        // 'missed' for delivery-mode drop-offs only; pickup-mode missed is handled by truck_stops section
+        if (s === 'missed' && (r.mode || '').toLowerCase() !== 'delivery') continue;
 
         const [result] = await db.execute(
           'UPDATE food_donation_records SET notified_status = ? WHERE id = ? AND (notified_status IS NULL OR notified_status != ?)',
@@ -477,15 +437,29 @@ async function autoNotifyDonor(userId) {
         );
         if (result.affectedRows === 0) continue;
 
-        // Guard against an external source that may have already sent a notification
-        // for this status change in the last 10 minutes.
+        // Guard against an external source (e.g. web dashboard) that may have already
+        // inserted a notification for this status change. Uses the record's updated_at
+        // as the time anchor so we don't accidentally match older unrelated entries.
+        // Also catches web-specific titles for rejected ('not accepted') and received ('donation received').
+        const webTitleParams = [`%${s}%`, `%${s}%`];
+        let webTitleClauses = 'LOWER(title) LIKE ? OR LOWER(description) LIKE ?';
+        if (s === 'rejected') {
+          webTitleClauses += ' OR LOWER(title) LIKE ?';
+          webTitleParams.push('%not accepted%');
+        } else if (s === 'received') {
+          webTitleClauses += ' OR LOWER(title) = ?';
+          webTitleParams.push('donation received');
+        }
+        const timeAnchor = r.updated_at
+          ? new Date(new Date(r.updated_at).getTime() - 5 * 60 * 1000)
+          : new Date(Date.now() - 10 * 60 * 1000);
         const [recentFoodRows] = await db.execute(
           `SELECT id FROM notifications
            WHERE user_id = ? AND type = 'food'
-             AND (LOWER(title) LIKE ? OR LOWER(description) LIKE ?)
-             AND created_at > NOW() - INTERVAL '10 minutes'
+             AND (${webTitleClauses})
+             AND created_at >= ?
            LIMIT 1`,
-          [r.user_id, `%${s}%`, `%${s}%`]
+          [r.user_id, ...webTitleParams, timeAnchor]
         );
         if (recentFoodRows.length > 0) continue;
 
@@ -555,19 +529,43 @@ async function autoNotifyDonor(userId) {
         console.error('[autoNotifyDonor service] item', r.id, e.message);
       }
     }
+    // Donor: financial donation rejected (#10)
+    try {
+      const [financialRejRows] = await db.execute(
+        "SELECT id, user_id, amount FROM financial_donation_records WHERE user_id = ? AND LOWER(status) = 'rejected'",
+        [userId]
+      );
+      for (const r of financialRejRows) {
+        const [claim] = await db.execute(
+          "UPDATE financial_donation_records SET notified_status = 'rejected' WHERE id = ? AND (notified_status IS NULL OR notified_status != 'rejected')",
+          [r.id]
+        );
+        if (claim.affectedRows === 0) continue;
+        const formatted = parseFloat(r.amount || 0).toLocaleString('en-PH');
+        await createNotification(
+          r.user_id, 'financial', 'Financial Donation Not Accepted',
+          `We regret to inform you that your financial donation of ₱${formatted} was not accepted. Please contact our team for more details.`,
+          true
+        );
+      }
+    } catch (e) {
+      console.error('[autoNotifyDonor financial rejection]', e.message);
+    }
+
     // Sync food_donation_records status from pending/completed/missed PICKUP truck stops
     try {
       const [pickupStops] = await db.execute(`
         SELECT ts.id, ts.status, ts.staff_message, ts.reference_id AS donation_id,
                ts.missed_notified_at, ts.notified_at, ts.notified_date, ts.date, ts.time_slot_start,
-               fdr.user_id AS donor_id
+               ts.dispatched_notified_at, fdr.user_id AS donor_id
         FROM truck_stops ts
         JOIN food_donation_records fdr ON fdr.id::text = ts.reference_id::text
         WHERE fdr.user_id = ? AND ts.source = 'food_donation'
           AND (
-            (LOWER(ts.status) = 'pending'   AND ts.notified_at IS NULL)
+            (LOWER(ts.status) = 'pending'    AND ts.notified_at IS NULL)
             OR (LOWER(ts.status) = 'completed' AND ts.notified_at IS NULL)
             OR (LOWER(ts.status) = 'missed'    AND ts.missed_notified_at IS NULL)
+            OR (LOWER(ts.status) = 'in_transit' AND ts.dispatched_notified_at IS NULL)
             OR (LOWER(ts.status) = 'pending' AND ts.notified_at IS NOT NULL
                 AND ts.notified_date IS NOT NULL AND ts.notified_date IS DISTINCT FROM ts.date)
           )
@@ -577,6 +575,7 @@ async function autoNotifyDonor(userId) {
         try {
           const statusLower = (stop.status || '').toLowerCase();
           const isDonorMissed = statusLower === 'missed';
+          const isDispatched  = statusLower === 'in_transit';
           const isRescheduled = statusLower === 'pending' && stop.notified_at !== null && stop.notified_date !== null;
 
           let donorClaimQuery, donorClaimParams;
@@ -585,6 +584,9 @@ async function autoNotifyDonor(userId) {
             donorClaimParams = [stop.id, 'missed'];
           } else if (isRescheduled) {
             donorClaimQuery = "UPDATE truck_stops SET notified_date = date WHERE id = ? AND LOWER(status) = 'pending' AND notified_date IS NOT NULL AND notified_date IS DISTINCT FROM date";
+            donorClaimParams = [stop.id];
+          } else if (isDispatched) {
+            donorClaimQuery = 'UPDATE truck_stops SET dispatched_notified_at = NOW() WHERE id = ? AND dispatched_notified_at IS NULL';
             donorClaimParams = [stop.id];
           } else {
             donorClaimQuery = 'UPDATE truck_stops SET notified_at = NOW(), notified_date = date WHERE id = ? AND notified_at IS NULL';
