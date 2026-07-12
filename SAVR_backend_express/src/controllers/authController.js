@@ -249,7 +249,7 @@ db.execute(`
         VALUES (NEW.user_id, 'service', 'Request Marked Urgent',
           'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" has been marked as urgent and will be prioritized immediately.',
           TRUE, NOW());
-      ELSIF v_status NOT IN ('pending', 'cancelled', 'canceled', 'deleted') THEN
+      ELSIF v_status NOT IN ('pending', 'cancelled', 'canceled', 'deleted', 'completed') THEN
         INSERT INTO notifications (user_id, type, title, description, is_critical, created_at)
         VALUES (NEW.user_id, 'service', 'Request Status Updated',
           'Your request "' || COALESCE(NEW.request_name, 'Unnamed') || '" status has been updated to "' || NEW.status || '". Please contact us if you have any questions.',

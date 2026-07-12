@@ -1735,7 +1735,11 @@ exports.receiveBeneficiaryStop = async (req, res) => {
 
     if (goalMet2) {
       await db.execute(
-        "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, updated_at = NOW() WHERE id = ?",
+        `UPDATE beneficiary_requests
+         SET status = 'Completed', received_items = ?,
+             notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || '"Completed"'::jsonb,
+             updated_at = NOW()
+         WHERE id = ?`,
         [JSON.stringify(updatedReceived2), id]
       );
       await createNotification(req.user.id, 'service', 'Request Completed',
@@ -1825,7 +1829,11 @@ exports.receiveBeneficiaryStop = async (req, res) => {
 
   if (goalMet) {
     await db.execute(
-      "UPDATE beneficiary_requests SET status = 'Completed', received_items = ?, updated_at = NOW() WHERE id = ?",
+      `UPDATE beneficiary_requests
+       SET status = 'Completed', received_items = ?,
+           notified_statuses_json = COALESCE(notified_statuses_json, '[]'::jsonb) || '"Completed"'::jsonb,
+           updated_at = NOW()
+       WHERE id = ?`,
       [JSON.stringify(updatedReceived), id]
     );
     await createNotification(req.user.id, 'service', 'Request Completed',
@@ -2103,7 +2111,7 @@ exports.confirmDisbursement = async (req, res) => {
 
     try {
       await db.execute(
-        "UPDATE donation_deliveries SET received_at = NOW(), status = 'received', updated_at = NOW() WHERE id = ?",
+        "UPDATE donation_deliveries SET received_at = NOW(), notified_at = NOW(), status = 'received', updated_at = NOW() WHERE id = ?",
         [disbursementId]
       );
     } catch (delErr) {
