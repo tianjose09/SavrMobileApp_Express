@@ -888,12 +888,21 @@ exports.getUpcomingPickups = async (req, res) => {
          AND fdr.status IN ('pending','scheduled','approved','accepted','confirmed','in_transit')
          AND (
            fdr.mode = 'delivery'
-           OR NOT EXISTS (
-             SELECT 1 FROM truck_stops ts
-             WHERE ts.reference_id::text = fdr.id::text
-               AND ts.source = 'food_donation'
-               AND ts.stop_type = 'PICKUP'
-               AND ts.status = 'completed'
+           OR (
+             NOT EXISTS (
+               SELECT 1 FROM truck_stops ts
+               WHERE ts.reference_id::text = fdr.id::text
+                 AND ts.source = 'food_donation'
+                 AND ts.stop_type = 'PICKUP'
+                 AND ts.status = 'completed'
+             )
+             AND NOT EXISTS (
+               SELECT 1 FROM truck_stops ts_m
+               WHERE ts_m.reference_id::text = fdr.id::text
+                 AND ts_m.source = 'food_donation'
+                 AND ts_m.stop_type = 'PICKUP'
+                 AND LOWER(ts_m.status) IN ('missed', 'notified')
+             )
            )
          )
        ORDER BY fdr.created_at DESC`,
