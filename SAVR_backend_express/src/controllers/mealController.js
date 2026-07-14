@@ -811,6 +811,37 @@ exports.updateMealRequestStatus = async (req, res) => {
       'UPDATE partner_kitchen_meal_requests SET status = ?, updated_at = NOW() WHERE id = ? AND partner_kitchen_id = ?',
       [status, id, kitchenId]
     );
+
+    if (status === 'Done') {
+      const [reqRows] = await db.execute(
+        'SELECT drive_title, requested_by FROM partner_kitchen_meal_requests WHERE id = ?',
+        [id]
+      );
+      const driveTitle = reqRows[0]?.drive_title || 'Unnamed Request';
+      const requestedBy = reqRows[0]?.requested_by || 'the requester';
+
+      // Notify the partner kitchen user
+      await createNotification(
+        req.user.id,
+        'service',
+        'Meal Submitted',
+        `Your meal for "${driveTitle}" has been successfully submitted to the staff inventory. Thank you!`,
+        true
+      );
+
+      // Notify all staff members
+      const [staffRows] = await db.execute("SELECT id FROM users WHERE role = 'staff'");
+      for (const staff of staffRows) {
+        await createNotification(
+          staff.id,
+          'service',
+          'New Prepared Meal Ready',
+          `A partner kitchen has completed the meal request for "${driveTitle}" requested by ${requestedBy}. Please check the inventory.`,
+          true
+        );
+      }
+    }
+
     return res.json({ message: 'Status updated.', status });
   } catch (e) {
     console.error('[updateMealRequestStatus]', e);
