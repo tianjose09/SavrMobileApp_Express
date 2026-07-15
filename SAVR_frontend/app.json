@@ -2,7 +2,7 @@
   "expo": {
     "name": "SAVR",
     "slug": "savr-mobile",
-    "owner": "altheaxzuleika",
+    "owner": "altheas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -56,7 +56,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e67fb697-9a82-4dbe-a98d-6a412a7cfa3b"
+        "projectId": "6440a6e1-70e2-4ccf-ae56-84dfc12205f2"
       }
     }
   }
